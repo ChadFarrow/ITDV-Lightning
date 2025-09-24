@@ -199,9 +199,9 @@ export async function POST(request: NextRequest) {
       console.warn('⚠️ No Nostr keys configured - boost will be stored but not posted to Nostr');
       
       // Store the boost data for later processing or display
-      const storedBoostData = {
+      const storedBoostData: StoredHelipadBoost = {
         ...mappedBoostData,
-        platform: 'helipad',
+        platform: 'helipad' as const,
         timestamp: Date.now(),
         storedAt: new Date().toISOString()
       };
@@ -228,9 +228,9 @@ export async function POST(request: NextRequest) {
       console.log('✅ Helipad boost posted to Nostr successfully:', boostResult.eventId);
       
       // Store the boost data for display purposes
-      const storedBoostData = {
+      const storedBoostData: StoredHelipadBoost = {
         ...mappedBoostData,
-        platform: 'helipad',
+        platform: 'helipad' as const,
         timestamp: Date.now(),
         storedAt: new Date().toISOString(),
         nostrEventId: boostResult.eventId,
@@ -250,9 +250,9 @@ export async function POST(request: NextRequest) {
       console.error('❌ Failed to post boost to Nostr:', boostResult.error);
       
       // Store the boost data even if Nostr posting failed
-      const storedBoostData = {
+      const storedBoostData: StoredHelipadBoost = {
         ...mappedBoostData,
-        platform: 'helipad',
+        platform: 'helipad' as const,
         timestamp: Date.now(),
         storedAt: new Date().toISOString(),
         nostrError: boostResult.error
