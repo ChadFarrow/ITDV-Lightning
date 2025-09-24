@@ -1,0 +1,51 @@
+// In-memory storage for Helipad boosts (in production, use a database)
+interface StoredHelipadBoost {
+  id: string;
+  amount: number;
+  sender?: { name: string };
+  podcast?: { title: string };
+  episode?: { title: string };
+  message?: string;
+  app?: string;
+  time?: number;
+  value_msat_total?: number;
+  action?: number;
+  remote_podcast?: string;
+  remote_episode?: string;
+  platform: 'helipad';
+  timestamp: number;
+  storedAt: string;
+  nostrEventId?: string;
+  nevent?: string;
+  nostrError?: string;
+}
+
+let helipadBoostsStorage: StoredHelipadBoost[] = [];
+
+// Add a boost to storage
+export function addHelipadBoost(boostData: StoredHelipadBoost) {
+  console.log('💾 Storing Helipad boost:', boostData.id);
+  helipadBoostsStorage.unshift(boostData); // Add to beginning for newest first
+  // Keep only the most recent 100 boosts in memory to prevent unbounded growth
+  if (helipadBoostsStorage.length > 100) {
+    helipadBoostsStorage.sort((a, b) => b.timestamp - a.timestamp);
+    helipadBoostsStorage.splice(100);
+  }
+}
+
+// Get all stored boosts
+export function getHelipadBoosts(limit: number = 50): StoredHelipadBoost[] {
+  const sortedBoosts = [...helipadBoostsStorage].sort((a, b) => b.timestamp - a.timestamp);
+  return sortedBoosts.slice(0, limit);
+}
+
+// Clear all stored boosts
+export function clearHelipadBoosts() {
+  helipadBoostsStorage = [];
+  console.log('🗑️ Cleared all Helipad boosts from storage');
+}
+
+// Get total count
+export function getHelipadBoostsCount(): number {
+  return helipadBoostsStorage.length;
+}

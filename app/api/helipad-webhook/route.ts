@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getBoostToNostrService, type TrackMetadata } from '@/lib/boost-to-nostr-service';
-import { addHelipadBoost } from '../helipad-boosts/route';
+import { addHelipadBoost } from '@/lib/helipad-storage';
 import crypto from 'crypto';
 
 // Helipad webhook payload interface
