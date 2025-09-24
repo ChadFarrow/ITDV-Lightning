@@ -5,36 +5,24 @@ import crypto from 'crypto';
 
 // Helipad webhook payload interface
 interface HelipadBoostPayload {
-  id: string;
-  amount: number; // Amount in sats
+  index?: number;
+  uuid?: string;
+  value_msat?: number;
+  value_msat_total?: number;
+  action?: number;
+  sender?: string;
+  app?: string;
   message?: string;
-  sender?: {
-    name?: string;
-    pubkey?: string;
-    npub?: string;
-  };
-  recipient?: {
-    name?: string;
-    pubkey?: string;
-    npub?: string;
-  };
-  podcast?: {
-    title?: string;
-    artist?: string;
-    album?: string;
-    episode?: string;
-    guid?: string;
-    feedGuid?: string;
-    publisherGuid?: string;
-    feedUrl?: string;
-    publisherUrl?: string;
-    imageUrl?: string;
-  };
-  timestamp: number;
-  // Additional Helipad-specific fields
-  platform?: string;
-  boostType?: string;
-  metadata?: Record<string, any>;
+  podcast?: string;
+  episode?: string;
+  time?: number;
+  remote_podcast?: string;
+  remote_episode?: string;
+  tlv?: string;
+  reply_sent?: boolean;
+  custom_key?: string | null;
+  custom_value?: string | null;
+  payment_info?: any;
 }
 
 // Verify webhook signature
