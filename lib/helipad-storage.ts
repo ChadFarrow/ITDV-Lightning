@@ -1,5 +1,5 @@
 // In-memory storage for Helipad boosts (in production, use a database)
-interface StoredHelipadBoost {
+export interface StoredHelipadBoost {
   index?: number;
   uuid?: string;
   value_msat?: number;
