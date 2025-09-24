@@ -148,36 +148,42 @@ export async function POST(request: NextRequest) {
     }
     
     // Map Helipad fields to our expected format
-    const mappedBoostData = {
-      id: boostData.index?.toString() || boostData.uuid || `helipad-${Date.now()}`,
-      amount: boostData.value_msat || 0,
-      sender: boostData.sender ? { name: boostData.sender } : undefined,
-      podcast: boostData.podcast ? { title: boostData.podcast } : undefined,
-      episode: boostData.episode ? { title: boostData.episode } : undefined,
-      message: boostData.message,
-      app: boostData.app,
-      time: boostData.time,
+    const mappedBoostData: HelipadBoostPayload = {
+      index: boostData.index,
+      uuid: boostData.uuid,
+      value_msat: boostData.value_msat,
       value_msat_total: boostData.value_msat_total,
       action: boostData.action,
+      sender: boostData.sender,
+      app: boostData.app,
+      message: boostData.message,
+      podcast: boostData.podcast,
+      episode: boostData.episode,
+      time: boostData.time,
       remote_podcast: boostData.remote_podcast,
-      remote_episode: boostData.remote_episode
+      remote_episode: boostData.remote_episode,
+      tlv: boostData.tlv,
+      reply_sent: boostData.reply_sent,
+      custom_key: boostData.custom_key,
+      custom_value: boostData.custom_value,
+      payment_info: boostData.payment_info
     };
 
     console.log('📊 Helipad boost data (mapped):', {
-      id: mappedBoostData.id,
-      amount: mappedBoostData.amount,
-      sender: mappedBoostData.sender?.name,
-      podcast: mappedBoostData.podcast?.title,
-      episode: mappedBoostData.episode?.title,
+      id: mappedBoostData.index || mappedBoostData.uuid,
+      amount: mappedBoostData.value_msat,
+      sender: mappedBoostData.sender,
+      podcast: mappedBoostData.podcast,
+      episode: mappedBoostData.episode,
       message: mappedBoostData.message,
       app: mappedBoostData.app
     });
     
     // Validate required fields
-    if (!mappedBoostData.id || !mappedBoostData.amount) {
+    if ((!mappedBoostData.index && !mappedBoostData.uuid) || !mappedBoostData.value_msat) {
       console.error('❌ Missing required fields in boost data');
       return NextResponse.json(
-        { error: 'Missing required fields: id, amount' },
+        { error: 'Missing required fields: id or amount' },
         { status: 400 }
       );
     }
@@ -204,17 +210,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         message: 'Boost received and stored (no Nostr posting due to missing keys)',
-        boostId: mappedBoostData.id,
-        amount: mappedBoostData.amount
+        boostId: mappedBoostData.index || mappedBoostData.uuid,
+        amount: mappedBoostData.value_msat
       });
     }
     
     // Post the boost to Nostr
     console.log('🚀 Posting Helipad boost to Nostr...');
     const boostResult = await boostService.postBoost({
-      amount: boostData.amount,
+      amount: mappedBoostData.value_msat,
       track: trackMetadata,
-      comment: boostData.message,
+      comment: mappedBoostData.message,
       tags: ['#helipad', '#boost', '#podcast']
     });
     
@@ -237,8 +243,8 @@ export async function POST(request: NextRequest) {
         message: 'Boost posted to Nostr successfully',
         nostrEventId: boostResult.eventId,
         nevent: boostResult.nevent,
-        boostId: mappedBoostData.id,
-        amount: mappedBoostData.amount
+        boostId: mappedBoostData.index || mappedBoostData.uuid,
+        amount: mappedBoostData.value_msat
       });
     } else {
       console.error('❌ Failed to post boost to Nostr:', boostResult.error);
@@ -258,8 +264,8 @@ export async function POST(request: NextRequest) {
         success: true,
         message: 'Boost received but failed to post to Nostr',
         error: boostResult.error,
-        boostId: mappedBoostData.id,
-        amount: mappedBoostData.amount
+        boostId: mappedBoostData.index || mappedBoostData.uuid,
+        amount: mappedBoostData.value_msat
       });
     }
     
