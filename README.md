@@ -149,6 +149,16 @@ The app uses a hybrid approach:
 - **Message Integration**: Boostagrams included in Lightning TLV records and Nostr boost posts
 - **Performance Optimization**: Removed failing payment recipients to improve boost speed
 
+### Helipad Integration (Testing - Not Live)
+- **Webhook System**: Receive boost notifications from Helipad instances via webhook API
+- **Platform Detection**: Visual badges distinguish between 🚁 Helipad, 📱 App, and 📡 Nostr boosts
+- **Security Features**: Authorization token validation and HMAC signature verification
+- **TOR Compatibility**: Works with Helipad instances behind TOR networks
+- **Deduplication**: Prevents duplicate boosts from appearing multiple times
+- **Nostr Publishing**: Automatically posts Helipad boosts to Nostr relays with #helipad tags
+- **Real-time Display**: Helipad boosts appear instantly on the boosts page
+- **In-memory Storage**: Temporary storage for development and testing purposes
+
 ### Value4Value Implementation
 - **Podcasting 2.0 Value Tags**: Full parsing and support for Lightning Network value splits
 - **LNURL Testing Album**: Special test album with multiple payment recipients
@@ -204,6 +214,12 @@ The app uses a hybrid approach:
 - **Static Data**: `/data/static/albums.json`
 - **LNURL Test Data**: Special album for Lightning payment testing
 
+### Helipad Integration (Testing)
+- `POST /api/helipad-webhook` - Webhook endpoint for Helipad boost notifications
+- `GET /api/helipad-boosts` - Retrieve stored Helipad boosts
+- `DELETE /api/helipad-boosts` - Clear Helipad boost storage (testing only)
+- `POST /api/test-helipad-webhook` - Test endpoint for webhook simulation
+
 ## Troubleshooting
 
 ### Missing Albums
@@ -229,6 +245,13 @@ If albums are not displaying:
 - **Payment failures**: Verify Lightning address validity and node connectivity
 - **NWC issues**: Confirm Nostr Wallet Connect string and relay connectivity
 - **Missing recipients**: Check album value tags and payment recipient parsing
+
+### Helipad Integration Issues (Testing)
+- **Webhook not receiving boosts**: Verify webhook URL and authorization token configuration
+- **TOR connectivity**: Ensure Helipad instance can reach public webhook URL (not localhost/ngrok)
+- **Platform badges incorrect**: Check boost parsing logic and tag detection
+- **Duplicate boosts**: Verify deduplication logic is working correctly
+- **Storage resets**: In-memory storage clears on server restart (development only)
 
 ## Contributing
 
