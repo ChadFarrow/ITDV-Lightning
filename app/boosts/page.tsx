@@ -106,6 +106,9 @@ function parseBoostFromEvent(event: Event): ParsedBoost | null {
     // Try to get author name from profile tags (this would need to be fetched separately in a real implementation)
     const authorName = event.pubkey.substring(0, 8) + '...'; // Fallback to truncated pubkey
 
+    // Check if this is a Helipad boost by looking for #helipad tag
+    const isFromHelipad = event.tags.some(tag => tag[0] === 't' && tag[1] === 'helipad');
+    const platform = isFromHelipad ? 'helipad' : 'nostr';
 
     return {
       id: event.id,
@@ -120,7 +123,9 @@ function parseBoostFromEvent(event: Event): ParsedBoost | null {
       trackAlbum,
       timestamp: event.created_at,
       tags: event.tags,
-      url
+      url,
+      isFromHelipad,
+      platform
     };
   } catch (error) {
     console.error('Error parsing boost event:', error);
@@ -221,31 +226,55 @@ function buildThreadedReplies(events: any[], rootEventId: string): ParsedReply[]
   return buildChildren(rootEventId, 0);
 }
 
-// Fetch Helipad boosts from our webhook storage or API
+// Fetch Helipad boosts from our webhook storage
 async function fetchHelipadBoosts(): Promise<ParsedBoost[]> {
   try {
-    // For now, we'll fetch from Nostr relays looking for boosts with #helipad tag
-    // In a full implementation, you might store Helipad boosts in a database
-    const service = getBoostToNostrService();
-    const helipadBoosts = await service.fetchRecentBoosts(50);
+    console.log('🔍 Fetching Helipad boosts from API...');
+    // Fetch stored Helipad boosts from our API
+    const response = await fetch('/api/helipad-boosts?limit=50');
+    if (!response.ok) {
+      throw new Error(`Failed to fetch Helipad boosts: ${response.status}`);
+    }
     
-    // Filter for boosts that have #helipad tag
-    const helipadTaggedBoosts = helipadBoosts.filter(event => 
-      event.tags.some(tag => tag[0] === 't' && tag[1] === 'helipad')
-    );
+    const data = await response.json();
+    console.log('📊 Helipad API response:', data);
     
-    return helipadTaggedBoosts.map(event => {
-      const parsed = parseBoostFromEvent(event);
-      if (parsed) {
-        parsed.isFromHelipad = true;
-        parsed.platform = 'helipad';
-        // Try to get a better author name for Helipad boosts
-        parsed.authorName = parsed.authorName || 'Helipad User';
-      }
-      return parsed;
-    }).filter(Boolean) as ParsedBoost[];
+    if (!data.success) {
+      throw new Error('API returned error');
+    }
+    
+    // Convert stored boost data to ParsedBoost format
+    const parsedBoosts = data.boosts.map((boost: any) => ({
+      id: boost.id,
+      author: typeof boost.sender === 'string' ? boost.sender : (boost.sender?.name || 'Helipad User'),
+      authorNpub: '', // Helipad boosts don't have Nostr pubkeys
+      authorName: typeof boost.sender === 'string' ? boost.sender : (boost.sender?.name || 'Helipad User'),
+      content: boost.message || '',
+      userMessage: boost.message,
+      amount: boost.amount?.toString(),
+      trackTitle: typeof boost.podcast === 'string' ? boost.podcast : (boost.podcast?.title || boost.remote_podcast),
+      trackArtist: typeof boost.podcast === 'string' ? boost.podcast : (boost.podcast?.title || boost.remote_podcast),
+      trackAlbum: typeof boost.episode === 'string' ? boost.episode : (boost.episode?.title || boost.remote_episode),
+      timestamp: boost.time || Math.floor(boost.timestamp / 1000),
+      tags: [['t', 'helipad'], ['t', 'boost']],
+      url: undefined,
+      replies: [],
+      isFromApp: false,
+      isFromHelipad: true,
+      platform: 'helipad'
+    }));
+    
+    console.log('✅ Parsed Helipad boosts:', parsedBoosts);
+    console.log('🔍 First boost details:', parsedBoosts[0]);
+    if (parsedBoosts[0]) {
+      console.log('🔍 Boost has amount:', !!parsedBoosts[0].amount);
+      console.log('🔍 Boost has trackTitle:', !!parsedBoosts[0].trackTitle);
+      console.log('🔍 Boost has trackArtist:', !!parsedBoosts[0].trackArtist);
+      console.log('🔍 Boost will be displayed:', !!(parsedBoosts[0].amount && (parsedBoosts[0].trackTitle || parsedBoosts[0].trackArtist)));
+    }
+    return parsedBoosts;
   } catch (error) {
-    console.error('Error fetching Helipad boosts:', error);
+    console.error('❌ Error fetching Helipad boosts:', error);
     return [];
   }
 }
@@ -362,7 +391,24 @@ export default function BoostsPage() {
           if (timeSinceCache < cacheValidDuration) {
             console.log('✅ Loading boosts from cache - data is fresh');
             const parsedBoosts = JSON.parse(cachedData);
-            setBoosts(parsedBoosts);
+            
+            // Always fetch Helipad boosts even when loading from cache
+            console.log('Fetching Helipad boosts...');
+            const helipadBoosts = await fetchHelipadBoosts();
+            console.log(`Found ${helipadBoosts.length} Helipad boosts`);
+            console.log('Helipad boosts data:', helipadBoosts);
+            
+            // Merge Helipad boosts with cached boosts
+            const allBoosts = [...helipadBoosts, ...parsedBoosts];
+            
+            // Sort by timestamp (most recent first)
+            const sortedBoosts = allBoosts.sort((a, b) => {
+              const timeA = a.timestamp || 0;
+              const timeB = b.timestamp || 0;
+              return timeB - timeA;
+            });
+            
+            setBoosts(sortedBoosts);
             setLastCacheTime(parseInt(cachedTime));
             setLoading(false);
             return;
@@ -417,17 +463,27 @@ export default function BoostsPage() {
       console.log('Fetching Helipad boosts...');
       const helipadBoosts = await fetchHelipadBoosts();
       console.log(`Found ${helipadBoosts.length} Helipad boosts`);
+      console.log('Helipad boosts data:', helipadBoosts);
 
       // Parse boosts and fetch replies progressively
       const parsedBoosts: ParsedBoost[] = [];
       let actualBoostCount = 0;
 
-      // Add Helipad boosts first
+      // Create a set to track Helipad boost identifiers to avoid duplicates
+      // We'll track by content hash since IDs might differ between webhook and Nostr
+      const helipadBoostHashes = new Set(
+        helipadBoosts.map(boost => 
+          `${boost.amount}-${boost.trackTitle}-${boost.trackArtist}-${boost.userMessage}`.toLowerCase()
+        )
+      );
+      
+      // Add Helipad boosts first (these take priority over Nostr versions)
       for (const helipadBoost of helipadBoosts) {
         parsedBoosts.push(helipadBoost);
         if (helipadBoost.amount && (helipadBoost.trackTitle || helipadBoost.trackArtist)) {
           actualBoostCount++;
         }
+        console.log(`✅ Added Helipad boost: ${helipadBoost.id} - ${helipadBoost.userMessage}`);
       }
 
       // Process each Nostr boost and immediately fetch its replies
@@ -436,13 +492,26 @@ export default function BoostsPage() {
         const parsedBoost = parseBoostFromEvent(event);
 
         if (parsedBoost) {
+          // Skip if this is a duplicate Helipad boost (already processed from webhook)
+          if (parsedBoost.isFromHelipad) {
+            const boostHash = `${parsedBoost.amount}-${parsedBoost.trackTitle}-${parsedBoost.trackArtist}-${parsedBoost.userMessage}`.toLowerCase();
+            console.log(`🔍 Checking Helipad boost from Nostr: ${parsedBoost.id} (hash: ${boostHash})`);
+            console.log(`🔍 Existing Helipad hashes:`, Array.from(helipadBoostHashes));
+            if (helipadBoostHashes.has(boostHash)) {
+              console.log(`🔄 Skipping duplicate Helipad boost from Nostr (already from webhook): ${parsedBoost.id} (hash: ${boostHash})`);
+              continue;
+            } else {
+              console.log(`⚠️ Helipad boost from Nostr not found in webhook storage: ${parsedBoost.id}`);
+            }
+          }
+
           // Check if this looks like an actual boost (has amount and track info)
           if (parsedBoost.amount && (parsedBoost.trackTitle || parsedBoost.trackArtist)) {
             actualBoostCount++;
           }
 
           parsedBoost.isFromApp = true;
-          parsedBoost.platform = 'nostr';
+          // Platform is now set by parseBoostFromEvent based on #helipad tag
           parsedBoost.replies = []; // Start with empty replies
           parsedBoosts.push(parsedBoost);
 
@@ -549,7 +618,24 @@ export default function BoostsPage() {
             onBoost: async (event) => {
               const parsedBoost = parseBoostFromEvent(event);
               if (parsedBoost) {
+                // Skip if this is a Helipad boost that we already have from webhook
+                if (parsedBoost.isFromHelipad) {
+                  // Check if we already have this boost from webhook storage
+                  const boostHash = `${parsedBoost.amount}-${parsedBoost.trackTitle}-${parsedBoost.trackArtist}-${parsedBoost.userMessage}`.toLowerCase();
+                  const existingBoosts = boosts.filter(b => b.platform === 'helipad');
+                  const hasDuplicate = existingBoosts.some(b => {
+                    const existingHash = `${b.amount}-${b.trackTitle}-${b.trackArtist}-${b.userMessage}`.toLowerCase();
+                    return existingHash === boostHash;
+                  });
+                  
+                  if (hasDuplicate) {
+                    console.log(`🔄 Skipping real-time Helipad boost from Nostr (already from webhook): ${parsedBoost.id}`);
+                    return;
+                  }
+                }
+                
                 parsedBoost.isFromApp = true;
+                // Platform is now set by parseBoostFromEvent based on #helipad tag
 
                 // Fetch threaded replies for real-time boost
                 try {
@@ -845,16 +931,21 @@ export default function BoostsPage() {
                     {/* Platform indicator and timestamp */}
                     <div className="flex flex-wrap items-center justify-between text-gray-500 text-sm mt-3 pt-2 border-t border-gray-700/50">
                       <div className="flex items-center gap-2">
-                        {boost.isFromHelipad && (
-                          <span className="bg-blue-500/20 text-blue-400 px-2 py-1 rounded text-xs font-medium">
-                            🚁 Helipad
-                          </span>
-                        )}
-                        {boost.platform === 'nostr' && (
-                          <span className="bg-purple-500/20 text-purple-400 px-2 py-1 rounded text-xs font-medium">
-                            📡 Nostr
-                          </span>
-                        )}
+        {(boost.isFromHelipad || boost.platform === 'helipad') && (
+          <span className="bg-blue-500/20 text-blue-400 px-2 py-1 rounded text-xs font-medium">
+            🚁 Helipad
+          </span>
+        )}
+        {boost.isFromApp && !boost.isFromHelipad && (
+          <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs font-medium">
+            📱 App
+          </span>
+        )}
+        {!boost.isFromApp && !boost.isFromHelipad && (
+          <span className="bg-purple-500/20 text-purple-400 px-2 py-1 rounded text-xs font-medium">
+            📡 Nostr
+          </span>
+        )}
                       </div>
                       <div>
                         {formatTimestamp(boost.timestamp)}

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getBoostToNostrService, type TrackMetadata } from '@/lib/boost-to-nostr-service';
+import { addHelipadBoost } from '../helipad-boosts/route';
 import crypto from 'crypto';
 
 // Helipad webhook payload interface
@@ -204,12 +205,19 @@ export async function POST(request: NextRequest) {
       console.warn('⚠️ No Nostr keys configured - boost will be stored but not posted to Nostr');
       
       // Store the boost data for later processing or display
-      // You could save this to a database or cache here
+      const storedBoostData = {
+        ...mappedBoostData,
+        platform: 'helipad',
+        timestamp: Date.now(),
+        storedAt: new Date().toISOString()
+      };
+      addHelipadBoost(storedBoostData);
+      
       return NextResponse.json({
         success: true,
         message: 'Boost received and stored (no Nostr posting due to missing keys)',
-        boostId: boostData.id,
-        amount: boostData.amount
+        boostId: mappedBoostData.id,
+        amount: mappedBoostData.amount
       });
     }
     
@@ -225,27 +233,45 @@ export async function POST(request: NextRequest) {
     if (boostResult.success) {
       console.log('✅ Helipad boost posted to Nostr successfully:', boostResult.eventId);
       
-      // You could also store this in a database for additional tracking
-      // await storeBoostInDatabase(boostData, boostResult);
+      // Store the boost data for display purposes
+      const storedBoostData = {
+        ...mappedBoostData,
+        platform: 'helipad',
+        timestamp: Date.now(),
+        storedAt: new Date().toISOString(),
+        nostrEventId: boostResult.eventId,
+        nevent: boostResult.nevent
+      };
+      addHelipadBoost(storedBoostData);
       
       return NextResponse.json({
         success: true,
         message: 'Boost posted to Nostr successfully',
         nostrEventId: boostResult.eventId,
         nevent: boostResult.nevent,
-        boostId: boostData.id,
-        amount: boostData.amount
+        boostId: mappedBoostData.id,
+        amount: mappedBoostData.amount
       });
     } else {
       console.error('❌ Failed to post boost to Nostr:', boostResult.error);
+      
+      // Store the boost data even if Nostr posting failed
+      const storedBoostData = {
+        ...mappedBoostData,
+        platform: 'helipad',
+        timestamp: Date.now(),
+        storedAt: new Date().toISOString(),
+        nostrError: boostResult.error
+      };
+      addHelipadBoost(storedBoostData);
       
       // Still return success for the webhook, but log the error
       return NextResponse.json({
         success: true,
         message: 'Boost received but failed to post to Nostr',
         error: boostResult.error,
-        boostId: boostData.id,
-        amount: boostData.amount
+        boostId: mappedBoostData.id,
+        amount: mappedBoostData.amount
       });
     }
     
