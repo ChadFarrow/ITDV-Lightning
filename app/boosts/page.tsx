@@ -23,6 +23,8 @@ interface ParsedBoost {
   url?: string;
   replies?: ParsedReply[];
   isFromApp?: boolean;  // Flag to indicate if this boost is from the app's account
+  isFromHelipad?: boolean;  // Flag to indicate if this boost is from Helipad
+  platform?: string;  // Platform source (nostr, helipad, etc.)
 }
 
 interface ParsedReply {
@@ -219,6 +221,35 @@ function buildThreadedReplies(events: any[], rootEventId: string): ParsedReply[]
   return buildChildren(rootEventId, 0);
 }
 
+// Fetch Helipad boosts from our webhook storage or API
+async function fetchHelipadBoosts(): Promise<ParsedBoost[]> {
+  try {
+    // For now, we'll fetch from Nostr relays looking for boosts with #helipad tag
+    // In a full implementation, you might store Helipad boosts in a database
+    const service = getBoostToNostrService();
+    const helipadBoosts = await service.fetchRecentBoosts(50);
+    
+    // Filter for boosts that have #helipad tag
+    const helipadTaggedBoosts = helipadBoosts.filter(event => 
+      event.tags.some(tag => tag[0] === 't' && tag[1] === 'helipad')
+    );
+    
+    return helipadTaggedBoosts.map(event => {
+      const parsed = parseBoostFromEvent(event);
+      if (parsed) {
+        parsed.isFromHelipad = true;
+        parsed.platform = 'helipad';
+        // Try to get a better author name for Helipad boosts
+        parsed.authorName = parsed.authorName || 'Helipad User';
+      }
+      return parsed;
+    }).filter(Boolean) as ParsedBoost[];
+  } catch (error) {
+    console.error('Error fetching Helipad boosts:', error);
+    return [];
+  }
+}
+
 function formatTimestamp(timestamp: number): string {
   const date = new Date(timestamp * 1000);
   const now = new Date();
@@ -382,11 +413,24 @@ export default function BoostsPage() {
         allBoosts = [];
       }
 
+      // Also fetch Helipad boosts
+      console.log('Fetching Helipad boosts...');
+      const helipadBoosts = await fetchHelipadBoosts();
+      console.log(`Found ${helipadBoosts.length} Helipad boosts`);
+
       // Parse boosts and fetch replies progressively
       const parsedBoosts: ParsedBoost[] = [];
       let actualBoostCount = 0;
 
-      // Process each boost and immediately fetch its replies
+      // Add Helipad boosts first
+      for (const helipadBoost of helipadBoosts) {
+        parsedBoosts.push(helipadBoost);
+        if (helipadBoost.amount && (helipadBoost.trackTitle || helipadBoost.trackArtist)) {
+          actualBoostCount++;
+        }
+      }
+
+      // Process each Nostr boost and immediately fetch its replies
       for (let i = 0; i < allBoosts.length; i++) {
         const event = allBoosts[i];
         const parsedBoost = parseBoostFromEvent(event);
@@ -398,6 +442,7 @@ export default function BoostsPage() {
           }
 
           parsedBoost.isFromApp = true;
+          parsedBoost.platform = 'nostr';
           parsedBoost.replies = []; // Start with empty replies
           parsedBoosts.push(parsedBoost);
 
@@ -797,9 +842,23 @@ export default function BoostsPage() {
                       )}
                     </div>
 
-                    {/* Timestamp - Below actions on mobile */}
-                    <div className="text-gray-500 text-sm mt-3 pt-2 border-t border-gray-700/50">
-                      {formatTimestamp(boost.timestamp)}
+                    {/* Platform indicator and timestamp */}
+                    <div className="flex flex-wrap items-center justify-between text-gray-500 text-sm mt-3 pt-2 border-t border-gray-700/50">
+                      <div className="flex items-center gap-2">
+                        {boost.isFromHelipad && (
+                          <span className="bg-blue-500/20 text-blue-400 px-2 py-1 rounded text-xs font-medium">
+                            🚁 Helipad
+                          </span>
+                        )}
+                        {boost.platform === 'nostr' && (
+                          <span className="bg-purple-500/20 text-purple-400 px-2 py-1 rounded text-xs font-medium">
+                            📡 Nostr
+                          </span>
+                        )}
+                      </div>
+                      <div>
+                        {formatTimestamp(boost.timestamp)}
+                      </div>
                     </div>
                   </div>
                 </div>
