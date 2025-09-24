@@ -1,17 +1,23 @@
 // In-memory storage for Helipad boosts (in production, use a database)
 interface StoredHelipadBoost {
-  id: string;
-  amount: number;
-  sender?: { name: string };
-  podcast?: { title: string };
-  episode?: { title: string };
-  message?: string;
-  app?: string;
-  time?: number;
+  index?: number;
+  uuid?: string;
+  value_msat?: number;
   value_msat_total?: number;
   action?: number;
+  sender?: string;
+  app?: string;
+  message?: string;
+  podcast?: string;
+  episode?: string;
+  time?: number;
   remote_podcast?: string;
   remote_episode?: string;
+  tlv?: string;
+  reply_sent?: boolean;
+  custom_key?: string | null;
+  custom_value?: string | null;
+  payment_info?: any;
   platform: 'helipad';
   timestamp: number;
   storedAt: string;
@@ -24,7 +30,7 @@ let helipadBoostsStorage: StoredHelipadBoost[] = [];
 
 // Add a boost to storage
 export function addHelipadBoost(boostData: StoredHelipadBoost) {
-  console.log('💾 Storing Helipad boost:', boostData.id);
+  console.log('💾 Storing Helipad boost:', boostData.index || boostData.uuid);
   helipadBoostsStorage.unshift(boostData); // Add to beginning for newest first
   // Keep only the most recent 100 boosts in memory to prevent unbounded growth
   if (helipadBoostsStorage.length > 100) {
