@@ -74,19 +74,19 @@ function verifyAuthToken(authHeader: string | null, expectedToken: string): bool
 // Convert Helipad boost to TrackMetadata format
 function convertHelipadBoostToTrackMetadata(boost: HelipadBoostPayload): TrackMetadata {
   return {
-    title: boost.podcast?.episode || boost.podcast?.title,
-    artist: boost.podcast?.artist,
-    album: boost.podcast?.album || boost.podcast?.title,
-    url: `https://zaps.podtards.com/album/${encodeURIComponent(boost.podcast?.album || '')}`,
-    imageUrl: boost.podcast?.imageUrl,
-    timestamp: Math.floor(Date.now() / 1000), // Current timestamp
-    senderName: boost.sender?.name || 'Helipad User',
-    guid: boost.podcast?.guid,
-    podcastGuid: boost.podcast?.guid,
-    feedGuid: boost.podcast?.feedGuid,
-    feedUrl: boost.podcast?.feedUrl,
-    publisherGuid: boost.podcast?.publisherGuid,
-    publisherUrl: boost.podcast?.publisherUrl,
+    title: boost.episode || boost.podcast || 'Unknown Episode',
+    artist: boost.podcast || 'Unknown Podcast',
+    album: boost.podcast || 'Unknown Album',
+    url: `https://zaps.podtards.com/album/${encodeURIComponent(boost.podcast || '')}`,
+    imageUrl: undefined,
+    timestamp: boost.time || Math.floor(Date.now() / 1000),
+    senderName: boost.sender || 'Helipad User',
+    guid: boost.uuid,
+    podcastGuid: boost.uuid,
+    feedGuid: undefined,
+    feedUrl: undefined,
+    publisherGuid: undefined,
+    publisherUrl: undefined,
   };
 }
 
