@@ -56,7 +56,7 @@ async function buildStaticData() {
     // Fetch from the slow but complete RSS parsing endpoint
     const response = await fetch(`${baseUrl}/api/albums`, {
       headers: {
-        'User-Agent': 'ITDV-StaticBuilder/1.0'
+        'User-Agent': 'HPM-StaticBuilder/1.0'
       }
     });
     

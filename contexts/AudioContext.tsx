@@ -359,7 +359,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           address: '03740ea02585ed87b83b2f76317a4562b616bd7b8ec3f925be6596932b2003fc9e',
           split: 0, // Will be overridden by fixedAmount
           fixedAmount: 2, // Fixed 2 sats
-          name: 'ITDV Lightning Platform Fee',
+          name: 'HPM Lightning Platform Fee',
           fee: true,
           type: 'node'
         });
@@ -379,7 +379,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         album: currentAlbum || 'Unknown Album',
         episode: track.title,
         url: currentAlbum ? `https://zaps.podtards.com/album/${encodeURIComponent(currentAlbum)}#${encodeURIComponent(track.title || '')}` : 'https://zaps.podtards.com',
-        appName: 'ITDV Lightning',
+        appName: 'HPM Lightning',
         timestamp: Math.floor(currentTime),
         senderName: 'Auto Boost', // Identify as auto boost
         // No message for auto boosts to keep TLVs clean

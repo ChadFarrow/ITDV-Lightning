@@ -722,7 +722,7 @@ const NowPlayingScreen: React.FC<NowPlayingScreenProps> = ({ isOpen, onClose }) 
                   album: currentAlbum || 'Unknown Album',
                   episode: currentTrack?.title,
                   url: currentAlbum ? `https://zaps.podtards.com/album/${encodeURIComponent(currentAlbum)}#${encodeURIComponent(currentTrack?.title || '')}` : 'https://zaps.podtards.com',
-                  appName: 'ITDV Lightning',
+                  appName: 'HPM Lightning',
                   timestamp: Math.floor(currentTime),
                   senderName: senderName?.trim() || undefined,
                   message: boostMessage?.trim() || undefined,

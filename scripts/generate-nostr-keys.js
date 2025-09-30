@@ -8,7 +8,7 @@ const publicKey = getPublicKey(secretKey);
 const nsec = nip19.nsecEncode(secretKey);
 const npub = nip19.npubEncode(publicKey);
 
-console.log('Generated Nostr keys for ITDV Lightning site:');
+console.log('Generated Nostr keys for HPM Lightning site:');
 console.log('NEXT_PUBLIC_SITE_NOSTR_NSEC=' + nsec);
 console.log('NEXT_PUBLIC_SITE_NOSTR_NPUB=' + npub);
 console.log('');

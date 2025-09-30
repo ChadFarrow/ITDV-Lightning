@@ -82,7 +82,7 @@ export function preloadStaticAssets(): void {
   // Preload critical images
   const criticalImages = [
     '/bloodshot-lies-big.png',
-    '/ITDV-lightning-logo.jpg',
+    '/HPM-lightning-logo.jpg',
   ];
   
   criticalImages.forEach(src => {

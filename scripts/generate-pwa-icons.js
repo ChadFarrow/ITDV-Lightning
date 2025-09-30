@@ -2,8 +2,8 @@ const { createCanvas, loadImage } = require('canvas');
 const fs = require('fs');
 const path = require('path');
 
-// Create ITDV logo programmatically based on the uploaded design
-function createITDVLogo(size) {
+// Create HPM logo programmatically based on the uploaded design
+function createHPMLogo(size) {
   const canvas = createCanvas(size, size);
   const ctx = canvas.getContext('2d');
   
@@ -20,8 +20,8 @@ function createITDVLogo(size) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   
-  // Draw ITDV text
-  ctx.fillText('ITDV', size / 2, size / 2);
+  // Draw HPM text
+  ctx.fillText('HPM', size / 2, size / 2);
   
   return canvas;
 }
@@ -47,7 +47,7 @@ async function generatePWAIcons() {
   for (const icon of iconSizes) {
     console.log(`Creating ${icon.name} (${icon.size}x${icon.size})`);
     
-    const canvas = createITDVLogo(icon.size);
+    const canvas = createHPMLogo(icon.size);
     const buffer = canvas.toBuffer('image/png');
     
     const filepath = path.join(publicDir, icon.name);
@@ -61,7 +61,7 @@ async function generatePWAIcons() {
 
 // Generate favicon.ico using the 32x32 version
 function generateFavicon() {
-  const canvas = createITDVLogo(32);
+  const canvas = createHPMLogo(32);
   const buffer = canvas.toBuffer('image/png');
   
   // Save as PNG (modern browsers support PNG favicons)

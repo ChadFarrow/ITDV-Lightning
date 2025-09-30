@@ -43,7 +43,7 @@ function createBoostTLVRecords(metadata: BoostMetadata, recipientName?: string, 
     podcast: metadata.artist || 'Unknown Artist',
     episode: metadata.title || 'Unknown Title',
     action: 'boost',
-    app_name: metadata.appName || 'ITDV Lightning',
+    app_name: metadata.appName || 'HPM Lightning',
     // Use actual feed URL from metadata, fallback to main podcast feed
     feed: metadata.feedUrl || 'https://www.doerfelverse.com/feeds/intothedoerfelverse.xml',
     url: metadata.feedUrl || 'https://www.doerfelverse.com/feeds/intothedoerfelverse.xml',
@@ -61,7 +61,7 @@ function createBoostTLVRecords(metadata: BoostMetadata, recipientName?: string, 
     uuid: `boost-${Date.now()}-${Math.floor(Math.random() * 1000)}`, // Unique identifier
     app_version: '1.0.0', // App version
     ...(amount && { value_msat: amount * 1000 }), // Individual payment amount
-    name: 'ITDV Lightning' // App/service name
+    name: 'HPM Lightning' // App/service name
   };
   
   // Log the exact TLV data for debugging
@@ -86,7 +86,7 @@ function createBoostTLVRecords(metadata: BoostMetadata, recipientName?: string, 
     podcast: metadata.artist || 'Unknown Artist',
     episode: metadata.title || 'Unknown Title', 
     action: 'boost',
-    app: metadata.appName || 'ITDV Lightning',
+    app: metadata.appName || 'HPM Lightning',
     message: metadata.message || '',
     ...(amount && { amount: amount }),
     sender: metadata.senderName || 'Anonymous',

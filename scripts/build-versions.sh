@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "🚀 Building ITDV versions..."
+echo "🚀 Building HPM versions..."
 
 # Build Lightning version
 echo "⚡ Building Lightning version..."

@@ -1,4 +1,4 @@
-# ITDV Lightning
+# HPM Lightning
 
 A Lightning Network-powered Value4Value music platform showcasing independent artists from the DoerfelVerse. Built with Next.js, featuring instant Bitcoin payments, Nostr integration, and RSS feeds.
 

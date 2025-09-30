@@ -60,7 +60,7 @@ export default function AlbyGoConnect({ onSuccess, onError, className = '' }: Al
       // For Alby Hub one-tap connections, we need to create a proper connection request
       // The user should get this URL from their Alby Hub's one-tap connection setup
       
-      const appName = 'ITDV Lightning';
+      const appName = 'HPM Lightning';
       const returnUrl = typeof window !== 'undefined' ? `${window.location.origin}?nwc=` : '';
       
       // Build the connection request for Alby Hub/Go

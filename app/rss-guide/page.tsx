@@ -41,8 +41,8 @@ export default function RSSGuidePage() {
               <h1 className="text-2xl font-bold">📡 RSS & Podcasting 2.0 Guide</h1>
               <div className="w-10 h-10 relative border border-gray-700 rounded-lg overflow-hidden">
                 <Image 
-                  src="/ITDV-lightning-logo.jpg" 
-                  alt="ITDV Lightning Logo" 
+                  src="/HPM-lightning-logo.jpg" 
+                  alt="HPM Lightning Logo" 
                   width={40} 
                   height={40}
                   className="object-cover"
@@ -61,7 +61,7 @@ export default function RSSGuidePage() {
             <div className="bg-black/80 backdrop-blur-sm rounded-xl p-6 mb-8 border border-white/30">
               <h2 className="text-3xl font-bold mb-4 text-blue-400">📡 RSS Feeds & Podcasting 2.0</h2>
               <p className="text-lg mb-4">
-                ITDV Lightning is built on <strong>RSS feeds</strong> and <strong>Podcasting 2.0</strong> standards, enabling decentralized music distribution with built-in Lightning payment support. This creates a truly open and censorship-resistant music platform.
+                HPM Lightning is built on <strong>RSS feeds</strong> and <strong>Podcasting 2.0</strong> standards, enabling decentralized music distribution with built-in Lightning payment support. This creates a truly open and censorship-resistant music platform.
               </p>
               
               <div className="bg-gradient-to-r from-blue-600 to-green-600 rounded-lg p-4 text-center">
@@ -102,7 +102,7 @@ export default function RSSGuidePage() {
                 </div>
               </div>
 
-              <h3 className="text-xl font-semibold mb-3">How ITDV Lightning Uses RSS</h3>
+              <h3 className="text-xl font-semibold mb-3">How HPM Lightning Uses RSS</h3>
               <p className="mb-4">
                 The platform parses RSS feeds from 46 different sources to build the music catalog. Each album has its own RSS feed, ensuring that new tracks and updates are automatically reflected on the site.
               </p>
@@ -113,7 +113,7 @@ export default function RSSGuidePage() {
               <h2 className="text-3xl font-bold mb-4 text-purple-400">🎙️ Podcasting 2.0 Standards</h2>
               
               <p className="mb-4">
-                <strong>Podcasting 2.0</strong> is a set of RSS extensions that enable advanced features like Lightning payments, value splits, and enhanced metadata. ITDV Lightning implements these standards for music distribution.
+                <strong>Podcasting 2.0</strong> is a set of RSS extensions that enable advanced features like Lightning payments, value splits, and enhanced metadata. HPM Lightning implements these standards for music distribution.
               </p>
 
               <div className="space-y-6">
@@ -249,7 +249,7 @@ export default function RSSGuidePage() {
 
             {/* How It Works */}
             <div className="bg-black/80 backdrop-blur-sm rounded-xl p-6 mb-8 border border-white/30">
-              <h2 className="text-3xl font-bold mb-4 text-indigo-400">⚙️ How RSS Powers ITDV Lightning</h2>
+              <h2 className="text-3xl font-bold mb-4 text-indigo-400">⚙️ How RSS Powers HPM Lightning</h2>
               
               <div className="space-y-6">
                 <div className="flex gap-4">

@@ -37,7 +37,7 @@ export function BitcoinConnectWallet() {
         // Initialize Bitcoin Connect with basic configuration
         if (bc.init && !window.bitcoinConnectInitialized) {
           bc.init({
-            appName: 'ITDV Lightning',
+            appName: 'HPM Lightning',
             // Remove filters to show all wallet types including browser extensions
             showBalance: false, // Hide balance to keep UI clean
             // Enable all connectors including NWC
@@ -232,7 +232,7 @@ export function BitcoinConnectPayment({
         podcast: boostMetadata.artist || 'Unknown Artist',
         episode: boostMetadata.title || 'Unknown Title',
         action: 'boost',
-        app_name: boostMetadata.appName || 'ITDV Lightning',
+        app_name: boostMetadata.appName || 'HPM Lightning',
         // Use actual feed URL from metadata for proper Helipad recognition
         feed: boostMetadata.feedUrl || 'https://www.doerfelverse.com/feeds/intothedoerfelverse.xml',
         url: boostMetadata.feedUrl || 'https://www.doerfelverse.com/feeds/intothedoerfelverse.xml',
@@ -250,7 +250,7 @@ export function BitcoinConnectPayment({
         uuid: `boost-${Date.now()}-${Math.floor(Math.random() * 1000)}`, // Unique identifier
         app_version: '1.0.0', // App version
         value_msat: recipients ? Math.floor((amount * 1000) / recipients.length) : amount * 1000, // Individual payment amount
-        name: 'ITDV Lightning' // App/service name
+        name: 'HPM Lightning' // App/service name
       };
       
       // Log the exact TLV data for debugging (matching payment-utils.ts)
@@ -275,7 +275,7 @@ export function BitcoinConnectPayment({
         podcast: boostMetadata.artist || 'Unknown Artist',
         episode: boostMetadata.title || 'Unknown Title', 
         action: 'boost',
-        app: boostMetadata.appName || 'ITDV Lightning',
+        app: boostMetadata.appName || 'HPM Lightning',
         message: boostMetadata.message || '',
         amount: amount,
         sender: boostMetadata.senderName || 'Anonymous',
@@ -434,7 +434,7 @@ export function BitcoinConnectPayment({
       const siteOwnerRecipient = {
         address: '03740ea02585ed87b83b2f76317a4562b616bd7b8ec3f925be6596932b2003fc9e',
         split: 0, // Will be handled separately as fixed 2 sats
-        name: 'ITDV Site Metadata',
+        name: 'HPM Site Metadata',
         fee: false,
         type: 'node',
         fixedAmount: 2 // Fixed 2 sat payment
@@ -704,7 +704,7 @@ export function BitcoinConnectPayment({
               console.log('  feedID: 6590182 (numeric)');
               console.log('  episode_guid: b4578bea-855b-48a6-a747-1a09ed44a19a');
               console.log('  url: https://www.doerfelverse.com/feeds/intothedoerfelverse.xml');
-              console.log('❓ OUR APP (ITDV Lightning):');
+              console.log('❓ OUR APP (HPM Lightning):');
               console.log(`  feedId: ${boostMetadata?.feedUrl === 'https://www.doerfelverse.com/feeds/bloodshot-lies-album.xml' ? "6590183" : "6590182"} (FIXED: using lowercase feedId for Helipad)`);
               console.log(`  episode_guid: ${boostMetadata?.itemGuid || 'missing'}`);
               console.log(`  url: ${boostMetadata?.feedUrl || 'RSS feed URL'}`);

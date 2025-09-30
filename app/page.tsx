@@ -551,8 +551,8 @@ export default function HomePage() {
                   </button>
                   <div className="w-10 h-10 relative border border-gray-700 rounded-lg overflow-hidden">
                     <Image 
-                      src="/ITDV-lightning-logo.jpg" 
-                      alt="ITDV Lightning Logo" 
+                      src="/HPM-lightning-logo.jpg" 
+                      alt="HPM Lightning Logo" 
                       width={40} 
                       height={40}
                       className="object-cover"
@@ -596,8 +596,8 @@ export default function HomePage() {
                   </button>
                   <div className="w-10 h-10 relative border border-gray-700 rounded-lg overflow-hidden">
                     <Image 
-                      src="/ITDV-lightning-logo.jpg" 
-                      alt="ITDV Lightning Logo" 
+                      src="/HPM-lightning-logo.jpg" 
+                      alt="HPM Lightning Logo" 
                       width={40} 
                       height={40}
                       className="object-cover"

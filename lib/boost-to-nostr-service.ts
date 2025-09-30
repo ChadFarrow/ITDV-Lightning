@@ -144,9 +144,9 @@ export class BoostToNostrService {
   }
 
   /**
-   * Generate ITDV site URL for track/album
+   * Generate HPM site URL for track/album
    */
-  private generateITDVUrl(track: TrackMetadata): string | null {
+  private generateHPMUrl(track: TrackMetadata): string | null {
     const baseUrl = 'https://zaps.podtards.com';
     
     // Special case for LNURL Testing Podcast - use GitHub repo
@@ -241,8 +241,8 @@ export class BoostToNostrService {
   private createBoostContent(options: BoostOptions): string {
     const { amount, comment, track } = options;
     
-    // Get ITDV site URL
-    const itdvUrl = this.generateITDVUrl(track);
+    // Get HPM site URL
+    const hpmUrl = this.generateHPMUrl(track);
     
     let content = '';
     
@@ -274,9 +274,9 @@ export class BoostToNostrService {
       content += `\n\n${comment}`;
     }
     
-    // Add ITDV site URL
-    if (itdvUrl) {
-      content += `\n\n🎧 ${itdvUrl}`;
+    // Add HPM site URL
+    if (hpmUrl) {
+      content += `\n\n🎧 ${hpmUrl}`;
     }
     
     // Add nevent reference to announcement if available (like Fountain does)
@@ -331,8 +331,8 @@ export class BoostToNostrService {
         content
       };
 
-      // Add Fountain-style podcast tags in k/i pairs with ITDV URLs
-      const itdvUrl = this.generateITDVUrl(options.track);
+      // Add Fountain-style podcast tags in k/i pairs with HPM URLs
+      const hpmUrl = this.generateHPMUrl(options.track);
       
       console.log('🏷️ Debug track metadata for tags:', {
         guid: options.track.guid,
@@ -502,9 +502,9 @@ export class BoostToNostrService {
           ];
           
           // Add URL hint if available
-          const itdvUrl = this.generateITDVUrl(options.track);
-          if (itdvUrl) {
-            itemTag.push(itdvUrl);
+          const hpmUrl = this.generateHPMUrl(options.track);
+          if (hpmUrl) {
+            itemTag.push(hpmUrl);
           }
           eventTemplate.tags.push(itemTag);
         }
