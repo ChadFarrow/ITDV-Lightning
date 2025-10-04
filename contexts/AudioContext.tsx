@@ -376,9 +376,9 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const boostMetadata = {
         title: track.title || 'Unknown Song',
         artist: track.artist || 'Unknown Artist',
-        album: currentAlbum || 'Unknown Album',
+        album: track.album || (currentAlbum !== 'Shuffle All' ? currentAlbum : undefined), // Use track's actual album, avoid 'Shuffle All'
         episode: track.title,
-        url: currentAlbum ? `https://zaps.podtards.com/album/${encodeURIComponent(currentAlbum)}#${encodeURIComponent(track.title || '')}` : 'https://zaps.podtards.com',
+        url: track.album ? `https://itdv.podtards.com/album/${encodeURIComponent(track.album)}#${encodeURIComponent(track.title || '')}` : 'https://itdv.podtards.com',
         appName: 'HPM Lightning',
         timestamp: Math.floor(currentTime),
         senderName: 'Auto Boost', // Identify as auto boost
@@ -407,8 +407,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           const trackMetadata = {
             title: track.title,
             artist: track.artist,
-            album: track.album || currentAlbum || undefined, // Use track's actual album, not currentAlbum
-            url: track.album ? `https://zaps.podtards.com/album/${encodeURIComponent(track.album)}#${encodeURIComponent(track.title || '')}` : 'https://zaps.podtards.com',
+            album: track.album || (currentAlbum !== 'Shuffle All' ? currentAlbum : undefined), // Use track's actual album, avoid 'Shuffle All'
+            url: track.album ? `https://itdv.podtards.com/album/${encodeURIComponent(track.album)}#${encodeURIComponent(track.title || '')}` : 'https://itdv.podtards.com',
             imageUrl: track.imageUrl || track.image,
             timestamp: Math.floor(currentTime),
             duration: duration ? Math.floor(duration) : undefined,

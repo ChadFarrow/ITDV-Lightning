@@ -740,7 +740,7 @@ const NowPlayingScreen: React.FC<NowPlayingScreenProps> = ({ isOpen, onClose }) 
                   artist: currentTrack?.artist || currentAlbum || 'Unknown Artist',
                   album: currentAlbum || 'Unknown Album',
                   episode: currentTrack?.title,
-                  url: currentAlbum ? `https://zaps.podtards.com/album/${encodeURIComponent(currentAlbum)}#${encodeURIComponent(currentTrack?.title || '')}` : 'https://zaps.podtards.com',
+                  url: currentAlbum ? `https://itdv.podtards.com/album/${encodeURIComponent(currentAlbum)}#${encodeURIComponent(currentTrack?.title || '')}` : 'https://itdv.podtards.com',
                   appName: 'HPM Lightning',
                   timestamp: Math.floor(currentTime),
                   senderName: senderName?.trim() || undefined,

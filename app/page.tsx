@@ -1162,7 +1162,7 @@ export default function HomePage() {
                   title: selectedAlbum.title,
                   artist: selectedAlbum.artist,
                   album: selectedAlbum.title,
-                  url: `https://zaps.podtards.com/album/${encodeURIComponent(selectedAlbum.feedId || selectedAlbum.title)}`,
+                  url: `https://itdv.podtards.com/album/${encodeURIComponent(selectedAlbum.feedId || selectedAlbum.title)}`,
                   appName: 'ITDV Lightning',
                   senderName: senderName?.trim() || 'Super Fan',
                   message: boostMessage?.trim() || undefined,

@@ -147,7 +147,7 @@ export class BoostToNostrService {
    * Generate HPM site URL for track/album
    */
   private generateHPMUrl(track: TrackMetadata): string | null {
-    const baseUrl = 'https://zaps.podtards.com';
+    const baseUrl = 'https://itdv.podtards.com';
     
     // Special case for LNURL Testing Podcast - use GitHub repo
     if (track.album && track.album.toLowerCase().includes('lnurl testing')) {
