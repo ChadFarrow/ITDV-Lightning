@@ -211,6 +211,34 @@ export default function HomePage() {
         });
       });
 
+      // Add the true crime promo to the shuffle list
+      allTracks.push({
+        title: "Into the Doerfelverse True Crime Promo",
+        duration: "00:00", // Will be set when audio loads
+        url: "/into%20the%20doerfelverse%20true%20crime%20promo.mp3",
+        trackNumber: 999, // High number to put it at end if not shuffled
+        image: "/ITDV-lightning-logo.webp", // Use ITDV logo
+        artist: "The Doerfels",
+        album: "Promos",
+        value: {
+          type: "lightning",
+          method: "keysend",
+          suggested: "25",
+          recipients: [
+            {
+              type: "node",
+              address: "035ad2c954e264004986da2d9499e1732e5175e1dcef2453c921c6cdcc3536e9d8",
+              split: 100,
+              name: "The Doerfels",
+              fee: false
+            }
+          ]
+        },
+        guid: "promo-true-crime-001",
+        feedGuid: "doerfels-main-feed",
+        publisherGuid: "doerfels-publisher"
+      });
+
       // Shuffle the tracks array using Fisher-Yates shuffle algorithm
       const shuffledTracks = [...allTracks];
       for (let i = shuffledTracks.length - 1; i > 0; i--) {
