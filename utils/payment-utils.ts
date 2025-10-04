@@ -180,6 +180,28 @@ export async function makeAutoBoostPayment({
       };
     }
 
+    // CRITICAL: Auto boost should only work with wallets that support keysend natively
+    // Bridge mode uses site wallet as intermediary, which is not appropriate for auto boost
+    if (hasNWCConnection) {
+      try {
+        const bridge = getKeysendBridge();
+        const capabilities = bridge.getCapabilities();
+        
+        // If bridge is needed (wallet doesn't support keysend), disable auto boost
+        if (bridge.needsBridge()) {
+          console.warn('💡 AUTO BOOST: Wallet requires bridge (no native keysend) - disabling auto boost to prevent site wallet usage');
+          return { 
+            success: false, 
+            error: 'Auto boost requires a wallet with native keysend support. Please use a wallet like Alby, Zeus, or Phoenix for auto boost.' 
+          };
+        }
+        
+        console.log('💡 AUTO BOOST: Wallet supports native keysend - auto boost enabled');
+      } catch (error) {
+        console.warn('💡 AUTO BOOST: Could not check bridge capabilities, proceeding with caution');
+      }
+    }
+
     // Determine payments to make
     let paymentsToMake: PaymentRecipient[] = [];
     
