@@ -170,6 +170,16 @@ export async function makeAutoBoostPayment({
       nwcStringLength: nwcConnectionString?.length || 0
     });
 
+    // CRITICAL: Auto boost should only work with user's wallet, not site wallet
+    // If no user wallet is available, fail gracefully instead of using site wallet
+    if (!weblnExists && !hasNWCConnection) {
+      console.warn('💡 AUTO BOOST: No user wallet available - skipping auto boost to prevent site wallet usage');
+      return { 
+        success: false, 
+        error: 'Auto boost requires user wallet connection. Please connect your wallet to enable auto boost.' 
+      };
+    }
+
     // Determine payments to make
     let paymentsToMake: PaymentRecipient[] = [];
     
@@ -209,6 +219,14 @@ export async function makeAutoBoostPayment({
         } else {
           console.log('💡 AUTO BOOST: Bridge already initialized with wallet:', bridge.getCapabilities().walletName);
         }
+        
+        // CRITICAL: Verify bridge is using user wallet, not site wallet
+        const capabilities = bridge.getCapabilities();
+        if (capabilities.walletName && capabilities.walletName.toLowerCase().includes('alby hub')) {
+          console.error('💡 AUTO BOOST: Bridge is using site wallet (Alby Hub) - this should not happen for auto boost');
+          throw new Error('Auto boost cannot use site wallet - user wallet required');
+        }
+        
         console.log('💡 AUTO BOOST: Bridge ready for auto boost payments');
         
         const paymentPromises = paymentsToMake.map(async (recipientData) => {
