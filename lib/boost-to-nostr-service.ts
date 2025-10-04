@@ -360,8 +360,8 @@ export class BoostToNostrService {
         eventTemplate.tags.push(['k', 'podcast:guid']);
         // i tag contains the actual identifier with URL hint
         const feedTag = ['i', `podcast:guid:${options.track.feedGuid}`];
-        if (itdvUrl) {
-          feedTag.push(itdvUrl);
+        if (hpmUrl) {
+          feedTag.push(hpmUrl);
         }
         eventTemplate.tags.push(feedTag);
       }
@@ -371,8 +371,8 @@ export class BoostToNostrService {
         eventTemplate.tags.push(['k', 'podcast:publisher:guid']);
         // i tag contains the actual identifier with URL hint
         const publisherTag = ['i', `podcast:publisher:guid:${options.track.publisherGuid}`];
-        if (itdvUrl) {
-          publisherTag.push(itdvUrl);
+        if (hpmUrl) {
+          publisherTag.push(hpmUrl);
         }
         eventTemplate.tags.push(publisherTag);
       }
