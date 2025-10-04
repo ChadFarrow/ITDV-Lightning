@@ -348,8 +348,8 @@ export class BoostToNostrService {
         eventTemplate.tags.push(['k', 'podcast:item:guid']);
         // i tag contains the actual identifier with URL hint
         const itemTag = ['i', `podcast:item:guid:${options.track.guid}`];
-        if (itdvUrl) {
-          itemTag.push(itdvUrl);
+        if (hpmUrl) {
+          itemTag.push(hpmUrl);
         }
         eventTemplate.tags.push(itemTag);
       }
