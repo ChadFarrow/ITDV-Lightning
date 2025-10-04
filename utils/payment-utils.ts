@@ -102,6 +102,36 @@ function createBoostTLVRecords(metadata: BoostMetadata, recipientName?: string, 
 }
 
 /**
+ * Create simplified TLV records for WebLN auto boost (smaller, more compatible)
+ */
+function createSimpleWebLNTLVRecords(metadata: BoostMetadata, recipientName?: string, amount?: number) {
+  const customRecords: Record<number, string> = {};
+
+  // Simple boost message (7629171 - Lightning spec compliant)
+  const message = `Auto boost: ${metadata.title || 'Unknown Track'} by ${metadata.artist || 'Unknown Artist'}`;
+  customRecords[7629171] = Buffer.from(message, 'utf8').toString('hex');
+
+  // Minimal podcast metadata (7629169 - bLIP-10 standard)
+  const podcastMetadata = {
+    podcast: metadata.artist || 'Unknown Artist',
+    episode: metadata.title || 'Unknown Title',
+    action: 'boost',
+    app_name: 'HPM Lightning',
+    message: '',
+    ...(amount && { value_msat: amount * 1000 }),
+    sender_name: 'Auto Boost'
+  };
+  
+  customRecords[7629169] = Buffer.from(JSON.stringify(podcastMetadata), 'utf8').toString('hex');
+
+  console.log('🔍 WEBLN SIMPLE TLV - Using simplified TLV records for WebLN compatibility');
+  console.log('📝 Message:', message);
+  console.log('📊 Metadata size:', JSON.stringify(podcastMetadata).length, 'bytes');
+
+  return customRecords;
+}
+
+/**
  * Make a Lightning payment using available payment methods (WebLN, NWC bridge, etc.)
  * This function replicates the payment logic from BitcoinConnect component for auto boost
  */
@@ -320,8 +350,8 @@ export async function makeAutoBoostPayment({
           
           console.log(`💰 WebLN auto boost sending ${recipientAmount} sats to ${recipientData.name || recipientData.address}`);
           
-          // Create TLV records for boost metadata
-          const customRecords = boostMetadata ? createBoostTLVRecords(boostMetadata, recipientData.name, recipientAmount) : {};
+          // Create TLV records for boost metadata - use simplified version for WebLN
+          const customRecords = boostMetadata ? createSimpleWebLNTLVRecords(boostMetadata, recipientData.name, recipientAmount) : {};
           
           const response = await webln.keysend({
             destination: recipientData.address,
