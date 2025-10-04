@@ -154,6 +154,16 @@ export class BoostToNostrService {
       return 'https://github.com/ChadFarrow/lnurl-test-feed';
     }
     
+    // Special case for Shuffle All - link to main site or track's actual album if available
+    if (track.album === 'Shuffle All') {
+      // If we have track metadata that includes the actual album, use that
+      if (track.url && track.url.includes('/album/')) {
+        return track.url;
+      }
+      // Otherwise just link to main site
+      return baseUrl;
+    }
+    
     // For albums, use album title to create album URL with optional track hash
     if (track.album) {
       // Create album slug from title
@@ -259,8 +269,8 @@ export class BoostToNostrService {
       content += ` by ${track.artist}`;
     }
     
-    // Add album on new line if different from title (skip for auto boosts)
-    if (track.album && track.album !== track.title && track.senderName !== 'Auto Boost') {
+    // Add album on new line if different from title (skip for auto boosts and Shuffle All)
+    if (track.album && track.album !== track.title && track.senderName !== 'Auto Boost' && track.album !== 'Shuffle All') {
       content += `\nFrom: ${track.album}`;
     }
     
