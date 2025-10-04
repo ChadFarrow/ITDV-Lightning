@@ -81,7 +81,7 @@ Apply this pattern to these key areas:
 ```env
 NEXT_PUBLIC_ENABLE_LIGHTNING=true
 NEXT_PUBLIC_SITE_NAME="ITDV Lightning"
-NEXT_PUBLIC_SITE_URL="https://zaps.podtards.com"
+NEXT_PUBLIC_SITE_URL="https://itdv.podtards.com"
 ```
 
 ### Basic Version (.env.basic)
@@ -94,7 +94,7 @@ NEXT_PUBLIC_SITE_URL="https://music.podtards.com"
 ## Deployment
 
 ### Option 1: Separate Deployments
-- Deploy Lightning version to `zaps.podtards.com`
+- Deploy Lightning version to `itdv.podtards.com`
 - Deploy Basic version to `music.podtards.com`
 
 ### Option 2: Environment-Based

@@ -17,7 +17,7 @@
 ## 🚀 Getting Started - Quick Tutorial
 
 ### Step 1: Visit the Site
-Navigate to **https://zaps.podtards.com** in your web browser.
+Navigate to **https://itdv.podtards.com** in your web browser.
 
 ### Step 2: Explore the Music
 - **Browse Albums**: Scroll through the main page to see featured albums
@@ -300,7 +300,7 @@ Some albums support **automatic value splitting**:
 
 ## 🎵 Start Your Value4Value Journey
 
-Ready to experience the future of music? Visit **https://zaps.podtards.com** and:
+Ready to experience the future of music? Visit **https://itdv.podtards.com** and:
 
 1. **Browse the music** - discover amazing independent artists
 2. **Connect your wallet** - set up Lightning payments

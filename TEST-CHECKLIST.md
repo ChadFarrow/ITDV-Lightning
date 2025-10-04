@@ -80,7 +80,7 @@ ls -la .next*
 ### Manual Verification URLs:
 ```bash
 # After deployment
-# Lightning version: https://zaps.podtards.com
+# Lightning version: https://itdv.podtards.com
 # Basic version: https://itdv.podtards.com  
 ```
 

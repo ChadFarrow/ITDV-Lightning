@@ -376,7 +376,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const boostMetadata = {
         title: track.title || 'Unknown Song',
         artist: track.artist || 'Unknown Artist',
-        album: track.album || (currentAlbum !== 'Shuffle All' ? currentAlbum : undefined), // Use track's actual album, avoid 'Shuffle All'
+        album: track.album || (currentAlbum !== 'Shuffle All' ? currentAlbum : undefined) || undefined, // Use track's actual album, avoid 'Shuffle All'
         episode: track.title,
         url: track.album ? `https://itdv.podtards.com/album/${encodeURIComponent(track.album)}#${encodeURIComponent(track.title || '')}` : 'https://itdv.podtards.com',
         appName: 'HPM Lightning',
@@ -407,7 +407,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           const trackMetadata = {
             title: track.title,
             artist: track.artist,
-            album: track.album || (currentAlbum !== 'Shuffle All' ? currentAlbum : undefined), // Use track's actual album, avoid 'Shuffle All'
+            album: track.album || (currentAlbum !== 'Shuffle All' ? currentAlbum : undefined) || undefined, // Use track's actual album, avoid 'Shuffle All'
             url: track.album ? `https://itdv.podtards.com/album/${encodeURIComponent(track.album)}#${encodeURIComponent(track.title || '')}` : 'https://itdv.podtards.com',
             imageUrl: track.imageUrl || track.image,
             timestamp: Math.floor(currentTime),

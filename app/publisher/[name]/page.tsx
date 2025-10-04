@@ -15,7 +15,7 @@ async function getPublisherData(publisherName: string) {
   try {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || 
                    (process.env.NODE_ENV === 'production' 
-                     ? process.env.NEXT_PUBLIC_SITE_URL || 'https://zaps.podtards.com'
+                     ? process.env.NEXT_PUBLIC_SITE_URL || 'https://itdv.podtards.com'
                      : `http://localhost:${process.env.PORT || '3000'}`);
     
     // Use static endpoint as primary since it has all albums

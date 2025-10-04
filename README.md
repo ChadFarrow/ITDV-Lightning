@@ -272,7 +272,7 @@ This project showcases music from independent artists in the DoerfelVerse using 
 
 ## Live Demo
 
-- **Production Site**: https://zaps.podtards.com
+- **Production Site**: https://itdv.podtards.com
 - **Lightning Payments**: Full Bitcoin Lightning Network support
 - **Nostr Integration**: Boost notes published to major Nostr relays
 - **Value4Value**: Direct artist support with transparent payment splits
