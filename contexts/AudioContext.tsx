@@ -407,8 +407,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           const trackMetadata = {
             title: track.title,
             artist: track.artist,
-            album: currentAlbum || undefined,
-            url: currentAlbum ? `https://zaps.podtards.com/album/${encodeURIComponent(currentAlbum)}#${encodeURIComponent(track.title || '')}` : 'https://zaps.podtards.com',
+            album: track.album || currentAlbum || undefined, // Use track's actual album, not currentAlbum
+            url: track.album ? `https://zaps.podtards.com/album/${encodeURIComponent(track.album)}#${encodeURIComponent(track.title || '')}` : 'https://zaps.podtards.com',
             imageUrl: track.imageUrl || track.image,
             timestamp: Math.floor(currentTime),
             duration: duration ? Math.floor(duration) : undefined,
