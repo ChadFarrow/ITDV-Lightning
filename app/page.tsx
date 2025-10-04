@@ -181,10 +181,15 @@ export default function HomePage() {
   // Shuffle All functionality
   const handleShuffleAll = () => {
     try {
-      // Collect all tracks from all albums
+      // Collect all tracks from all albums, excluding test feeds
       const allTracks: any[] = [];
       
       albums.forEach(album => {
+        // Skip LNURL Testing Podcast and other test feeds from shuffle
+        if (album.title === 'LNURL Testing Podcast') {
+          return;
+        }
+        
         album.tracks.forEach(track => {
           // Create track object that matches AudioContext's Track interface
           allTracks.push({
