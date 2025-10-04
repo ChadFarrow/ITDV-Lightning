@@ -66,15 +66,19 @@ const NowPlayingScreen: React.FC<NowPlayingScreenProps> = ({ isOpen, onClose }) 
   // Performance-optimized color loading with mobile considerations
   const loadColors = useRef(debounce(async (albumTitle: string, track: any) => {
     const timer = performanceMonitor.startTimer('colorLoad');
+    
+    // For "Shuffle All" mode, use the track's actual album for color extraction
+    const actualAlbumTitle = albumTitle === 'Shuffle All' && track?.album ? track.album : albumTitle;
+    
     // Create cache key that includes track info for track-specific colors
     const cacheKey = track.image 
-      ? `${albumTitle.toLowerCase()}-${track.title?.toLowerCase() || 'unknown'}` 
-      : albumTitle.toLowerCase();
+      ? `${actualAlbumTitle.toLowerCase()}-${track.title?.toLowerCase() || 'unknown'}` 
+      : actualAlbumTitle.toLowerCase();
     
     try {
       // Check memory cache first
       if (colorCache.current.has(cacheKey)) {
-        console.log('🎨 Using memory cache for:', albumTitle);
+        console.log('🎨 Using memory cache for:', actualAlbumTitle);
         setExtractedColors(colorCache.current.get(cacheKey)!);
         performanceMonitor.recordCacheHit();
         return;
@@ -83,7 +87,7 @@ const NowPlayingScreen: React.FC<NowPlayingScreenProps> = ({ isOpen, onClose }) 
       // Note: Skip preloaded cache check for now to ensure we check for track-specific colors
       // We'll check preloaded colors later as a fallback
 
-      console.log('🎨 Loading colors from network for:', albumTitle);
+      console.log('🎨 Loading colors from network for:', actualAlbumTitle);
       setIsLoadingColors(true);
 
       // Create or reuse the shared promise for color data loading
@@ -102,7 +106,7 @@ const NowPlayingScreen: React.FC<NowPlayingScreenProps> = ({ isOpen, onClose }) 
 
       const data = await colorDataPromise;
       const album = data.albums?.find((a: any) => 
-        a.title?.toLowerCase() === albumTitle.toLowerCase()
+        a.title?.toLowerCase() === actualAlbumTitle.toLowerCase()
       );
       
       let colors = null;
@@ -123,15 +127,15 @@ const NowPlayingScreen: React.FC<NowPlayingScreenProps> = ({ isOpen, onClose }) 
       
       // Fallback to album colors
       if (!colors && album?.colors) {
-        console.log('🎨 Using album colors for:', albumTitle);
+        console.log('🎨 Using album colors for:', actualAlbumTitle);
         colors = album.colors;
       }
       
       // Final fallback: check preloaded cache
       if (!colors) {
-        const preloadedColors = getCachedColors(albumTitle);
+        const preloadedColors = getCachedColors(actualAlbumTitle);
         if (preloadedColors) {
-          console.log('🎨 Using preloaded cache as final fallback for:', albumTitle);
+          console.log('🎨 Using preloaded cache as final fallback for:', actualAlbumTitle);
           colors = preloadedColors;
         }
       }
@@ -150,7 +154,7 @@ const NowPlayingScreen: React.FC<NowPlayingScreenProps> = ({ isOpen, onClose }) 
         setExtractedColors(colors);
         performanceMonitor.recordCacheMiss();
       } else {
-        console.log('🎨 No colors found for:', albumTitle);
+        console.log('🎨 No colors found for:', actualAlbumTitle);
         setExtractedColors(null);
       }
       
@@ -238,6 +242,21 @@ const NowPlayingScreen: React.FC<NowPlayingScreenProps> = ({ isOpen, onClose }) 
 
   const handleViewAlbum = () => {
     if (currentAlbum) {
+      // If we're in "Shuffle All" mode, navigate to the actual album of the current track
+      if (currentAlbum === 'Shuffle All' && currentTrack?.album) {
+        const albumSlug = currentTrack.album.toLowerCase()
+          .replace(/[^\w\s-]/g, '')
+          .replace(/\s+/g, '-')
+          .replace(/-+/g, '-')
+          .replace(/^-+|-+$/g, '')
+          .trim();
+        
+        router.push(`/album/${albumSlug}`);
+        onClose();
+        return;
+      }
+      
+      // For regular albums, use the current album name
       // Convert album title to URL-friendly slug (consistent with AlbumCard)
       const albumSlug = currentAlbum.toLowerCase()
         .replace(/[^\w\s-]/g, '') // Remove punctuation except spaces and hyphens

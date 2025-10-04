@@ -178,6 +178,51 @@ export default function HomePage() {
     }
   };
 
+  // Shuffle All functionality
+  const handleShuffleAll = () => {
+    try {
+      // Collect all tracks from all albums
+      const allTracks: any[] = [];
+      
+      albums.forEach(album => {
+        album.tracks.forEach(track => {
+          // Create track object that matches AudioContext's Track interface
+          allTracks.push({
+            title: track.title,
+            duration: track.duration,
+            url: track.url,
+            trackNumber: track.trackNumber,
+            image: track.image || album.coverArt,
+            artist: album.artist || 'Unknown Artist',
+            album: album.title,
+            value: track.value,
+            guid: track.guid,
+            podcastGuid: track.podcastGuid,
+            feedGuid: track.feedGuid,
+            feedUrl: track.feedUrl,
+            publisherGuid: track.publisherGuid,
+            imageUrl: track.imageUrl
+          });
+        });
+      });
+
+      // Shuffle the tracks array using Fisher-Yates shuffle algorithm
+      const shuffledTracks = [...allTracks];
+      for (let i = shuffledTracks.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffledTracks[i], shuffledTracks[j]] = [shuffledTracks[j], shuffledTracks[i]];
+      }
+
+      // Start playing the shuffled playlist
+      globalPlayAlbum(shuffledTracks, 0, 'Shuffle All');
+      
+      toast.success(`🎲 Shuffling ${allTracks.length} tracks from all albums!`);
+    } catch (error) {
+      console.error('Error shuffling all tracks:', error);
+      toast.error('Error shuffling all tracks');
+    }
+  };
+
   useEffect(() => {
     setIsClient(true);
     
@@ -551,7 +596,7 @@ export default function HomePage() {
                   </button>
                   <div className="w-10 h-10 relative border border-gray-700 rounded-lg overflow-hidden">
                     <Image 
-                      src="/HPM-lightning-logo.jpg" 
+                      src="/ITDV-lightning-logo.jpg" 
                       alt="HPM Lightning Logo" 
                       width={40} 
                       height={40}
@@ -596,7 +641,7 @@ export default function HomePage() {
                   </button>
                   <div className="w-10 h-10 relative border border-gray-700 rounded-lg overflow-hidden">
                     <Image 
-                      src="/HPM-lightning-logo.jpg" 
+                      src="/ITDV-lightning-logo.jpg" 
                       alt="HPM Lightning Logo" 
                       width={40} 
                       height={40}
@@ -786,8 +831,10 @@ export default function HomePage() {
                 onFilterChange={setActiveFilter}
                 viewType={viewType}
                 onViewChange={setViewType}
-                showShuffle={true}
+                showShuffle={false}
                 onShuffle={handleShuffle}
+                showShuffleAll={true}
+                onShuffleAll={handleShuffleAll}
                 resultCount={filteredAlbums.length}
                 resultLabel={activeFilter === 'all' ? 'Releases' : 
                   activeFilter === 'albums' ? 'Albums' :

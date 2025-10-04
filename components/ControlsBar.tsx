@@ -16,9 +16,11 @@ interface ControlsBarProps {
   onViewChange: (view: ViewType) => void;
   showViewToggle?: boolean;
   
-  // Shuffle prop
+  // Shuffle props
   onShuffle?: () => void;
   showShuffle?: boolean;
+  onShuffleAll?: () => void;
+  showShuffleAll?: boolean;
   
   // Customization
   className?: string;
@@ -44,6 +46,8 @@ export default function ControlsBar({
   showViewToggle = true,
   onShuffle,
   showShuffle = false,
+  onShuffleAll,
+  showShuffleAll = false,
   className = '',
   resultCount,
   resultLabel = 'results',
@@ -86,6 +90,18 @@ export default function ControlsBar({
 
           {/* Right side - Action buttons */}
           <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Shuffle All Button */}
+            {showShuffleAll && onShuffleAll && (
+              <button
+                onClick={onShuffleAll}
+                className="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white px-3 py-1.5 rounded-lg transition-all touch-manipulation shadow-lg hover:shadow-xl active:scale-95 text-sm font-medium"
+                title="Shuffle All Tracks"
+              >
+                <Shuffle className="w-4 h-4 inline mr-1" />
+                Shuffle All
+              </button>
+            )}
+
             {/* Shuffle Button */}
             {showShuffle && onShuffle && (
               <button
@@ -164,6 +180,18 @@ export default function ControlsBar({
 
         {/* Right side - Action buttons */}
         <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Shuffle All Button */}
+          {showShuffleAll && onShuffleAll && (
+            <button
+              onClick={onShuffleAll}
+              className="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white px-3 py-1.5 rounded-lg transition-all touch-manipulation shadow-lg hover:shadow-xl active:scale-95 text-sm font-medium"
+              title="Shuffle All Tracks"
+            >
+              <Shuffle className="w-4 h-4 inline mr-1" />
+              Shuffle All
+            </button>
+          )}
+
           {/* Shuffle Button */}
           {showShuffle && onShuffle && (
             <button
