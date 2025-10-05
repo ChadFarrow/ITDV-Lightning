@@ -13,6 +13,7 @@ interface Track {
   image?: string;
   artist?: string;
   album?: string;
+  website?: string;
   value?: {
     type: string;
     method: string;
