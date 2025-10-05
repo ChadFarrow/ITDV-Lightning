@@ -219,7 +219,7 @@ export default function HomePage() {
         trackNumber: 999, // High number to put it at end if not shuffled
         image: "/ITDV-lightning-logo.webp", // Use ITDV logo
         artist: "The Doerfels",
-        album: "Promos",
+        website: "https://www.doerfelverse.com/", // Link to main Doerfelverse site
         value: {
           type: "lightning",
           method: "keysend",
@@ -235,6 +235,61 @@ export default function HomePage() {
           ]
         },
         guid: "promo-true-crime-001",
+        feedGuid: "doerfels-main-feed",
+        publisherGuid: "doerfels-publisher"
+      });
+
+      // Add the promo two more times to increase chances of appearing in shuffle
+      allTracks.push({
+        title: "Into the Doerfelverse True Crime Promo",
+        duration: "00:00", // Will be set when audio loads
+        url: "/into%20the%20doerfelverse%20true%20crime%20promo.mp3",
+        trackNumber: 999, // High number to put it at end if not shuffled
+        image: "/ITDV-lightning-logo.webp", // Use ITDV logo
+        artist: "The Doerfels",
+        website: "https://www.doerfelverse.com/", // Link to main Doerfelverse site
+        value: {
+          type: "lightning",
+          method: "keysend",
+          suggested: "25",
+          recipients: [
+            {
+              type: "node",
+              address: "035ad2c954e264004986da2d9499e1732e5175e1dcef2453c921c6cdcc3536e9d8",
+              split: 100,
+              name: "The Doerfels",
+              fee: false
+            }
+          ]
+        },
+        guid: "promo-true-crime-002",
+        feedGuid: "doerfels-main-feed",
+        publisherGuid: "doerfels-publisher"
+      });
+
+      allTracks.push({
+        title: "Into the Doerfelverse True Crime Promo",
+        duration: "00:00", // Will be set when audio loads
+        url: "/into%20the%20doerfelverse%20true%20crime%20promo.mp3",
+        trackNumber: 999, // High number to put it at end if not shuffled
+        image: "/ITDV-lightning-logo.webp", // Use ITDV logo
+        artist: "The Doerfels",
+        website: "https://www.doerfelverse.com/", // Link to main Doerfelverse site
+        value: {
+          type: "lightning",
+          method: "keysend",
+          suggested: "25",
+          recipients: [
+            {
+              type: "node",
+              address: "035ad2c954e264004986da2d9499e1732e5175e1dcef2453c921c6cdcc3536e9d8",
+              split: 100,
+              name: "The Doerfels",
+              fee: false
+            }
+          ]
+        },
+        guid: "promo-true-crime-003",
         feedGuid: "doerfels-main-feed",
         publisherGuid: "doerfels-publisher"
       });
