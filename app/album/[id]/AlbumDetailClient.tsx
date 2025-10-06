@@ -971,7 +971,7 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
                 {album.tracks.map((track, index) => {
                   const isCurrentTrack = currentTrack?.url === track.url;
                   const isCurrentlyPlaying = isTrackPlaying(track);
-                  
+
                   return (
                     <div
                       key={track.trackNumber}
@@ -990,7 +990,7 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
                           </div>
                         ) : (
                           <span className={`text-sm font-medium ${isCurrentTrack ? 'text-blue-400' : 'text-gray-200 group-hover:text-white'} text-shadow-sm`}>
-                            {track.trackNumber}
+                            {index + 1}
                           </span>
                         )}
                       </div>
