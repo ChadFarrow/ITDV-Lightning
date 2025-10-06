@@ -126,9 +126,12 @@ export class RSSParser {
         if (trackFilter && cached.data) {
           return {
             ...cached.data,
-            tracks: cached.data.tracks.filter((track: RSSTrack) =>
-              track.title.toLowerCase().includes(trackFilter.toLowerCase())
-            )
+            tracks: cached.data.tracks.filter((track: RSSTrack) => {
+              const titleLower = track.title.toLowerCase();
+              const filterLower = trackFilter.toLowerCase();
+              // Include tracks matching the filter, but exclude [Raw Set] videos
+              return titleLower.includes(filterLower) && !titleLower.includes('[raw set]');
+            })
           };
         }
         return cached.data;
@@ -897,7 +900,12 @@ export class RSSParser {
 
       // Apply track filter if specified
       const filteredTracks = trackFilter
-        ? tracks.filter((track: RSSTrack) => track.title.toLowerCase().includes(trackFilter.toLowerCase()))
+        ? tracks.filter((track: RSSTrack) => {
+            const titleLower = track.title.toLowerCase();
+            const filterLower = trackFilter.toLowerCase();
+            // Include tracks matching the filter, but exclude [Raw Set] videos
+            return titleLower.includes(filterLower) && !titleLower.includes('[raw set]');
+          })
         : tracks;
 
       const album = {
