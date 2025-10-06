@@ -137,18 +137,6 @@ export class RSSParser {
           };
         }
 
-        // Use track image as album art if album art is a large GIF (apply to cached data too)
-        if (result.coverArt && result.coverArt.toLowerCase().endsWith('.gif') && result.tracks && result.tracks.length > 0 && result.tracks[0].image) {
-          const trackImage = result.tracks[0].image;
-          if (!trackImage.toLowerCase().endsWith('.gif')) {
-            console.log(`📷 [CACHED] Using track image as album art (original is GIF): ${trackImage}`);
-            result = {
-              ...result,
-              coverArt: trackImage
-            };
-          }
-        }
-
         return result;
       }
     }
@@ -923,28 +911,11 @@ export class RSSParser {
           })
         : tracks;
 
-      // Use track image as album art if album art is a large GIF
-      let finalCoverArt = coverArt;
-      const isGifCover = coverArt && coverArt.toLowerCase().endsWith('.gif');
-      const hasFilteredTracks = filteredTracks && filteredTracks.length > 0;
-      const hasTrackImage = hasFilteredTracks && filteredTracks[0].image;
-
-      if (isGifCover && hasFilteredTracks && hasTrackImage) {
-        const trackImage = filteredTracks[0].image!; // We know it exists from hasTrackImage check
-        const isTrackGif = trackImage.toLowerCase().endsWith('.gif');
-        console.log(`🖼️  Checking GIF replacement for "${title}":`, { isGifCover, hasFilteredTracks, hasTrackImage, trackImage, isTrackGif });
-        // Only use track image if it's not a GIF
-        if (!isTrackGif) {
-          finalCoverArt = trackImage;
-          console.log(`📷 Using track image as album art (original is GIF): ${trackImage}`);
-        }
-      }
-
       const album = {
         title,
         artist,
         description: cleanHtmlContent(description) || '',
-        coverArt: finalCoverArt,
+        coverArt,
         tracks: filteredTracks,
         releaseDate,
         link,
