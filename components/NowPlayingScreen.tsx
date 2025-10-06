@@ -684,7 +684,18 @@ const NowPlayingScreen: React.FC<NowPlayingScreenProps> = ({ isOpen, onClose }) 
       {/* Boost Modal - only show when Lightning is enabled */}
       {isLightningEnabled && showBoostModal && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="relative bg-gray-900 rounded-2xl shadow-2xl max-w-sm w-full">
+          <div
+            className="relative rounded-2xl shadow-2xl max-w-sm w-full"
+            style={extractedColors ? {
+              background: `linear-gradient(135deg, ${extractedColors.vibrant}15 0%, ${extractedColors.darkVibrant}40 100%)`,
+              backdropFilter: 'blur(20px)',
+              border: `1px solid ${extractedColors.vibrant}30`
+            } : {
+              background: 'rgba(17, 24, 39, 0.95)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255, 255, 255, 0.1)'
+            }}
+          >
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
