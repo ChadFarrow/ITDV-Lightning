@@ -243,6 +243,12 @@ const nextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'behindthesch3m3s.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
         hostname: 'whiterabbitrecords.org',
         port: '',
         pathname: '/wp-content/**',
