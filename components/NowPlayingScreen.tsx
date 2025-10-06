@@ -687,9 +687,9 @@ const NowPlayingScreen: React.FC<NowPlayingScreenProps> = ({ isOpen, onClose }) 
           <div
             className="relative rounded-2xl shadow-2xl max-w-sm w-full"
             style={extractedColors ? {
-              background: `linear-gradient(135deg, ${extractedColors.vibrant}15 0%, ${extractedColors.darkVibrant}40 100%)`,
+              background: `linear-gradient(135deg, ${extractedColors.dominant}15 0%, ${extractedColors.palette.background}95 100%)`,
               backdropFilter: 'blur(20px)',
-              border: `1px solid ${extractedColors.vibrant}30`
+              border: `1px solid ${extractedColors.dominant}30`
             } : {
               background: 'rgba(17, 24, 39, 0.95)',
               backdropFilter: 'blur(20px)',
