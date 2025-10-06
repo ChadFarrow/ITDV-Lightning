@@ -24,8 +24,8 @@ export async function GET(request: NextRequest) {
           await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay for Wavlake
         }
         
-        const albumData = await RSSParser.parseAlbumFeed(feed.originalUrl);
-        
+        const albumData = await RSSParser.parseAlbumFeed(feed.originalUrl, feed.trackFilter);
+
         if (albumData) {
           // Add feed metadata
           const enrichedAlbum = {

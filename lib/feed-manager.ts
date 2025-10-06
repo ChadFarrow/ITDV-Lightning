@@ -8,6 +8,7 @@ export interface Feed {
   title: string;
   priority: 'core' | 'extended' | 'low';
   status: 'active' | 'inactive';
+  trackFilter?: string; // Optional filter to only include tracks matching this string (e.g., artist name)
   addedAt: string;
   lastUpdated: string;
   source?: 'manual' | 'podroll' | 'recursive'; // Track how the feed was discovered

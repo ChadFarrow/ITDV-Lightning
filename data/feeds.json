@@ -481,22 +481,13 @@
       "lastUpdated": "2025-09-14T22:30:00.000Z"
     },
     {
-      "id": "music-behindthesch3m3s-com-sprouting-symphonies-citybeach-xml",
-      "originalUrl": "https://music.behindthesch3m3s.com/wp-content/uploads/Sat_Skirmish/sproutingsymphonies/feed.xml",
-      "type": "album",
-      "title": "Sprouting Symphonies - CityBeach",
-      "priority": "extended",
-      "status": "active",
-      "addedAt": "2025-01-27T00:00:00.000Z",
-      "lastUpdated": "2025-01-27T00:00:00.000Z"
-    },
-    {
       "id": "music-behindthesch3m3s-com-satellite-spotlight-citybeach-tracks-xml",
       "originalUrl": "https://music.behindthesch3m3s.com/wp-content/uploads/Sat_Skirmish/sproutingsymphonies/rss/satspotlightsymphony.xml",
       "type": "album",
       "title": "Satellite Spotlight: Sprouting Symphonies - CityBeach Tracks",
       "priority": "extended",
       "status": "active",
+      "trackFilter": "CityBeach",
       "addedAt": "2025-01-27T00:00:00.000Z",
       "lastUpdated": "2025-01-27T00:00:00.000Z"
     }

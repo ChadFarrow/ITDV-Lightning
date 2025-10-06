@@ -116,12 +116,21 @@ const verboseLog = (...args: any[]) => {
 export class RSSParser {
   private static readonly logger = createErrorLogger('RSSParser');
   
-  static async parseAlbumFeed(feedUrl: string): Promise<RSSAlbum | null> {
+  static async parseAlbumFeed(feedUrl: string, trackFilter?: string): Promise<RSSAlbum | null> {
     // Check cache first (only on server-side for performance)
     const isServer = typeof window === 'undefined';
     if (isServer) {
       const cached = RSSCache.get(feedUrl);
       if (cached) {
+        // Apply track filter if specified
+        if (trackFilter && cached.data) {
+          return {
+            ...cached.data,
+            tracks: cached.data.tracks.filter(track =>
+              track.title.toLowerCase().includes(trackFilter.toLowerCase())
+            )
+          };
+        }
         return cached.data;
       }
     }
@@ -885,14 +894,18 @@ export class RSSParser {
           verboseLog(`💰 Processed ${paymentRecipients.length} payment recipients for "${title}"`);
         }
       }
-      
-      
+
+      // Apply track filter if specified
+      const filteredTracks = trackFilter
+        ? tracks.filter(track => track.title.toLowerCase().includes(trackFilter.toLowerCase()))
+        : tracks;
+
       const album = {
         title,
         artist,
         description: cleanHtmlContent(description) || '',
         coverArt,
-        tracks,
+        tracks: filteredTracks,
         releaseDate,
         link,
         funding: funding.length > 0 ? funding : undefined,
@@ -915,14 +928,19 @@ export class RSSParser {
         publisherUrl: publisher?.feedUrl,
         imageUrl: coverArt || undefined
       };
-      
-      verboseLog('[RSSParser] Successfully parsed RSS feed', { feedUrl, trackCount: tracks.length });
-      
+
+      verboseLog('[RSSParser] Successfully parsed RSS feed', {
+        feedUrl,
+        trackCount: tracks.length,
+        filteredTrackCount: filteredTracks.length,
+        trackFilter
+      });
+
       // Cache the result (only on server-side)
       if (isServer) {
         RSSCache.set(feedUrl, album, response.headers.get('etag') || undefined);
       }
-      
+
       return album;
       
     }, {
