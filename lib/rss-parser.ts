@@ -930,7 +930,7 @@ export class RSSParser {
       const hasTrackImage = hasFilteredTracks && filteredTracks[0].image;
 
       if (isGifCover && hasFilteredTracks && hasTrackImage) {
-        const trackImage = filteredTracks[0].image;
+        const trackImage = filteredTracks[0].image!; // We know it exists from hasTrackImage check
         const isTrackGif = trackImage.toLowerCase().endsWith('.gif');
         console.log(`🖼️  Checking GIF replacement for "${title}":`, { isGifCover, hasFilteredTracks, hasTrackImage, trackImage, isTrackGif });
         // Only use track image if it's not a GIF
