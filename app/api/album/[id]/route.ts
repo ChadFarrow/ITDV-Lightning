@@ -61,7 +61,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
           console.log(`🎵 Testing feed: ${feed.title}`);
           
           // Parse this feed to get the actual album data
-          const albumData = await RSSParser.parseAlbumFeed(feed.originalUrl);
+          const albumData = await RSSParser.parseAlbumFeed(feed.originalUrl, feed.trackFilter);
           if (!albumData?.title) continue;
           
           // Try various matching patterns with the actual album title
@@ -158,7 +158,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       console.log(`♻️ Reusing already parsed album data`);
       albumData = (matchingFeed as any)._parsedAlbumData;
     } else {
-      albumData = await RSSParser.parseAlbumFeed(matchingFeed.originalUrl);
+      albumData = await RSSParser.parseAlbumFeed(matchingFeed.originalUrl, matchingFeed.trackFilter);
     }
     
     if (!albumData) {
