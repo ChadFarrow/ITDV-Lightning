@@ -490,8 +490,19 @@
       "trackFilter": "CityBeach",
       "addedAt": "2025-01-27T00:00:00.000Z",
       "lastUpdated": "2025-01-27T00:00:00.000Z"
+    },
+    {
+      "id": "music-behindthesch3m3s-com-autumn-rust-doerfels-tracks-xml",
+      "originalUrl": "https://music.behindthesch3m3s.com/wp-content/uploads/Sat_Skirmish/autumnrust/mp3s/album_feed/feed.xml",
+      "type": "album",
+      "title": "Satellite Spotlight: Autumn Rust - The Doerfels Tracks",
+      "priority": "extended",
+      "status": "active",
+      "trackFilter": "The Doerfels",
+      "addedAt": "2025-10-06T00:00:00.000Z",
+      "lastUpdated": "2025-10-06T00:00:00.000Z"
     }
   ],
-  "lastUpdated": "2025-09-14T22:30:00.000Z",
+  "lastUpdated": "2025-10-06T00:00:00.000Z",
   "version": 2
 }
