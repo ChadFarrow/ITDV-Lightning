@@ -126,7 +126,7 @@ export class RSSParser {
         if (trackFilter && cached.data) {
           return {
             ...cached.data,
-            tracks: cached.data.tracks.filter(track =>
+            tracks: cached.data.tracks.filter((track: RSSTrack) =>
               track.title.toLowerCase().includes(trackFilter.toLowerCase())
             )
           };
@@ -897,7 +897,7 @@ export class RSSParser {
 
       // Apply track filter if specified
       const filteredTracks = trackFilter
-        ? tracks.filter(track => track.title.toLowerCase().includes(trackFilter.toLowerCase()))
+        ? tracks.filter((track: RSSTrack) => track.title.toLowerCase().includes(trackFilter.toLowerCase()))
         : tracks;
 
       const album = {
