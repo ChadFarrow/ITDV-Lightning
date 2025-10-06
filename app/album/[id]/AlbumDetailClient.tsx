@@ -861,7 +861,7 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
 
               {/* Album Info */}
               <div className="flex-1 text-center lg:text-left">
-                <div className="mb-4">
+                <div className="mb-4 bg-black/60 backdrop-blur-sm p-4 rounded-lg">
                   <h1 className="text-4xl lg:text-5xl font-bold mb-2 text-white text-shadow">
                     {album.title}
                   </h1>
@@ -893,7 +893,7 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
                   </div>
 
                   {album.description && (
-                    <div className="max-w-2xl mx-auto lg:mx-0 mb-6 bg-black/30 backdrop-blur-sm rounded-xl border border-white/20 p-6">
+                    <div className="max-w-2xl mx-auto lg:mx-0 mb-2 bg-black/30 backdrop-blur-sm rounded-xl border border-white/20 p-6">
                       <p className="text-white leading-relaxed">{album.description}</p>
                     </div>
                   )}
