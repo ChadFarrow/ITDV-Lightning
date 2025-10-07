@@ -419,26 +419,50 @@ export default function HomePage() {
     }
   }, []);
 
+  // Helper function to fetch with timeout
+  const fetchWithTimeout = async (url: string, timeoutMs: number = 5000) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      return response;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log(`⏱️ Request to ${url} timed out after ${timeoutMs}ms`);
+      }
+      throw error;
+    }
+  };
+
   const loadAlbumsData = async () => {
     try {
       // Check for cached albums first - extend cache time for better performance
       if (typeof window !== 'undefined') {
         const cached = localStorage.getItem('cachedAlbums');
         const cacheTime = localStorage.getItem('albumsCacheTimestamp');
-        
+
         if (cached && cacheTime && (Date.now() - parseInt(cacheTime)) < 10 * 60 * 1000) {
           console.log('📦 Using cached albums');
           return JSON.parse(cached);
         }
       }
 
-      // Use static cached data for fast loading
+      // Use static cached data for fast loading (with 3s timeout)
       console.log('🔄 Loading albums from static cache...');
-      let response = await fetch('/api/albums-static-cached');
+      let response;
       let data;
       let useStaticCache = false;
-      
-      if (response.ok) {
+
+      try {
+        response = await fetchWithTimeout('/api/albums-static-cached', 3000);
+      } catch (error) {
+        console.log('⚠️ Static cache fetch failed or timed out, will try alternatives');
+      }
+
+      if (response?.ok) {
         data = await response.json();
         // Check if the data includes podcast:value and GUID information
         const hasValueData = data.albums?.some((album: any) => 
@@ -455,33 +479,40 @@ export default function HomePage() {
           useStaticCache = true;
         } else {
           if (!hasValueData) {
-            console.log('📦 Static cached data missing podcast:value info, falling back to dynamic data...');
+            console.log('📦 Static cached data missing podcast:value info, using it anyway for fast load...');
           }
           if (!hasGuidData) {
-            console.log('🏷️ Static cached data missing GUID info needed for Nostr tagging, falling back to dynamic data...');
+            console.log('🏷️ Static cached data missing GUID info, using it anyway for fast load...');
           }
+          // Use static cache anyway if it loaded successfully - better than slow dynamic load
+          useStaticCache = true;
         }
       }
-      
-      if (!useStaticCache) {
-        // Fallback to dynamic data if static cache fails or lacks podcast:value data
-        console.log('📡 Loading dynamic data to get podcast:value for Lightning...');
-        response = await fetch('/api/albums-no-db');
-        if (response.ok) {
-          data = await response.json();
-          console.log('⚡ Using dynamic album data (includes podcast:value for Lightning)');
+
+      // Skip slow dynamic loading - just use static cache for better performance
+      if (!useStaticCache || !data) {
+        // Only try dynamic as last resort with timeout
+        console.log('📡 Attempting dynamic data load with 8s timeout...');
+        try {
+          response = await fetchWithTimeout('/api/albums-no-db', 8000);
+          if (response.ok) {
+            data = await response.json();
+            console.log('⚡ Using dynamic album data (includes podcast:value for Lightning)');
+          }
+        } catch (error) {
+          console.log('⚠️ Dynamic load timed out or failed, falling back to static...');
         }
       }
-      
-      if (!response.ok || !data) {
-        // Fallback to static data if database-free fails
-        console.log('🔄 Database-free failed, falling back to static data (Lightning payments will use fallback address)...');
-        response = await fetch('/api/albums-static');
-        
+
+      if (!data) {
+        // Final fallback to static data (with timeout)
+        console.log('🔄 Falling back to static data...');
+        response = await fetchWithTimeout('/api/albums-static', 5000);
+
         if (!response.ok) {
           throw new Error(`Failed to fetch albums: ${response.status} ${response.statusText}`);
         }
-        
+
         data = await response.json();
         console.log('📦 Using static album data (no podcast:value data available)');
       }
