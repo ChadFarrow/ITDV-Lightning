@@ -99,9 +99,9 @@ export async function GET(request: Request) {
 
       for (const feed of feedsToProcess) {
         try {
-          console.log(`🎵 Parsing: ${feed.title}`);
-          const albumData = await RSSParser.parseAlbumFeed(feed.originalUrl);
-          
+          console.log(`🎵 Parsing: ${feed.title}${feed.trackFilter ? ` (filtering: ${feed.trackFilter})` : ''}`);
+          const albumData = await RSSParser.parseAlbumFeed(feed.originalUrl, feed.trackFilter);
+
           if (albumData) {
             // Add feed metadata
             const enrichedAlbum = {
