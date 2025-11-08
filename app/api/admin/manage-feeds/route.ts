@@ -26,7 +26,7 @@ async function parseFeedMetadata(url: string) {
   try {
     const album = await RSSParser.parseAlbumFeed(url);
     return {
-      title: album.title || 'Feed from ' + new URL(url).hostname,
+      title: album?.title || 'Feed from ' + new URL(url).hostname,
       type: 'album' as const,
     };
   } catch (error) {
