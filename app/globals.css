@@ -42,6 +42,11 @@ bc-button .sat {
 }
 
 @layer components {
+  /* Ensure NowPlayingScreen background is visible */
+  .now-playing-background {
+    background: var(--now-playing-bg, transparent) !important;
+  }
+  
   .podcast-card {
     @apply bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 overflow-hidden;
   }

@@ -436,16 +436,16 @@ const NowPlayingScreen: React.FC<NowPlayingScreenProps> = ({ isOpen, onClose }) 
         background: createAlbumBackground(extractedColors),
         willChange: mobileOpts.willChange,
         contain: mobileOpts.cssContainment
-      }
+      } as React.CSSProperties
     : { 
         background: 'linear-gradient(135deg, #1e3a8a 0%, #3730a3 25%, #581c87 75%, #000000 100%)',
         willChange: mobileOpts.willChange,
         contain: mobileOpts.cssContainment
-      };
+      } as React.CSSProperties;
 
   const overlayStyle = extractedColors 
     ? { background: createTextOverlay(extractedColors) }
-    : { background: 'linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.3) 100%)' };
+    : { background: 'linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.05) 50%, rgba(0,0,0,0.2) 100%)' };
 
   // Generate dynamic button styles that match the background
   const buttonStyles = extractedColors 
@@ -460,8 +460,13 @@ const NowPlayingScreen: React.FC<NowPlayingScreenProps> = ({ isOpen, onClose }) 
   return (
     <div 
       ref={swipeRef}
-      className="fixed inset-0 z-[100] flex flex-col transition-colors duration-500 ease-in-out"
-      style={backgroundStyle}
+      className="fixed inset-0 z-[100] flex flex-col transition-colors duration-500 ease-in-out now-playing-background"
+      style={{
+        ...backgroundStyle,
+        '--now-playing-bg': extractedColors 
+          ? createAlbumBackground(extractedColors)
+          : 'linear-gradient(135deg, #1e3a8a 0%, #3730a3 25%, #581c87 75%, #000000 100%)'
+      } as React.CSSProperties & { '--now-playing-bg': string }}
     >
       {/* Color overlay for better text readability */}
       <div className="absolute inset-0 pointer-events-none" style={overlayStyle} />
