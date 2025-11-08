@@ -262,23 +262,24 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
       // Set album immediately for faster rendering
       setAlbum(initialAlbum);
       setIsLoading(false);
-      
-      // Load related data in background with delays to prevent blocking
-      setTimeout(() => {
-        loadRelatedAlbums().catch(error => {
-          console.warn('Failed to load related albums:', error);
-        });
-      }, 200);
-      
+
+      // Defer all non-critical data loading until after initial render
+      // This prevents blocking the main content display
       setTimeout(() => {
         loadSiteAlbums().catch(error => {
           console.warn('Failed to load site albums:', error);
         });
-      }, 400);
-      
+      }, 2000); // Increased delay - load after page is fully visible
+
+      setTimeout(() => {
+        loadRelatedAlbums().catch(error => {
+          console.warn('Failed to load related albums:', error);
+        });
+      }, 2500); // Stagger to prevent simultaneous requests
+
       setTimeout(() => {
         loadPodrollAlbums();
-      }, 600);
+      }, 3000); // Load podroll last as it's slowest
     }
   }, [albumTitle, initialAlbum]);
 
@@ -365,21 +366,23 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
           preloadAttemptedRef.current = true;
           preloadBackgroundImage(data.album);
         }
-        
-        // Load related albums in background (non-blocking)
-        loadRelatedAlbums().catch(error => {
-          console.warn('Failed to load related albums:', error);
-        });
-        
-        // Load site albums and podroll albums in parallel, non-blocking
-        loadSiteAlbums().catch(error => {
-          console.warn('Failed to load site albums:', error);
-        });
-        
-        // Defer podroll loading to not block initial render
+
+        // Defer all non-critical data loading to prevent blocking
+        setTimeout(() => {
+          loadSiteAlbums().catch(error => {
+            console.warn('Failed to load site albums:', error);
+          });
+        }, 2000);
+
+        setTimeout(() => {
+          loadRelatedAlbums().catch(error => {
+            console.warn('Failed to load related albums:', error);
+          });
+        }, 2500);
+
         setTimeout(() => {
           loadPodrollAlbums();
-        }, 100);
+        }, 3000);
       } else {
         setError('Album not found');
       }
