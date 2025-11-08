@@ -32,9 +32,9 @@ async function parseFeedMetadata(url: string) {
   } catch (error) {
     // If we can't parse as album, try as publisher
     try {
-      const feed = await RSSParser.parsePublisherFeed(url);
+      const feedInfo = await RSSParser.parsePublisherFeedInfo(url);
       return {
-        title: feed?.title || 'Publisher Feed',
+        title: feedInfo?.title || 'Publisher Feed',
         type: 'publisher' as const,
       };
     } catch {
