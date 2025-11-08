@@ -7,11 +7,11 @@ export const sessions = new Map<string, { created: number; admin: boolean }>();
 setInterval(() => {
   const now = Date.now();
   const DAY_IN_MS = 24 * 60 * 60 * 1000;
-  for (const [token, session] of sessions.entries()) {
+  sessions.forEach((session, token) => {
     if (now - session.created > DAY_IN_MS) {
       sessions.delete(token);
     }
-  }
+  });
 }, 60 * 60 * 1000);
 
 export function generateToken(): string {
