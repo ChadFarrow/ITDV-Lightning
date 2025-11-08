@@ -118,6 +118,7 @@ export async function POST(request: NextRequest) {
         // Extract track-level colors if tracks have individual artwork
         const tracksWithColors = await Promise.all(
           album.tracks.map(async (track: any) => {
+            // If track has unique artwork, extract its colors
             if (track.image && track.image !== album.coverArt) {
               try {
                 const trackColors = await extractDominantColor(track.image);
@@ -129,6 +130,13 @@ export async function POST(request: NextRequest) {
                 console.error(`Failed to extract colors for track ${track.title}:`, error);
                 return track;
               }
+            }
+            // If track uses album artwork, copy album colors to track
+            else if (track.image && track.image === album.coverArt && albumColors) {
+              return {
+                ...track,
+                colors: albumColors,
+              };
             }
             return track;
           })
