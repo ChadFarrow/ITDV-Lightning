@@ -486,6 +486,39 @@ const NowPlayingScreen: React.FC<NowPlayingScreenProps> = ({ isOpen, onClose }) 
     ? createAlbumBackground(extractedColors)
     : 'linear-gradient(135deg, #1e3a8a 0%, #3730a3 25%, #581c87 75%, #000000 100%)';
 
+  // Create a key that changes when colors change to force React re-render on mobile
+  const buttonKey = extractedColors 
+    ? `${extractedColors.dominant}-${currentTrack?.title || ''}`
+    : `default-${currentTrack?.title || ''}`;
+
+  // Force repaint on mobile when colors change
+  useEffect(() => {
+    if (!isOpen || !extractedColors) return;
+    
+    // Force a repaint on mobile by triggering a reflow
+    const forceRepaint = () => {
+      // Check if we're on mobile
+      const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+      if (isMobile) {
+        // Force a reflow by reading a layout property
+        const button = document.querySelector('[data-boost-button]') as HTMLElement;
+        if (button) {
+          // Trigger a reflow to force repaint
+          void button.offsetHeight;
+          // Force a repaint by updating will-change
+          button.style.willChange = 'background-color, border-color';
+          requestAnimationFrame(() => {
+            button.style.willChange = 'auto';
+          });
+        }
+      }
+    };
+
+    // Small delay to ensure styles are applied
+    const timer = setTimeout(forceRepaint, 10);
+    return () => clearTimeout(timer);
+  }, [extractedColors, isOpen]);
+
   return (
     <div 
       ref={swipeRef}
@@ -666,31 +699,36 @@ const NowPlayingScreen: React.FC<NowPlayingScreenProps> = ({ isOpen, onClose }) 
           {isLightningEnabled && (
             <div className="flex items-center justify-center w-full relative">
               <button
+                key={buttonKey}
+                data-boost-button
                 onClick={() => {
                   checkConnection();
                   setShowBoostModal(true);
                 }}
-                className="flex items-center gap-2 px-4 py-2 backdrop-blur-sm rounded-full text-white hover:text-yellow-300 transform hover:scale-105 transition-all duration-150 text-sm"
+                className="flex items-center gap-2 px-4 py-2 backdrop-blur-sm rounded-full text-white hover:text-yellow-300 transform hover:scale-105 text-sm"
                 style={{
-                WebkitTapHighlightColor: 'transparent',
-                touchAction: 'manipulation',
-                background: buttonStyles.background,
-                border: `1px solid ${buttonStyles.border}`
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = buttonStyles.hoverBackground;
-                e.currentTarget.style.border = `1px solid ${buttonStyles.hoverBorder}`;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = buttonStyles.background;
-                e.currentTarget.style.border = `1px solid ${buttonStyles.border}`;
-              }}
-              title="Boost this song"
-            >
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M7 2v11h3v9l7-12h-4l4-8z"/>
-              </svg>
-              <span className="font-medium">Boost Song</span>
+                  WebkitTapHighlightColor: 'transparent',
+                  touchAction: 'manipulation',
+                  background: buttonStyles.background,
+                  border: `1px solid ${buttonStyles.border}`,
+                  transition: 'transform 150ms ease-out',
+                  // Remove transition from background/border to prevent split color issue on mobile
+                  transitionProperty: 'transform',
+                } as React.CSSProperties}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = buttonStyles.hoverBackground;
+                  e.currentTarget.style.border = `1px solid ${buttonStyles.hoverBorder}`;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = buttonStyles.background;
+                  e.currentTarget.style.border = `1px solid ${buttonStyles.border}`;
+                }}
+                title="Boost this song"
+              >
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M7 2v11h3v9l7-12h-4l4-8z"/>
+                </svg>
+                <span className="font-medium">Boost Song</span>
               </button>
               
               {/* Auto boost button positioned to the right */}
