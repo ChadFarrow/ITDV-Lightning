@@ -139,8 +139,32 @@ const NowPlayingScreen: React.FC<NowPlayingScreenProps> = ({ isOpen, onClose }) 
           colors = preloadedColors;
         }
       }
+      
+      // Helper function to transform colors to match ExtractedColors format
+      const transformColors = (colorData: any): ExtractedColors => {
+        let dominantColor = colorData.dominant;
+        if (typeof dominantColor === 'string' && !dominantColor.startsWith('rgb(')) {
+          // Convert "114,100,87" to "rgb(114, 100, 87)"
+          dominantColor = `rgb(${dominantColor})`;
+        }
+        
+        return {
+          dominant: dominantColor,
+          palette: colorData.palette || {
+            primary: dominantColor,
+            secondary: dominantColor,
+            accent: dominantColor,
+            background: 'rgb(0, 0, 0)',
+            text: 'rgb(255, 255, 255)'
+          },
+          isDark: colorData.isDark !== undefined ? colorData.isDark : true
+        };
+      };
 
       if (colors) {
+        // Transform colors to match ExtractedColors interface format
+        const transformedColors = transformColors(colors);
+        
         // Cache with size limit for mobile performance
         const mobileOpts = getMobileOptimizations();
         if (colorCache.current.size >= mobileOpts.maxCacheSize) {
@@ -150,8 +174,8 @@ const NowPlayingScreen: React.FC<NowPlayingScreenProps> = ({ isOpen, onClose }) 
           }
         }
         
-        colorCache.current.set(cacheKey, colors);
-        setExtractedColors(colors);
+        colorCache.current.set(cacheKey, transformedColors);
+        setExtractedColors(transformedColors);
         performanceMonitor.recordCacheMiss();
       } else {
         console.log('🎨 No colors found for:', actualAlbumTitle);
