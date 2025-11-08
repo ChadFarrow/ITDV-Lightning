@@ -24,6 +24,7 @@ export default function AdminFeedManager() {
   const [priority, setPriority] = useState<'core' | 'extended' | 'low'>('extended');
   const [feeds, setFeeds] = useState<Feed[]>([]);
   const [adding, setAdding] = useState(false);
+  const [extractingColors, setExtractingColors] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Check if already authenticated on page load
@@ -160,6 +161,29 @@ export default function AdminFeedManager() {
     }
   };
 
+  const handleExtractColors = async () => {
+    if (!confirm('Extract colors from all album artwork? This may take a few minutes.')) return;
+
+    setExtractingColors(true);
+    try {
+      const response = await fetch('/api/admin/extract-colors', {
+        method: 'POST',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        showMessage('success', `Color extraction complete! Processed ${data.processed} albums.`);
+      } else {
+        const error = await response.json();
+        showMessage('error', error.error || 'Failed to extract colors');
+      }
+    } catch (error) {
+      showMessage('error', 'Failed to extract colors');
+    } finally {
+      setExtractingColors(false);
+    }
+  };
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-6">
@@ -293,6 +317,22 @@ export default function AdminFeedManager() {
             <p className="text-sm text-gray-400 mt-4">
               Feeds will be automatically parsed and the static cache will be regenerated.
             </p>
+          </div>
+
+          {/* Color Extraction */}
+          <div className="bg-black/30 backdrop-blur-sm rounded-xl p-6 border border-white/10">
+            <h2 className="text-xl font-bold mb-4">Album Artwork Colors</h2>
+            <p className="text-gray-400 mb-4">
+              Extract dominant colors from all album artwork to enable dynamic backgrounds in the Now Playing screen.
+            </p>
+            <button
+              onClick={handleExtractColors}
+              disabled={extractingColors}
+              className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+            >
+              {extractingColors && <Loader2 className="w-4 h-4 animate-spin" />}
+              {extractingColors ? 'Extracting Colors...' : 'Extract Colors from All Albums'}
+            </button>
           </div>
 
           {/* Feeds List */}
