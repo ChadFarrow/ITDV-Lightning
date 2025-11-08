@@ -12,10 +12,46 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 }
 
 async function getAlbumData(albumId: string) {
-  // Skip SSR data fetching entirely - let client-side load from cache
-  // This prevents SSR from causing dynamic RSS parsing
-  console.log('🔄 Skipping SSR data fetch, will load client-side from cache');
-  return null;
+  try {
+    // Normalize the album ID to match URL format
+    const normalizedId = albumId
+      .toLowerCase()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+    // Load from static cache for fast SSR
+    const fs = require('fs');
+    const path = require('path');
+    const staticPath = path.join(process.cwd(), 'public', 'static-albums.json');
+
+    if (fs.existsSync(staticPath)) {
+      const data = JSON.parse(fs.readFileSync(staticPath, 'utf-8'));
+
+      // Find album by matching normalized title
+      const album = data.albums?.find((a: any) => {
+        const albumSlug = a.title
+          .toLowerCase()
+          .replace(/[^\w\s-]/g, '')
+          .replace(/\s+/g, '-')
+          .replace(/-+/g, '-')
+          .replace(/^-+|-+$/g, '');
+        return albumSlug === normalizedId;
+      });
+
+      if (album) {
+        console.log(`✅ SSR: Found album "${album.title}" in static cache`);
+        return album;
+      }
+    }
+
+    console.log('⚠️ Album not found in static cache, will load client-side');
+    return null;
+  } catch (error) {
+    console.error('❌ Error loading album data for SSR:', error);
+    return null;
+  }
 }
 
 export default async function AlbumPage({ params }: { params: Promise<{ id: string }> }) {
