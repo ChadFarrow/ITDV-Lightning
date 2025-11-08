@@ -457,15 +457,19 @@ const NowPlayingScreen: React.FC<NowPlayingScreenProps> = ({ isOpen, onClose }) 
         hoverBorder: 'rgba(255, 255, 255, 0.3)',
       };
 
+  // Ensure background is always set
+  const finalBackground = extractedColors 
+    ? createAlbumBackground(extractedColors)
+    : 'linear-gradient(135deg, #1e3a8a 0%, #3730a3 25%, #581c87 75%, #000000 100%)';
+
   return (
     <div 
       ref={swipeRef}
       className="fixed inset-0 z-[100] flex flex-col transition-colors duration-500 ease-in-out now-playing-background"
       style={{
         ...backgroundStyle,
-        '--now-playing-bg': extractedColors 
-          ? createAlbumBackground(extractedColors)
-          : 'linear-gradient(135deg, #1e3a8a 0%, #3730a3 25%, #581c87 75%, #000000 100%)'
+        background: finalBackground,
+        '--now-playing-bg': finalBackground
       } as React.CSSProperties & { '--now-playing-bg': string }}
     >
       {/* Color overlay for better text readability */}
