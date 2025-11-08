@@ -250,6 +250,34 @@ const NowPlayingScreen: React.FC<NowPlayingScreenProps> = ({ isOpen, onClose }) 
     }
   }, [senderName]);
 
+  // Force repaint on mobile when colors change
+  useEffect(() => {
+    if (!isOpen || !extractedColors || !currentTrack) return;
+    
+    // Force a repaint on mobile by triggering a reflow
+    const forceRepaint = () => {
+      // Check if we're on mobile
+      const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+      if (isMobile) {
+        // Force a reflow by reading a layout property
+        const button = document.querySelector('[data-boost-button]') as HTMLElement;
+        if (button) {
+          // Trigger a reflow to force repaint
+          void button.offsetHeight;
+          // Force a repaint by updating will-change
+          button.style.willChange = 'background-color, border-color';
+          requestAnimationFrame(() => {
+            button.style.willChange = 'auto';
+          });
+        }
+      }
+    };
+
+    // Small delay to ensure styles are applied
+    const timer = setTimeout(forceRepaint, 10);
+    return () => clearTimeout(timer);
+  }, [extractedColors, isOpen, currentTrack]);
+
   if (!isOpen || !currentTrack) return null;
 
   const formatTime = (seconds: number) => {
@@ -490,34 +518,6 @@ const NowPlayingScreen: React.FC<NowPlayingScreenProps> = ({ isOpen, onClose }) 
   const buttonKey = extractedColors 
     ? `${extractedColors.dominant}-${currentTrack?.title || ''}`
     : `default-${currentTrack?.title || ''}`;
-
-  // Force repaint on mobile when colors change
-  useEffect(() => {
-    if (!isOpen || !extractedColors) return;
-    
-    // Force a repaint on mobile by triggering a reflow
-    const forceRepaint = () => {
-      // Check if we're on mobile
-      const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
-      if (isMobile) {
-        // Force a reflow by reading a layout property
-        const button = document.querySelector('[data-boost-button]') as HTMLElement;
-        if (button) {
-          // Trigger a reflow to force repaint
-          void button.offsetHeight;
-          // Force a repaint by updating will-change
-          button.style.willChange = 'background-color, border-color';
-          requestAnimationFrame(() => {
-            button.style.willChange = 'auto';
-          });
-        }
-      }
-    };
-
-    // Small delay to ensure styles are applied
-    const timer = setTimeout(forceRepaint, 10);
-    return () => clearTimeout(timer);
-  }, [extractedColors, isOpen]);
 
   return (
     <div 
