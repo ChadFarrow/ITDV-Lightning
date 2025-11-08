@@ -1,6 +1,1134 @@
 {
   "albums": [
     {
+      "title": "Disco Swag - The Album",
+      "artist": "The Doerfels",
+      "description": "The Doerfels.(pronounced door-fulls) The last name of brothers who grew up playing in a band together. This is the second compilation of songs that belong together after the Bloodshot Lies Album. If you find value, consider returning value in any amount at www.doerfelverse.com",
+      "coverArt": "https://www.doerfelverse.com/art/discoswag-thealbum.gif",
+      "tracks": [
+        {
+          "title": "Disco Swag",
+          "duration": "2:47",
+          "url": "https://www.doerfelverse.com/tracks/disco-swag.mp3",
+          "trackNumber": 1,
+          "subtitle": "Disco Swag",
+          "summary": "1. Disco Swag",
+          "image": "https://www.doerfelverse.com/art/discoswag-thealbum.gif",
+          "explicit": false,
+          "keywords": [
+            "disco",
+            "swag",
+            "album",
+            "doerfels",
+            "the",
+            "doerfel",
+            "music",
+            "v4v",
+            "valueverse",
+            "thedoerfels"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 95,
+                "name": "DoerfelVerse",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 95,
+              "name": "DoerfelVerse",
+              "fee": false,
+              "type": "node"
+            }
+          ],
+          "guid": "3298db5c-2753-4d45-8d8f-e4dc3878d748",
+          "feedGuid": "b2a87a4c-86f0-5194-9eb3-dcba42ce0695",
+          "imageUrl": "https://www.doerfelverse.com/art/discoswag-thealbum.gif"
+        },
+        {
+          "title": "Possible",
+          "duration": "3:09",
+          "url": "https://www.doerfelverse.com/tracks/possible.mp3",
+          "trackNumber": 2,
+          "subtitle": "Possible",
+          "summary": "2. Possible",
+          "image": "https://www.doerfelverse.com/art/possible.jpeg",
+          "explicit": false,
+          "keywords": [
+            "disco",
+            "swag",
+            "album",
+            "doerfels",
+            "the",
+            "doerfel",
+            "music",
+            "v4v",
+            "valueverse",
+            "thedoerfels"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 95,
+                "name": "DoerfelVerse",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 95,
+              "name": "DoerfelVerse",
+              "fee": false,
+              "type": "node"
+            }
+          ],
+          "guid": "6e6f52bb-7ead-4749-953f-188dea2ee015",
+          "feedGuid": "b2a87a4c-86f0-5194-9eb3-dcba42ce0695",
+          "imageUrl": "https://www.doerfelverse.com/art/possible.jpeg"
+        },
+        {
+          "title": "Figured You Out",
+          "duration": "3:04",
+          "url": "https://www.doerfelverse.com/tracks/figured-you-out.mp3",
+          "trackNumber": 3,
+          "subtitle": "Figured You Out",
+          "summary": "3. Figured You Out",
+          "image": "https://www.doerfelverse.com/art/figured-you-out.png",
+          "explicit": false,
+          "keywords": [
+            "disco",
+            "swag",
+            "album",
+            "doerfels",
+            "the",
+            "doerfel",
+            "music",
+            "v4v",
+            "valueverse",
+            "thedoerfels",
+            "figured",
+            "you",
+            "out"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 95,
+                "name": "DoerfelVerse",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 95,
+              "name": "DoerfelVerse",
+              "fee": false,
+              "type": "node"
+            }
+          ],
+          "guid": "8e89115c-f375-406b-82d7-f9d7a55e75fd",
+          "feedGuid": "b2a87a4c-86f0-5194-9eb3-dcba42ce0695",
+          "imageUrl": "https://www.doerfelverse.com/art/figured-you-out.png"
+        },
+        {
+          "title": "Take Me Away",
+          "duration": "3:41",
+          "url": "https://www.doerfelverse.com/tracks/take-me-away.mp3",
+          "trackNumber": 4,
+          "subtitle": "Take Me Away",
+          "summary": "4. Take Me Away",
+          "image": "https://www.doerfelverse.com/art/take-me-away.png",
+          "explicit": false,
+          "keywords": [
+            "disco",
+            "swag",
+            "album",
+            "doerfels",
+            "the",
+            "doerfel",
+            "music",
+            "v4v",
+            "valueverse",
+            "thedoerfels",
+            "take",
+            "me",
+            "away"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 95,
+                "name": "DoerfelVerse",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 95,
+              "name": "DoerfelVerse",
+              "fee": false,
+              "type": "node"
+            }
+          ],
+          "guid": "1ecd5b59-0d4f-4437-8027-f931a9c799b5",
+          "feedGuid": "b2a87a4c-86f0-5194-9eb3-dcba42ce0695",
+          "imageUrl": "https://www.doerfelverse.com/art/take-me-away.png"
+        },
+        {
+          "title": "Underwater",
+          "duration": "3:09",
+          "url": "https://www.doerfelverse.com/tracks/underwater.mp3",
+          "trackNumber": 5,
+          "subtitle": "Underwater",
+          "summary": "5. Underwater",
+          "image": "https://www.doerfelverse.com/art/underwater.jpg",
+          "explicit": false,
+          "keywords": [
+            "disco",
+            "swag",
+            "album",
+            "doerfels",
+            "the",
+            "doerfel",
+            "music",
+            "v4v",
+            "valueverse",
+            "thedoerfels",
+            "underwater"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 95,
+                "name": "DoerfelVerse",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 95,
+              "name": "DoerfelVerse",
+              "fee": false,
+              "type": "node"
+            }
+          ],
+          "guid": "fdf2f3ef-891e-4685-a6ab-7e6d7217a8cc",
+          "feedGuid": "b2a87a4c-86f0-5194-9eb3-dcba42ce0695",
+          "imageUrl": "https://www.doerfelverse.com/art/underwater.jpg"
+        },
+        {
+          "title": "Make It",
+          "duration": "3:08",
+          "url": "https://www.doerfelverse.com/tracks/make-it.mp3",
+          "trackNumber": 6,
+          "subtitle": "Make It",
+          "summary": "6. Make It",
+          "image": "https://www.doerfelverse.com/art/make-it.png",
+          "explicit": false,
+          "keywords": [
+            "disco",
+            "swag",
+            "album",
+            "doerfels",
+            "the",
+            "doerfel",
+            "music",
+            "v4v",
+            "valueverse",
+            "thedoerfels",
+            "make",
+            "it"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 95,
+                "name": "DoerfelVerse",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 95,
+              "name": "DoerfelVerse",
+              "fee": false,
+              "type": "node"
+            }
+          ],
+          "guid": "071ca667-2c6d-4681-a26c-c465cc4c797a",
+          "feedGuid": "b2a87a4c-86f0-5194-9eb3-dcba42ce0695",
+          "imageUrl": "https://www.doerfelverse.com/art/make-it.png"
+        },
+        {
+          "title": "Now I Know",
+          "duration": "2:44",
+          "url": "https://www.doerfelverse.com/tracks/now-i-know.mp3",
+          "trackNumber": 7,
+          "subtitle": "Now I Know",
+          "summary": "7. Now I Know",
+          "image": "https://www.doerfelverse.com/art/now-i-know.png",
+          "explicit": false,
+          "keywords": [
+            "disco",
+            "swag",
+            "album",
+            "doerfels",
+            "the",
+            "doerfel",
+            "music",
+            "v4v",
+            "valueverse",
+            "thedoerfels",
+            "know",
+            "i",
+            "know"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 95,
+                "name": "DoerfelVerse",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 95,
+              "name": "DoerfelVerse",
+              "fee": false,
+              "type": "node"
+            }
+          ],
+          "guid": "f3339e9b-f258-4378-a708-cc030d90b21d",
+          "feedGuid": "b2a87a4c-86f0-5194-9eb3-dcba42ce0695",
+          "imageUrl": "https://www.doerfelverse.com/art/now-i-know.png"
+        },
+        {
+          "title": "Don't Forget Me",
+          "duration": "4:17",
+          "url": "https://www.doerfelverse.com/tracks/dont-forget-me.mp3",
+          "trackNumber": 8,
+          "subtitle": "Don't Forget Me",
+          "summary": "8. Don't Forget Me",
+          "image": "https://www.doerfelverse.com/art/dont-forget-me-art.jpg",
+          "explicit": false,
+          "keywords": [
+            "disco",
+            "swag",
+            "album",
+            "doerfels",
+            "the",
+            "doerfel",
+            "music",
+            "v4v",
+            "valueverse",
+            "thedoerfels",
+            "dont",
+            "forget",
+            "me"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 95,
+                "name": "DoerfelVerse",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 95,
+              "name": "DoerfelVerse",
+              "fee": false,
+              "type": "node"
+            }
+          ],
+          "guid": "1d09435b-96bf-4348-aff1-514d600eccfe",
+          "feedGuid": "b2a87a4c-86f0-5194-9eb3-dcba42ce0695",
+          "imageUrl": "https://www.doerfelverse.com/art/dont-forget-me-art.jpg"
+        },
+        {
+          "title": "Way In My Life - alternate version",
+          "duration": "3:06",
+          "url": "https://www.doerfelverse.com/tracks/way-in-my-life-alt.mp3",
+          "trackNumber": 9,
+          "subtitle": "Way In My Life - alternate version",
+          "summary": "9. Way In My Life - alternate version",
+          "image": "https://www.doerfelverse.com/art/way-in-my-life-alt.png",
+          "explicit": false,
+          "keywords": [
+            "disco",
+            "swag",
+            "album",
+            "doerfels",
+            "the",
+            "doerfel",
+            "music",
+            "v4v",
+            "valueverse",
+            "thedoerfels",
+            "way",
+            "in",
+            "my",
+            "life",
+            "alt"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 95,
+                "name": "DoerfelVerse",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 95,
+              "name": "DoerfelVerse",
+              "fee": false,
+              "type": "node"
+            }
+          ],
+          "guid": "540c2ff8-044e-40bd-bc76-e2d92b0eab2c",
+          "feedGuid": "b2a87a4c-86f0-5194-9eb3-dcba42ce0695",
+          "imageUrl": "https://www.doerfelverse.com/art/way-in-my-life-alt.png"
+        },
+        {
+          "title": "If I Promise",
+          "duration": "2:42",
+          "url": "https://www.doerfelverse.com/tracks/if-i-promise-demo-version.mp3",
+          "trackNumber": 10,
+          "subtitle": "If I Promise",
+          "summary": "10. If I Promise",
+          "image": "https://www.doerfelverse.com/art/if-i-promise-art.jpeg",
+          "explicit": false,
+          "keywords": [
+            "disco",
+            "swag",
+            "album",
+            "doerfels",
+            "the",
+            "doerfel",
+            "music",
+            "v4v",
+            "valueverse",
+            "thedoerfels",
+            "if",
+            "i",
+            "promise"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 95,
+                "name": "DoerfelVerse",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 95,
+              "name": "DoerfelVerse",
+              "fee": false,
+              "type": "node"
+            }
+          ],
+          "guid": "96647048-e3e9-4233-a4f2-48f5b2afe495",
+          "feedGuid": "b2a87a4c-86f0-5194-9eb3-dcba42ce0695",
+          "imageUrl": "https://www.doerfelverse.com/art/if-i-promise-art.jpeg"
+        },
+        {
+          "title": "What You Do To Me",
+          "duration": "3:19",
+          "url": "https://www.doerfelverse.com/tracks/what-you-do.mp3",
+          "trackNumber": 11,
+          "subtitle": "What You Do To Me",
+          "summary": "11. What You Do To Me",
+          "image": "https://www.doerfelverse.com/art/what-you-do.png",
+          "explicit": false,
+          "keywords": [
+            "disco",
+            "swag",
+            "album",
+            "doerfels",
+            "the",
+            "doerfel",
+            "music",
+            "v4v",
+            "valueverse",
+            "thedoerfels",
+            "what",
+            "you",
+            "do"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 95,
+                "name": "DoerfelVerse",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 95,
+              "name": "DoerfelVerse",
+              "fee": false,
+              "type": "node"
+            }
+          ],
+          "guid": "8df0b72e-38b3-4743-b122-897b59e6fe93",
+          "feedGuid": "b2a87a4c-86f0-5194-9eb3-dcba42ce0695",
+          "imageUrl": "https://www.doerfelverse.com/art/what-you-do.png"
+        },
+        {
+          "title": "Morning Love",
+          "duration": "3:18",
+          "url": "https://www.doerfelverse.com/tracks/morning-love.mp3",
+          "trackNumber": 12,
+          "subtitle": "Morning Love",
+          "summary": "12. Morning Love",
+          "image": "https://www.doerfelverse.com/art/morning-love-art.png",
+          "explicit": false,
+          "keywords": [
+            "disco",
+            "swag",
+            "album",
+            "doerfels",
+            "the",
+            "doerfel",
+            "music",
+            "v4v",
+            "valueverse",
+            "thedoerfels",
+            "morning",
+            "love"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 95,
+                "name": "DoerfelVerse",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 95,
+              "name": "DoerfelVerse",
+              "fee": false,
+              "type": "node"
+            }
+          ],
+          "guid": "d1eee9eb-6ee6-4f6e-9a6c-089d486248e0",
+          "feedGuid": "b2a87a4c-86f0-5194-9eb3-dcba42ce0695",
+          "imageUrl": "https://www.doerfelverse.com/art/morning-love-art.png"
+        },
+        {
+          "title": "Sing For You",
+          "duration": "3:19",
+          "url": "https://www.doerfelverse.com/tracks/sing-for-you.mp3",
+          "trackNumber": 13,
+          "subtitle": "Sing For You",
+          "summary": "13. Sing For You",
+          "image": "https://www.doerfelverse.com/art/sing-for-you.png",
+          "explicit": false,
+          "keywords": [
+            "disco",
+            "swag",
+            "album",
+            "doerfels",
+            "the",
+            "doerfel",
+            "music",
+            "v4v",
+            "valueverse",
+            "thedoerfels",
+            "sing",
+            "for",
+            "you"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 95,
+                "name": "DoerfelVerse",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 95,
+              "name": "DoerfelVerse",
+              "fee": false,
+              "type": "node"
+            }
+          ],
+          "guid": "12711f57-2d41-4794-8cb9-154ecebb7cf7",
+          "feedGuid": "b2a87a4c-86f0-5194-9eb3-dcba42ce0695",
+          "imageUrl": "https://www.doerfelverse.com/art/sing-for-you.png"
+        },
+        {
+          "title": "Disco Swag Demo",
+          "duration": "2:39",
+          "url": "https://www.doerfelverse.com/tracks/disco-swag-demo.mp3",
+          "trackNumber": 14,
+          "subtitle": "Disco Swag Demo",
+          "summary": "14. Disco Swag Demo",
+          "image": "https://www.doerfelverse.com/art/disco-swag-demo.png",
+          "explicit": false,
+          "keywords": [
+            "disco",
+            "swag",
+            "album",
+            "doerfels",
+            "the",
+            "doerfel",
+            "music",
+            "v4v",
+            "valueverse",
+            "thedoerfels"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 95,
+                "name": "DoerfelVerse",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 95,
+              "name": "DoerfelVerse",
+              "fee": false,
+              "type": "node"
+            }
+          ],
+          "guid": "70e2b910-aac9-4e06-aeeb-2bcc6d575c89",
+          "feedGuid": "b2a87a4c-86f0-5194-9eb3-dcba42ce0695",
+          "imageUrl": "https://www.doerfelverse.com/art/disco-swag-demo.png"
+        },
+        {
+          "title": "Possible (alternate version)",
+          "duration": "3:28",
+          "url": "https://www.doerfelverse.com/tracks/possible-alt.mp3",
+          "trackNumber": 15,
+          "subtitle": "Possible (alternate version)",
+          "summary": "15. Possible (alternate version)",
+          "image": "https://www.doerfelverse.com/art/possible-alt.png",
+          "explicit": false,
+          "keywords": [
+            "disco",
+            "swag",
+            "album",
+            "doerfels",
+            "the",
+            "doerfel",
+            "music",
+            "v4v",
+            "valueverse",
+            "thedoerfels",
+            "possible"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 95,
+                "name": "DoerfelVerse",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 95,
+              "name": "DoerfelVerse",
+              "fee": false,
+              "type": "node"
+            }
+          ],
+          "guid": "3e748ead-9be9-48e5-93d9-3c6e2f546a9b",
+          "feedGuid": "b2a87a4c-86f0-5194-9eb3-dcba42ce0695",
+          "imageUrl": "https://www.doerfelverse.com/art/possible-alt.png"
+        },
+        {
+          "title": "What You Do (reprise)",
+          "duration": "1:44",
+          "url": "https://www.doerfelverse.com/tracks/what-you-do-reprise.mp3",
+          "trackNumber": 16,
+          "subtitle": "What You Do (reprise)",
+          "summary": "16. What You Do (reprise)",
+          "image": "https://www.doerfelverse.com/art/what-you-do-reprise.png",
+          "explicit": false,
+          "keywords": [
+            "disco",
+            "swag",
+            "album",
+            "doerfels",
+            "the",
+            "doerfel",
+            "music",
+            "v4v",
+            "valueverse",
+            "thedoerfels",
+            "what",
+            "you",
+            "do",
+            "reprise"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 95,
+                "name": "DoerfelVerse",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 95,
+              "name": "DoerfelVerse",
+              "fee": false,
+              "type": "node"
+            }
+          ],
+          "guid": "09ca517c-9162-479f-a614-a2debd618a0b",
+          "feedGuid": "b2a87a4c-86f0-5194-9eb3-dcba42ce0695",
+          "imageUrl": "https://www.doerfelverse.com/art/what-you-do-reprise.png"
+        },
+        {
+          "title": "Way In My Life (1st version)",
+          "duration": "3:12",
+          "url": "https://www.doerfelverse.com/tracks/way-in-my-life.mp3",
+          "trackNumber": 17,
+          "subtitle": "Way In My Life (1st version)",
+          "summary": "17. Way In My Life (1st version)",
+          "image": "https://www.doerfelverse.com/art/way-in-my-life-art.jpg",
+          "explicit": false,
+          "keywords": [
+            "disco",
+            "swag",
+            "album",
+            "doerfels",
+            "the",
+            "doerfel",
+            "music",
+            "v4v",
+            "valueverse",
+            "thedoerfels",
+            "way",
+            "in",
+            "my",
+            "life"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 95,
+                "name": "DoerfelVerse",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 95,
+              "name": "DoerfelVerse",
+              "fee": false,
+              "type": "node"
+            }
+          ],
+          "guid": "ce4ab8b0-ff8a-4e35-be09-a15fee562492",
+          "feedGuid": "b2a87a4c-86f0-5194-9eb3-dcba42ce0695",
+          "imageUrl": "https://www.doerfelverse.com/art/way-in-my-life-art.jpg"
+        },
+        {
+          "title": "Take Me Away (alternate version)",
+          "duration": "2:54",
+          "url": "https://www.doerfelverse.com/tracks/take-me-away-alt.mp3",
+          "trackNumber": 18,
+          "subtitle": "Take Me Away (alternate version)",
+          "summary": "18. Take Me Away (alternate version)",
+          "image": "https://www.doerfelverse.com/art/take-me-away-alt.png",
+          "explicit": false,
+          "keywords": [
+            "disco",
+            "swag",
+            "album",
+            "doerfels",
+            "the",
+            "doerfel",
+            "music",
+            "v4v",
+            "valueverse",
+            "thedoerfels",
+            "take",
+            "me",
+            "away",
+            "alternate"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 95,
+                "name": "DoerfelVerse",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 95,
+              "name": "DoerfelVerse",
+              "fee": false,
+              "type": "node"
+            }
+          ],
+          "guid": "3ff02517-6509-4972-bacb-5e45b5a4d702",
+          "feedGuid": "b2a87a4c-86f0-5194-9eb3-dcba42ce0695",
+          "imageUrl": "https://www.doerfelverse.com/art/take-me-away-alt.png"
+        }
+      ],
+      "releaseDate": "Fri, 07 Nov 2025 14:28:27 +0000",
+      "link": "https://www.doerfelverse.com",
+      "funding": [
+        {
+          "url": "https://www.paypal.com/donate/?hosted_button_id=ATL9BD9EQRSNN",
+          "message": "Support us here!"
+        }
+      ],
+      "value": {
+        "type": "lightning",
+        "method": "keysend",
+        "suggested": "0.00000005000",
+        "recipients": [
+          {
+            "type": "node",
+            "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+            "split": 90,
+            "name": "The Doerfels",
+            "fee": false
+          },
+          {
+            "type": "lnaddress",
+            "address": "steven@getalby.com",
+            "split": 10,
+            "name": "Sovereign Feeds",
+            "fee": false
+          }
+        ]
+      },
+      "subtitle": "Disco Swag",
+      "summary": "1. Disco Swag",
+      "keywords": [
+        "doerfels",
+        "doerfelverse",
+        "disco",
+        "swag",
+        "album"
+      ],
+      "categories": [
+        "Music"
+      ],
+      "explicit": false,
+      "language": "en",
+      "podroll": [
+        {
+          "url": "https://www.doerfelverse.com/feeds/bloodshot-lies-album.xml",
+          "title": "Feed a1077af6..."
+        },
+        {
+          "url": "https://www.doerfelverse.com/feeds/think-ep.xml",
+          "title": "Feed af99d1b4..."
+        },
+        {
+          "url": "https://www.doerfelverse.com/feeds/your-chance.xml",
+          "title": "Feed 4ab3741a..."
+        },
+        {
+          "url": "https://www.doerfelverse.com/feeds/ben-doerfel.xml",
+          "title": "Feed 08604071..."
+        },
+        {
+          "url": "https://www.sirtjthewrathful.com/wp-content/uploads/2023/08/Nostalgic.xml",
+          "title": "Feed 1e7ed1fa..."
+        }
+      ],
+      "publisher": {
+        "feedGuid": "e4ce7211-2982-5d6e-a20d-9ddd46bb893b",
+        "feedUrl": "https://www.doerfelverse.com/feeds/doerfels-pubfeed.xml",
+        "medium": "publisher"
+      },
+      "paymentRecipients": [
+        {
+          "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+          "split": 90,
+          "name": "The Doerfels",
+          "fee": false,
+          "type": "node"
+        }
+      ],
+      "feedGuid": "b2a87a4c-86f0-5194-9eb3-dcba42ce0695",
+      "feedUrl": "https://www.doerfelverse.com/feeds/disco-swag-album.xml",
+      "publisherGuid": "e4ce7211-2982-5d6e-a20d-9ddd46bb893b",
+      "publisherUrl": "https://www.doerfelverse.com/feeds/doerfels-pubfeed.xml",
+      "imageUrl": "https://www.doerfelverse.com/art/discoswag-thealbum.gif",
+      "feedId": "www-doerfelverse-com-feeds-disco-swag-album-xml",
+      "lastUpdated": "2025-11-08T00:00:00.000Z"
+    },
+    {
       "title": "Bloodshot Lies - The Album",
       "artist": "The Doerfels",
       "description": "\"Bloodshot Lies - The Album\" gives you a musical experience of our songs that belong together. This is a value for value project. That means we make our music availible for free, and just ask if you receive any value, you return the value in a form that is meaningful to you",
@@ -1812,14 +2940,672 @@
           "guid": "1892256d-7d69-42ee-af80-f10305c38ed8",
           "feedGuid": "a1077af6-602b-5daf-957b-68a65a03cad1",
           "imageUrl": "https://www.doerfelverse.com/art/bloodshot-lies-acoustic.png"
+        },
+        {
+          "title": "Bloodshot Lies Funky",
+          "duration": "3:24",
+          "url": "https://www.doerfelverse.com/tracks/bloodshot-lies-funk.mp3",
+          "trackNumber": 15,
+          "subtitle": "Bloodshot Lies Funky",
+          "summary": "By The Doerfels\nSong Lyrics",
+          "image": "https://www.doerfelverse.com/art/bloodshot-lies-funk.png",
+          "explicit": false,
+          "keywords": [
+            "doerfel",
+            "the",
+            "doerfels",
+            "doerfelverse",
+            "bloodshot",
+            "lies",
+            "album",
+            "dv",
+            "music",
+            "v4vmusic",
+            "valueverse",
+            "funk",
+            "funky"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 100,
+                "name": "The Doerfels",
+                "fee": false
+              },
+              {
+                "type": "node",
+                "address": "035ad2c954e264004986da2d9499e1732e5175e1dcef2453c921c6cdcc3536e9d8",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": true
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 100,
+              "name": "The Doerfels",
+              "fee": false,
+              "type": "node"
+            },
+            {
+              "address": "035ad2c954e264004986da2d9499e1732e5175e1dcef2453c921c6cdcc3536e9d8",
+              "split": 5,
+              "name": "Sovereign Feeds",
+              "fee": true,
+              "type": "node"
+            }
+          ],
+          "guid": "7c823adf-1e53-4df1-98c0-979da81ec916",
+          "feedGuid": "a1077af6-602b-5daf-957b-68a65a03cad1",
+          "imageUrl": "https://www.doerfelverse.com/art/bloodshot-lies-funk.png"
+        },
+        {
+          "title": "Cinema 85 (Kurtisdrums)",
+          "duration": "1:26",
+          "url": "https://www.doerfelverse.com/tracks/cinema-85.mp3",
+          "trackNumber": 16,
+          "subtitle": "Cinema 85 (Kurtisdrums)",
+          "summary": "Cinema 85 By The Doerfels via Kurtisdrums",
+          "image": "https://www.doerfelverse.com/art/cinema85.png",
+          "explicit": false,
+          "keywords": [
+            "doerfel",
+            "the",
+            "doerfels",
+            "doerfelverse",
+            "bloodshot",
+            "lies",
+            "album",
+            "dv",
+            "music",
+            "v4vmusic",
+            "valueverse"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 15,
+                "name": "DV",
+                "fee": false
+              },
+              {
+                "type": "node",
+                "address": "035ad2c954e264004986da2d9499e1732e5175e1dcef2453c921c6cdcc3536e9d8",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": true
+              },
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 25,
+                "name": "Ben - guitar",
+                "customKey": "696969",
+                "customValue": "4",
+                "fee": false
+              },
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 25,
+                "name": "Edward- keys, mandolin",
+                "customKey": "696969",
+                "customValue": "5",
+                "fee": false
+              },
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 25,
+                "name": "Kurt - drums",
+                "customKey": "696969",
+                "customValue": "3",
+                "fee": false
+              },
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 10,
+                "name": "Joey - bass",
+                "customKey": "696969",
+                "customValue": "9",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 15,
+              "name": "DV",
+              "fee": false,
+              "type": "node"
+            },
+            {
+              "address": "035ad2c954e264004986da2d9499e1732e5175e1dcef2453c921c6cdcc3536e9d8",
+              "split": 5,
+              "name": "Sovereign Feeds",
+              "fee": true,
+              "type": "node"
+            },
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 25,
+              "name": "Ben - guitar",
+              "fee": false,
+              "type": "node"
+            },
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 25,
+              "name": "Edward- keys, mandolin",
+              "fee": false,
+              "type": "node"
+            },
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 25,
+              "name": "Kurt - drums",
+              "fee": false,
+              "type": "node"
+            },
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 10,
+              "name": "Joey - bass",
+              "fee": false,
+              "type": "node"
+            }
+          ],
+          "guid": "d337133a-1c53-4252-a452-40c9703b96a0",
+          "feedGuid": "a1077af6-602b-5daf-957b-68a65a03cad1",
+          "imageUrl": "https://www.doerfelverse.com/art/cinema85.png"
+        },
+        {
+          "title": "Movie (alternate version)",
+          "duration": "4:10",
+          "url": "https://www.doerfelverse.com/tracks/movie-alt.mp3",
+          "trackNumber": 17,
+          "subtitle": "Movie (alternate version)",
+          "summary": "Movie (alternate version) By The Doerfels",
+          "image": "https://www.doerfelverse.com/art/movie-alt.png",
+          "explicit": false,
+          "keywords": [
+            "doerfel",
+            "the",
+            "doerfels",
+            "doerfelverse",
+            "bloodshot",
+            "lies",
+            "album",
+            "dv",
+            "music",
+            "v4vmusic",
+            "valueverse",
+            "movie",
+            "demu"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 15,
+                "name": "DV",
+                "fee": false
+              },
+              {
+                "type": "node",
+                "address": "035ad2c954e264004986da2d9499e1732e5175e1dcef2453c921c6cdcc3536e9d8",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": true
+              },
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 25,
+                "name": "Ben - guitar",
+                "customKey": "696969",
+                "customValue": "4",
+                "fee": false
+              },
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 25,
+                "name": "Edward- keys, mandolin",
+                "customKey": "696969",
+                "customValue": "5",
+                "fee": false
+              },
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 25,
+                "name": "Kurt - drums",
+                "customKey": "696969",
+                "customValue": "3",
+                "fee": false
+              },
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 10,
+                "name": "Joey - bass",
+                "customKey": "696969",
+                "customValue": "9",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 15,
+              "name": "DV",
+              "fee": false,
+              "type": "node"
+            },
+            {
+              "address": "035ad2c954e264004986da2d9499e1732e5175e1dcef2453c921c6cdcc3536e9d8",
+              "split": 5,
+              "name": "Sovereign Feeds",
+              "fee": true,
+              "type": "node"
+            },
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 25,
+              "name": "Ben - guitar",
+              "fee": false,
+              "type": "node"
+            },
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 25,
+              "name": "Edward- keys, mandolin",
+              "fee": false,
+              "type": "node"
+            },
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 25,
+              "name": "Kurt - drums",
+              "fee": false,
+              "type": "node"
+            },
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 10,
+              "name": "Joey - bass",
+              "fee": false,
+              "type": "node"
+            }
+          ],
+          "guid": "8da0443b-416c-435b-8749-1f127ad43ba6",
+          "feedGuid": "a1077af6-602b-5daf-957b-68a65a03cad1",
+          "imageUrl": "https://www.doerfelverse.com/art/movie-alt.png"
+        },
+        {
+          "title": "Heartbreak Falcone Remix",
+          "duration": "3:31",
+          "url": "https://www.doerfelverse.com/tracks/heartbreak-falcone-remix.mp3",
+          "trackNumber": 18,
+          "subtitle": "Heartbreak Falcone Remix",
+          "summary": "Heartbreak Falcone Remix By The Doerfels",
+          "image": "https://www.doerfelverse.com/art/heartbreak-remix.png",
+          "explicit": false,
+          "keywords": [
+            "doerfel",
+            "the",
+            "doerfels",
+            "doerfelverse",
+            "bloodshot",
+            "lies",
+            "album",
+            "dv",
+            "music",
+            "v4vmusic",
+            "valueverse",
+            "heartbreak",
+            "remix"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 15,
+                "name": "DV",
+                "fee": false
+              },
+              {
+                "type": "node",
+                "address": "035ad2c954e264004986da2d9499e1732e5175e1dcef2453c921c6cdcc3536e9d8",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": true
+              },
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 25,
+                "name": "Ben - guitar",
+                "customKey": "696969",
+                "customValue": "4",
+                "fee": false
+              },
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 25,
+                "name": "Edward- keys, mandolin",
+                "customKey": "696969",
+                "customValue": "5",
+                "fee": false
+              },
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 25,
+                "name": "Kurt - drums",
+                "customKey": "696969",
+                "customValue": "3",
+                "fee": false
+              },
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 10,
+                "name": "Joey - bass",
+                "customKey": "696969",
+                "customValue": "9",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 15,
+              "name": "DV",
+              "fee": false,
+              "type": "node"
+            },
+            {
+              "address": "035ad2c954e264004986da2d9499e1732e5175e1dcef2453c921c6cdcc3536e9d8",
+              "split": 5,
+              "name": "Sovereign Feeds",
+              "fee": true,
+              "type": "node"
+            },
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 25,
+              "name": "Ben - guitar",
+              "fee": false,
+              "type": "node"
+            },
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 25,
+              "name": "Edward- keys, mandolin",
+              "fee": false,
+              "type": "node"
+            },
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 25,
+              "name": "Kurt - drums",
+              "fee": false,
+              "type": "node"
+            },
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 10,
+              "name": "Joey - bass",
+              "fee": false,
+              "type": "node"
+            }
+          ],
+          "guid": "bd4e8597-5a67-43bd-a076-52bca49f130d",
+          "feedGuid": "a1077af6-602b-5daf-957b-68a65a03cad1",
+          "imageUrl": "https://www.doerfelverse.com/art/heartbreak-remix.png"
+        },
+        {
+          "title": "So Far Away (early version)",
+          "duration": "3:13",
+          "url": "https://www.doerfelverse.com/tracks/so-far-away-early.mp3",
+          "trackNumber": 19,
+          "subtitle": "So Far Away (early version)",
+          "summary": "So Far Away (early version) By The Doerfels",
+          "image": "https://www.doerfelverse.com/art/so-far-away-early.png",
+          "explicit": false,
+          "keywords": [
+            "doerfel",
+            "the",
+            "doerfels",
+            "doerfelverse",
+            "bloodshot",
+            "lies",
+            "album",
+            "dv",
+            "music",
+            "v4vmusic",
+            "valueverse",
+            "so",
+            "far",
+            "away",
+            "early"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 15,
+                "name": "DV",
+                "fee": false
+              },
+              {
+                "type": "node",
+                "address": "035ad2c954e264004986da2d9499e1732e5175e1dcef2453c921c6cdcc3536e9d8",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": true
+              },
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 25,
+                "name": "Ben - guitar",
+                "customKey": "696969",
+                "customValue": "4",
+                "fee": false
+              },
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 25,
+                "name": "Edward- keys, mandolin",
+                "customKey": "696969",
+                "customValue": "5",
+                "fee": false
+              },
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 25,
+                "name": "Kurt - drums",
+                "customKey": "696969",
+                "customValue": "3",
+                "fee": false
+              },
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 10,
+                "name": "Joey - bass",
+                "customKey": "696969",
+                "customValue": "9",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 15,
+              "name": "DV",
+              "fee": false,
+              "type": "node"
+            },
+            {
+              "address": "035ad2c954e264004986da2d9499e1732e5175e1dcef2453c921c6cdcc3536e9d8",
+              "split": 5,
+              "name": "Sovereign Feeds",
+              "fee": true,
+              "type": "node"
+            },
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 25,
+              "name": "Ben - guitar",
+              "fee": false,
+              "type": "node"
+            },
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 25,
+              "name": "Edward- keys, mandolin",
+              "fee": false,
+              "type": "node"
+            },
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 25,
+              "name": "Kurt - drums",
+              "fee": false,
+              "type": "node"
+            },
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 10,
+              "name": "Joey - bass",
+              "fee": false,
+              "type": "node"
+            }
+          ],
+          "guid": "8a0f5be4-8968-489b-9bfe-7948a6817302",
+          "feedGuid": "a1077af6-602b-5daf-957b-68a65a03cad1",
+          "imageUrl": "https://www.doerfelverse.com/art/so-far-away-early.png"
+        },
+        {
+          "title": "Porkchops Fried by HeyCitizen",
+          "duration": "3:34",
+          "url": "https://www.doerfelverse.com/tracks/porkchopsfried.mp3",
+          "trackNumber": 20,
+          "subtitle": "Porkchops Fried by HeyCitizen",
+          "summary": "Parody of the famous \"Bloodshot Lies\" by the Doerfels. https://www.doerfelverse.com Featuring Sir TJ The Wrathful on banjo. Check out the great HeyCitizen",
+          "image": "https://files.heycitizen.xyz/Songs/Albums/The-Heycitizen-Experience/PorkchopsFried.jpg",
+          "explicit": false,
+          "keywords": [
+            "doerfel",
+            "the",
+            "doerfels",
+            "doerfelverse",
+            "bloodshot",
+            "lies",
+            "album",
+            "dv",
+            "music",
+            "v4vmusic",
+            "valueverse"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 31,
+                "name": "DV",
+                "fee": false
+              },
+              {
+                "type": "node",
+                "address": "035ad2c954e264004986da2d9499e1732e5175e1dcef2453c921c6cdcc3536e9d8",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": true
+              },
+              {
+                "type": "node",
+                "address": "03a524eb4f2e9f07b4cbb904f265ed21af7e46cebd8dc92eb9682dfd0d54f6349f",
+                "split": 69,
+                "name": "HeyCitizen",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 31,
+              "name": "DV",
+              "fee": false,
+              "type": "node"
+            },
+            {
+              "address": "035ad2c954e264004986da2d9499e1732e5175e1dcef2453c921c6cdcc3536e9d8",
+              "split": 5,
+              "name": "Sovereign Feeds",
+              "fee": true,
+              "type": "node"
+            },
+            {
+              "address": "03a524eb4f2e9f07b4cbb904f265ed21af7e46cebd8dc92eb9682dfd0d54f6349f",
+              "split": 69,
+              "name": "HeyCitizen",
+              "fee": false,
+              "type": "node"
+            }
+          ],
+          "guid": "2c7adec7-1868-46c8-9133-1ed656f555ad",
+          "feedGuid": "a1077af6-602b-5daf-957b-68a65a03cad1",
+          "imageUrl": "https://files.heycitizen.xyz/Songs/Albums/The-Heycitizen-Experience/PorkchopsFried.jpg"
         }
       ],
-      "releaseDate": "Sun, 03 Aug 2025 16:23:03 +0000",
+      "releaseDate": "Fri, 07 Nov 2025 14:37:38 +0000",
       "link": "https://www.doerfelverse.com",
       "funding": [
         {
           "url": "https://www.paypal.com/donate/?hosted_button_id=ATL9BD9EQRSNN",
-          "message": "Our music is Value For Value. Meaning, we provide our music for free, and just ask if you receive any value, consider giving some Value back!"
+          "message": "Value for Value, Support our music CLICK HERE"
         }
       ],
       "value": {
@@ -1846,17 +3632,8 @@
       "subtitle": "Bloodshot Lies (album version)",
       "summary": "By The Doerfels\nSong Lyrics",
       "keywords": [
-        "doerfel",
-        "the",
         "doerfels",
-        "doerfelverse",
-        "bloodshot",
-        "lies",
-        "album",
-        "dv",
-        "music",
-        "v4vmusic",
-        "valueverse"
+        "doerfelverse"
       ],
       "categories": [
         "Music"
@@ -1887,6 +3664,10 @@
         {
           "url": "https://www.sirtjthewrathful.com/wp-content/uploads/2023/08/Nostalgic.xml",
           "title": "Feed 1e7ed1fa..."
+        },
+        {
+          "url": "https://www.doerfelverse.com/feeds/disco-swag-album.xml",
+          "title": "Feed b2a87a4c..."
         }
       ],
       "publisher": {
@@ -4797,6 +6578,162 @@
       "imageUrl": "https://www.doerfelverse.com/artists/middleseason/mejor-version.png",
       "feedId": "www-doerfelverse-com-artists-middleseason-mejor-version-xml",
       "lastUpdated": "2025-08-30T14:30:00.000Z"
+    },
+    {
+      "title": "Deconstruction of Self - Single",
+      "artist": "Middle Season",
+      "description": "Deconstruction of Self single",
+      "coverArt": "https://www.doerfelverse.com/artists/middleseason/deconstruction-of-self.jpg",
+      "tracks": [
+        {
+          "title": "Deconstruction of Self",
+          "duration": "4:14",
+          "url": "https://www.doerfelverse.com/artists/middleseason/deconstruction-of-self.mp3",
+          "trackNumber": 1,
+          "subtitle": "Deconstruction of Self",
+          "summary": "Deconstruction of Self by Middle Season",
+          "image": "https://www.doerfelverse.com/artists/middleseason/deconstruction-of-self.jpg",
+          "explicit": false,
+          "keywords": [
+            "middle",
+            "season",
+            "v4v",
+            "valueverse",
+            "demu",
+            "fountain",
+            "deconstruction",
+            "of",
+            "self"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "node",
+                "address": "03b6f613e88bd874177c28c6ad83b3baba43c4c656f56be1f8df84669556054b79",
+                "split": 90,
+                "name": "Middle Season",
+                "customKey": "906608",
+                "customValue": "01h4XlHtbf6uDlRYEcHnlR",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              },
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 5,
+                "name": "DV Media",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "03b6f613e88bd874177c28c6ad83b3baba43c4c656f56be1f8df84669556054b79",
+              "split": 90,
+              "name": "Middle Season",
+              "fee": false,
+              "type": "node"
+            },
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 5,
+              "name": "DV Media",
+              "fee": false,
+              "type": "node"
+            }
+          ],
+          "guid": "8ef324c7-f372-420f-8be8-aa158b9332b9",
+          "feedGuid": "73ca299e-ff77-5779-98bb-ab72994a0a2a",
+          "imageUrl": "https://www.doerfelverse.com/artists/middleseason/deconstruction-of-self.jpg"
+        }
+      ],
+      "releaseDate": "Fri, 07 Nov 2025 02:58:40 +0000",
+      "link": "https://instagram.com/middleseasonmusic",
+      "value": {
+        "type": "lightning",
+        "method": "keysend",
+        "suggested": "0.00000005000",
+        "recipients": [
+          {
+            "type": "node",
+            "address": "03b6f613e88bd874177c28c6ad83b3baba43c4c656f56be1f8df84669556054b79",
+            "split": 90,
+            "name": "Middle Season",
+            "customKey": "906608",
+            "customValue": "01h4XlHtbf6uDlRYEcHnlR",
+            "fee": false
+          },
+          {
+            "type": "lnaddress",
+            "address": "steven@getalby.com",
+            "split": 5,
+            "name": "Sovereign Feeds",
+            "fee": false
+          },
+          {
+            "type": "node",
+            "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+            "split": 5,
+            "name": "DV Media",
+            "fee": false
+          }
+        ]
+      },
+      "subtitle": "Deconstruction of Self",
+      "summary": "Deconstruction of Self by Middle Season",
+      "keywords": [
+        "middle",
+        "season",
+        "v4v",
+        "valueverse",
+        "demu",
+        "fountain",
+        "deconstruction",
+        "of",
+        "self"
+      ],
+      "categories": [
+        "Music"
+      ],
+      "explicit": false,
+      "language": "en",
+      "publisher": {
+        "feedGuid": "c642e00e-9f18-5d44-827c-5ac539716de4",
+        "feedUrl": "https://www.doerfelverse.com/artists/middleseason/mspubfeed.xml",
+        "medium": "publisher"
+      },
+      "paymentRecipients": [
+        {
+          "address": "03b6f613e88bd874177c28c6ad83b3baba43c4c656f56be1f8df84669556054b79",
+          "split": 90,
+          "name": "Middle Season",
+          "fee": false,
+          "type": "node"
+        },
+        {
+          "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+          "split": 5,
+          "name": "DV Media",
+          "fee": false,
+          "type": "node"
+        }
+      ],
+      "feedGuid": "73ca299e-ff77-5779-98bb-ab72994a0a2a",
+      "feedUrl": "https://www.doerfelverse.com/artists/middleseason/deconstruction-of-self.xml",
+      "publisherGuid": "c642e00e-9f18-5d44-827c-5ac539716de4",
+      "publisherUrl": "https://www.doerfelverse.com/artists/middleseason/mspubfeed.xml",
+      "imageUrl": "https://www.doerfelverse.com/artists/middleseason/deconstruction-of-self.jpg",
+      "feedId": "www-doerfelverse-com-artists-middleseason-deconstruction-of-self-xml",
+      "lastUpdated": "2025-11-08T00:00:00.000Z"
     },
     {
       "title": "Let Go (What's holding you back)",
@@ -18069,7 +20006,7 @@
           "duration": "11:36",
           "url": "https://raw.githubusercontent.com/ChadFarrow/lnurl-test-feed/main/public/Unpacking_Value_for_Value_Music_Tech_Hurdles%2C_Artist_Engagement.mp3",
           "trackNumber": 2,
-          "image": "https://raw.githubusercontent.com/ChadFarrow/lnurl-test-feed/refs/heads/main/public/episode%202%20cover%20art.webp",
+          "image": "https://raw.githubusercontent.com/ChadFarrow/lnurl-test-feed/main/public/episode%202%20cover%20art.webp",
           "explicit": false,
           "value": {
             "type": "lightning",
@@ -18136,106 +20073,7 @@
           },
           "guid": "87f368ef-c559-4569-ae58-18fc9e84057c",
           "feedGuid": "9fe51a32-e08d-5ab7-9540-22a25c6bc2bf",
-          "imageUrl": "https://raw.githubusercontent.com/ChadFarrow/lnurl-test-feed/refs/heads/main/public/episode%202%20cover%20art.webp"
-        },
-        {
-          "title": "LNURL Test Episode 3 for dual-valueRecipients",
-          "duration": "2:12",
-          "url": "https://raw.githubusercontent.com/ChadFarrow/lnurl-test-feed/main/public/episode%203%20of%20lnurl%20test%20feed.mp3",
-          "trackNumber": 3,
-          "image": "https://raw.githubusercontent.com/ChadFarrow/lnurl-test-feed/refs/heads/main/public/episode%203%20art.webp",
-          "explicit": false,
-          "value": {
-            "type": "lightning",
-            "method": "lnaddress",
-            "suggested": "1",
-            "recipients": [
-              {
-                "type": "node",
-                "address": "032870511bfa0309bab3ca1832ead69eed848a4abddbc4d50e55bb2157f9525e51",
-                "split": 25,
-                "name": "ChadF",
-                "fee": false
-              },
-              {
-                "type": "lnaddress",
-                "address": "chadf@getalby.com",
-                "split": 25,
-                "name": "ChadF",
-                "fee": false
-              },
-              {
-                "type": "node",
-                "address": "03d937372ceaea5f57462a845c3bdd2b0254ecb07b8b9f9a30a605043bee178c4a",
-                "split": 25,
-                "name": "Salty",
-                "fee": false
-              },
-              {
-                "type": "lnaddress",
-                "address": "salty_crayon@getalby.com",
-                "split": 25,
-                "name": "Salty",
-                "fee": false
-              },
-              {
-                "type": "node",
-                "address": "0271582af8fedc9354acedec65874ea119c2f14aea7ae462d773bbf8b18269fe60",
-                "split": 25,
-                "name": "Bitpunk.fm",
-                "fee": false
-              },
-              {
-                "type": "lnaddress",
-                "address": "sats@pay.bitpunk.fm",
-                "split": 25,
-                "name": "Bitpunk.fm",
-                "fee": false
-              },
-              {
-                "type": "node",
-                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-                "split": 25,
-                "name": "WrathfulT",
-                "fee": false
-              },
-              {
-                "type": "lnaddress",
-                "address": "icyturtle9@primal.net",
-                "split": 25,
-                "name": "WrathfulT",
-                "fee": false
-              }
-            ]
-          },
-          "guid": "a78d476a-f331-4840-912f-5b9f73d696b5",
-          "feedGuid": "9fe51a32-e08d-5ab7-9540-22a25c6bc2bf",
-          "imageUrl": "https://raw.githubusercontent.com/ChadFarrow/lnurl-test-feed/refs/heads/main/public/episode%203%20art.webp"
-        },
-        {
-          "title": "LNURL Test Episode 4 for Cashu test",
-          "duration": "12:20",
-          "url": "https://raw.githubusercontent.com/ChadFarrow/lnurl-test-feed/refs/heads/main/public/episode%204%20cashu%20test.mp3",
-          "trackNumber": 4,
-          "image": "https://raw.githubusercontent.com/ChadFarrow/lnurl-test-feed/refs/heads/main/public/episode%204%20cashu.png",
-          "explicit": false,
-          "value": {
-            "type": "lightning",
-            "method": "lnaddress",
-            "suggested": "1",
-            "recipients": [
-              {
-                "type": "lnaddress",
-                "address": "seatedglide692@minibits.cash",
-                "split": 100,
-                "name": "Cashu",
-                "fee": false
-              }
-            ]
-          },
-          "guid": "34b511c2-1c0d-4344-bb1f-364f2c30a12c",
-          "feedGuid": "9fe51a32-e08d-5ab7-9540-22a25c6bc2bf",
-          "imageUrl": "https://raw.githubusercontent.com/ChadFarrow/lnurl-test-feed/refs/heads/main/public/episode%204%20cashu.png"
+          "imageUrl": "https://raw.githubusercontent.com/ChadFarrow/lnurl-test-feed/main/public/episode%202%20cover%20art.webp"
         }
       ],
       "releaseDate": "Thu, 10 Jul 2025 00:00:56 GMT",
@@ -20332,7 +22170,7 @@
           "imageUrl": "https://music.behindthesch3m3s.com/wp-content/uploads/Sat_Skirmish/sproutingsymphonies/art/CityBeach%28Torn%29.png"
         }
       ],
-      "releaseDate": "Thu, 02 Oct 2025 04:42:32 +0000",
+      "releaseDate": "Tue, 28 Oct 2025 02:35:14 +0000",
       "link": "https://liveislit.com/",
       "value": {
         "type": "lightning",
@@ -22055,12 +23893,12 @@
       "lastUpdated": "2025-10-06T00:00:00.000Z"
     }
   ],
-  "count": 46,
+  "count": 48,
   "errors": [],
-  "timestamp": "2025-10-07T09:44:26.059Z",
+  "timestamp": "2025-11-08T13:49:17.270Z",
   "source": "direct-static-parsing",
   "generated": true,
-  "generatedAt": "2025-10-07T09:44:26.059Z",
+  "generatedAt": "2025-11-08T13:49:17.270Z",
   "static": false,
   "loadTime": "on-demand"
 }
