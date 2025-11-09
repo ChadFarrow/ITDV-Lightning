@@ -43,9 +43,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         .replace(/^-+|-+$/g, '');       // Remove leading/trailing dashes
 
     // PRIORITY 1: Check static albums data first (fastest, no RSS parsing needed)
-    // Skip static cache if bypassing to force fresh RSS parse
-    if (!bypassCache) {
-      try {
+    // Always check static cache to get feedId, even when bypassing (for faster RSS parsing)
+    let matchingStaticAlbum = null;
+    let feedIdFromCache = null;
+    
+    try {
       const fs = await import('fs/promises');
       const path = await import('path');
       const staticAlbumsPath = path.join(process.cwd(), 'public', 'albums-static-cached.json');
@@ -54,7 +56,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       const staticAlbums = staticAlbumsJson.albums || [];
 
       // Search static albums for matching ID
-      const matchingStaticAlbum = staticAlbums.find((album: any) => {
+      matchingStaticAlbum = staticAlbums.find((album: any) => {
         const titleMatch = album.title?.toLowerCase() === albumId.toLowerCase();
         const slugMatch = createSlug(album.title || '') === albumId.toLowerCase();
         const compatMatch = album.title?.toLowerCase().replace(/\s+/g, '-') === albumId.toLowerCase();
@@ -68,29 +70,33 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       });
 
       if (matchingStaticAlbum) {
-        // Return static album data directly (it's already in the correct format with filtering applied)
-        const album = {
-          ...matchingStaticAlbum,
-          lastUpdated: matchingStaticAlbum.lastUpdated || new Date().toISOString()
-        };
+        // Get feedId from static cache for faster RSS parsing when refresh=1
+        feedIdFromCache = matchingStaticAlbum.feedId;
+        
+        // If not bypassing cache, return static album data directly
+        if (!bypassCache) {
+          const album = {
+            ...matchingStaticAlbum,
+            lastUpdated: matchingStaticAlbum.lastUpdated || new Date().toISOString()
+          };
 
-        // Cache the result
-        albumCache.set(albumId, { data: album, timestamp: Date.now() });
+          // Cache the result
+          albumCache.set(albumId, { data: album, timestamp: Date.now() });
 
-        const response = NextResponse.json({
-          album,
-          timestamp: new Date().toISOString(),
-          source: 'static-cache',
-          cached: false
-        });
+          const response = NextResponse.json({
+            album,
+            timestamp: new Date().toISOString(),
+            source: 'static-cache',
+            cached: false
+          });
 
-        // Add aggressive cache headers for static data
-        response.headers.set('Cache-Control', 'public, max-age=600, s-maxage=3600, stale-while-revalidate=86400');
-        return response;
+          // Add aggressive cache headers for static data
+          response.headers.set('Cache-Control', 'public, max-age=600, s-maxage=3600, stale-while-revalidate=86400');
+          return response;
+        }
       }
-      } catch (error) {
-        // Silently handle errors - continue to RSS parsing fallback
-      }
+    } catch (error) {
+      // Silently handle errors - continue to RSS parsing fallback
     }
 
     // PRIORITY 2: Fall back to RSS parsing if not in static cache (only if bypassCache is true)
@@ -106,11 +112,18 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     // Find the matching album feed first
     let matchingFeed = null;
 
-    // First try direct feed ID match (fastest)
-    for (const feed of albumFeeds) {
-      if (feed.id === albumId) {
-        matchingFeed = feed;
-        break;
+    // First try using feedId from static cache (fastest when refresh=1)
+    if (feedIdFromCache) {
+      matchingFeed = albumFeeds.find(feed => feed.id === feedIdFromCache);
+    }
+    
+    // If no match from cache feedId, try direct feed ID match
+    if (!matchingFeed) {
+      for (const feed of albumFeeds) {
+        if (feed.id === albumId) {
+          matchingFeed = feed;
+          break;
+        }
       }
     }
     

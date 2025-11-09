@@ -466,23 +466,30 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
       const response = await fetch(apiUrl);
       
       if (!response.ok) {
-        throw new Error(`Failed to load album: ${response.status} ${response.statusText}`);
+        console.error(`Failed to load album with videos: ${response.status} ${response.statusText}`);
+        return;
       }
 
       const data = await response.json();
       
       if (data.album) {
-        // Only update if we got video URLs that were missing
+        // Check if we got video URLs
         const hasNewVideoUrls = data.album.tracks?.some((track: Track) => track.videoUrl);
         const currentHasVideoUrls = album?.tracks?.some((track: Track) => track.videoUrl);
         
+        // Always update the album if we got new data (even if no video URLs, in case other data changed)
+        // But prioritize updates when we got video URLs that were missing
         if (hasNewVideoUrls && !currentHasVideoUrls) {
           setAlbum(data.album);
           setError(null);
+        } else if (!currentHasVideoUrls && data.album.tracks?.length > 0) {
+          // If we still don't have video URLs but got album data, update anyway
+          // This ensures we have the latest data even if videos aren't found
+          setAlbum(data.album);
         }
       }
     } catch (err) {
-      // Silently handle errors - keep showing the cached album
+      console.error('Error loading album with videos:', err);
     }
   }, [albumTitle, albumId, album]);
 
