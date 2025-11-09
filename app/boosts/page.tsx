@@ -245,16 +245,16 @@ async function fetchHelipadBoosts(): Promise<ParsedBoost[]> {
     
     // Convert stored boost data to ParsedBoost format
     const parsedBoosts = data.boosts.map((boost: any) => ({
-      id: boost.id,
+      id: `helipad-${boost.index || boost.uuid || boost.timestamp}`,
       author: typeof boost.sender === 'string' ? boost.sender : (boost.sender?.name || 'Helipad User'),
       authorNpub: '', // Helipad boosts don't have Nostr pubkeys
       authorName: typeof boost.sender === 'string' ? boost.sender : (boost.sender?.name || 'Helipad User'),
       content: boost.message || '',
       userMessage: boost.message,
-      amount: boost.amount?.toString(),
-      trackTitle: typeof boost.podcast === 'string' ? boost.podcast : (boost.podcast?.title || boost.remote_podcast),
-      trackArtist: typeof boost.podcast === 'string' ? boost.podcast : (boost.podcast?.title || boost.remote_podcast),
-      trackAlbum: typeof boost.episode === 'string' ? boost.episode : (boost.episode?.title || boost.remote_episode),
+      amount: boost.value_msat ? boost.value_msat.toString() : (boost.amount?.toString() || ''),
+      trackTitle: typeof boost.podcast === 'string' ? boost.podcast : (boost.podcast?.title || boost.remote_podcast || ''),
+      trackArtist: typeof boost.podcast === 'string' ? boost.podcast : (boost.podcast?.title || boost.remote_podcast || ''),
+      trackAlbum: typeof boost.episode === 'string' ? boost.episode : (boost.episode?.title || boost.remote_episode || ''),
       timestamp: boost.time || Math.floor(boost.timestamp / 1000),
       tags: [['t', 'helipad'], ['t', 'boost']],
       url: undefined,
@@ -398,8 +398,27 @@ export default function BoostsPage() {
             console.log(`Found ${helipadBoosts.length} Helipad boosts`);
             console.log('Helipad boosts data:', helipadBoosts);
             
-            // Merge Helipad boosts with cached boosts
-            const allBoosts = [...helipadBoosts, ...parsedBoosts];
+            // Create a set to track Helipad boost identifiers to avoid duplicates
+            const helipadBoostHashes = new Set(
+              helipadBoosts.map(boost => 
+                `${boost.amount || ''}-${boost.trackTitle || ''}-${boost.trackArtist || ''}-${boost.userMessage || ''}`.toLowerCase()
+              )
+            );
+            
+            // Filter out cached boosts that are duplicates of Helipad boosts
+            const filteredCachedBoosts = parsedBoosts.filter((boost: ParsedBoost) => {
+              if (boost.isFromHelipad) {
+                const boostHash = `${boost.amount || ''}-${boost.trackTitle || ''}-${boost.trackArtist || ''}-${boost.userMessage || ''}`.toLowerCase();
+                if (helipadBoostHashes.has(boostHash)) {
+                  console.log(`🔄 Skipping duplicate Helipad boost from cache (already from webhook): ${boost.id}`);
+                  return false;
+                }
+              }
+              return true;
+            });
+            
+            // Merge Helipad boosts with filtered cached boosts
+            const allBoosts = [...helipadBoosts, ...filteredCachedBoosts];
             
             // Sort by timestamp (most recent first)
             const sortedBoosts = allBoosts.sort((a, b) => {
@@ -473,7 +492,7 @@ export default function BoostsPage() {
       // We'll track by content hash since IDs might differ between webhook and Nostr
       const helipadBoostHashes = new Set(
         helipadBoosts.map(boost => 
-          `${boost.amount}-${boost.trackTitle}-${boost.trackArtist}-${boost.userMessage}`.toLowerCase()
+          `${boost.amount || ''}-${boost.trackTitle || ''}-${boost.trackArtist || ''}-${boost.userMessage || ''}`.toLowerCase()
         )
       );
       
@@ -494,7 +513,7 @@ export default function BoostsPage() {
         if (parsedBoost) {
           // Skip if this is a duplicate Helipad boost (already processed from webhook)
           if (parsedBoost.isFromHelipad) {
-            const boostHash = `${parsedBoost.amount}-${parsedBoost.trackTitle}-${parsedBoost.trackArtist}-${parsedBoost.userMessage}`.toLowerCase();
+            const boostHash = `${parsedBoost.amount || ''}-${parsedBoost.trackTitle || ''}-${parsedBoost.trackArtist || ''}-${parsedBoost.userMessage || ''}`.toLowerCase();
             console.log(`🔍 Checking Helipad boost from Nostr: ${parsedBoost.id} (hash: ${boostHash})`);
             console.log(`🔍 Existing Helipad hashes:`, Array.from(helipadBoostHashes));
             if (helipadBoostHashes.has(boostHash)) {
@@ -621,10 +640,10 @@ export default function BoostsPage() {
                 // Skip if this is a Helipad boost that we already have from webhook
                 if (parsedBoost.isFromHelipad) {
                   // Check if we already have this boost from webhook storage
-                  const boostHash = `${parsedBoost.amount}-${parsedBoost.trackTitle}-${parsedBoost.trackArtist}-${parsedBoost.userMessage}`.toLowerCase();
+                  const boostHash = `${parsedBoost.amount || ''}-${parsedBoost.trackTitle || ''}-${parsedBoost.trackArtist || ''}-${parsedBoost.userMessage || ''}`.toLowerCase();
                   const existingBoosts = boosts.filter(b => b.platform === 'helipad');
                   const hasDuplicate = existingBoosts.some(b => {
-                    const existingHash = `${b.amount}-${b.trackTitle}-${b.trackArtist}-${b.userMessage}`.toLowerCase();
+                    const existingHash = `${b.amount || ''}-${b.trackTitle || ''}-${b.trackArtist || ''}-${b.userMessage || ''}`.toLowerCase();
                     return existingHash === boostHash;
                   });
                   
