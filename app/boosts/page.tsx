@@ -287,16 +287,28 @@ async function fetchHelipadBoosts(): Promise<ParsedBoost[]> {
     console.log('🔍 Fetching Helipad boosts from API...');
     // Fetch stored Helipad boosts from our API
     const response = await fetch('/api/helipad-boosts?limit=50');
+    console.log('📡 Helipad API response status:', response.status, response.statusText);
+    
     if (!response.ok) {
-      throw new Error(`Failed to fetch Helipad boosts: ${response.status}`);
+      const errorText = await response.text();
+      console.error('❌ Helipad API error response:', errorText);
+      throw new Error(`Failed to fetch Helipad boosts: ${response.status} - ${errorText}`);
     }
     
     const data = await response.json();
     console.log('📊 Helipad API response:', data);
     
     if (!data.success) {
-      throw new Error('API returned error');
+      console.error('❌ Helipad API returned error:', data);
+      throw new Error(`API returned error: ${JSON.stringify(data)}`);
     }
+    
+    if (!data.boosts || !Array.isArray(data.boosts)) {
+      console.error('❌ Helipad API returned invalid data:', data);
+      throw new Error('API returned invalid data structure');
+    }
+    
+    console.log(`✅ Helipad API returned ${data.boosts.length} boosts`);
     
     // Convert stored boost data to ParsedBoost format
     // Group splits by index/uuid - show only one entry per boost
@@ -543,9 +555,16 @@ export default function BoostsPage() {
             
             // Always fetch Helipad boosts even when loading from cache
             console.log('Fetching Helipad boosts...');
-            const helipadBoosts = await fetchHelipadBoosts();
-            console.log(`Found ${helipadBoosts.length} Helipad boosts`);
-            console.log('Helipad boosts data:', helipadBoosts);
+            let helipadBoosts: ParsedBoost[] = [];
+            try {
+              helipadBoosts = await fetchHelipadBoosts();
+              console.log(`Found ${helipadBoosts.length} Helipad boosts`);
+              console.log('Helipad boosts data:', helipadBoosts);
+            } catch (error) {
+              console.error('❌ Failed to fetch Helipad boosts:', error);
+              // Continue without Helipad boosts rather than failing completely
+              helipadBoosts = [];
+            }
             
             // Create a set to track Helipad boost identifiers to avoid duplicates
             // Group splits by index/uuid - use index/uuid for deduplication
@@ -637,9 +656,16 @@ export default function BoostsPage() {
 
       // Also fetch Helipad boosts
       console.log('Fetching Helipad boosts...');
-      const helipadBoosts = await fetchHelipadBoosts();
-      console.log(`Found ${helipadBoosts.length} Helipad boosts`);
-      console.log('Helipad boosts data:', helipadBoosts);
+      let helipadBoosts: ParsedBoost[] = [];
+      try {
+        helipadBoosts = await fetchHelipadBoosts();
+        console.log(`Found ${helipadBoosts.length} Helipad boosts`);
+        console.log('Helipad boosts data:', helipadBoosts);
+      } catch (error) {
+        console.error('❌ Failed to fetch Helipad boosts:', error);
+        // Continue without Helipad boosts rather than failing completely
+        helipadBoosts = [];
+      }
 
       // Parse boosts and fetch replies progressively
       const parsedBoosts: ParsedBoost[] = [];
