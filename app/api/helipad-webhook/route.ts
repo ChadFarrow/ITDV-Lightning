@@ -91,8 +91,10 @@ function convertHelipadBoostToTrackMetadata(boost: HelipadBoostPayload): TrackMe
 }
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
   try {
     console.log('🎯 Helipad webhook received');
+    console.log('🔍 POSTGRES_URL configured:', !!process.env.POSTGRES_URL);
     
     // Get the raw body for signature verification
     const body = await request.text();
@@ -205,14 +207,18 @@ export async function POST(request: NextRequest) {
         timestamp: Date.now(),
         storedAt: new Date().toISOString()
       };
+      let stored = false;
+      let storageError = null;
       try {
         await addHelipadBoost(storedBoostData);
         console.log('✅ Boost stored successfully (no Nostr keys)');
+        stored = true;
       } catch (error) {
         console.error('❌ Failed to store boost:', error);
         if (error instanceof Error) {
           console.error('❌ Storage error message:', error.message);
           console.error('❌ Storage error stack:', error.stack);
+          storageError = error.message;
         }
         // Continue anyway - don't fail the webhook
       }
@@ -221,7 +227,10 @@ export async function POST(request: NextRequest) {
         success: true,
         message: 'Boost received and stored (no Nostr posting due to missing keys)',
         boostId: mappedBoostData.index || mappedBoostData.uuid,
-        amount: mappedBoostData.value_msat
+        amount: mappedBoostData.value_msat,
+        stored: stored,
+        storageError: storageError,
+        duration: Date.now() - startTime
       });
     }
     
@@ -246,14 +255,18 @@ export async function POST(request: NextRequest) {
         nostrEventId: boostResult.eventId,
         nevent: boostResult.nevent
       };
+      let stored = false;
+      let storageError = null;
       try {
         await addHelipadBoost(storedBoostData);
         console.log('✅ Boost stored successfully (with Nostr event)');
+        stored = true;
       } catch (error) {
         console.error('❌ Failed to store boost:', error);
         if (error instanceof Error) {
           console.error('❌ Storage error message:', error.message);
           console.error('❌ Storage error stack:', error.stack);
+          storageError = error.message;
         }
         // Continue anyway - don't fail the webhook
       }
@@ -264,7 +277,10 @@ export async function POST(request: NextRequest) {
         nostrEventId: boostResult.eventId,
         nevent: boostResult.nevent,
         boostId: mappedBoostData.index || mappedBoostData.uuid,
-        amount: mappedBoostData.value_msat
+        amount: mappedBoostData.value_msat,
+        stored: stored,
+        storageError: storageError,
+        duration: Date.now() - startTime
       });
     } else {
       console.error('❌ Failed to post boost to Nostr:', boostResult.error);
@@ -277,14 +293,18 @@ export async function POST(request: NextRequest) {
         storedAt: new Date().toISOString(),
         nostrError: boostResult.error
       };
+      let stored = false;
+      let storageError = null;
       try {
         await addHelipadBoost(storedBoostData);
         console.log('✅ Boost stored successfully (Nostr posting failed)');
+        stored = true;
       } catch (error) {
         console.error('❌ Failed to store boost:', error);
         if (error instanceof Error) {
           console.error('❌ Storage error message:', error.message);
           console.error('❌ Storage error stack:', error.stack);
+          storageError = error.message;
         }
         // Continue anyway - don't fail the webhook
       }
@@ -295,7 +315,10 @@ export async function POST(request: NextRequest) {
         message: 'Boost received but failed to post to Nostr',
         error: boostResult.error,
         boostId: mappedBoostData.index || mappedBoostData.uuid,
-        amount: mappedBoostData.value_msat
+        amount: mappedBoostData.value_msat,
+        stored: stored,
+        storageError: storageError,
+        duration: Date.now() - startTime
       });
     }
     
