@@ -1,7 +1,6 @@
-import fs from 'fs';
-import path from 'path';
+import { sql } from '@vercel/postgres';
 
-// File-based persistent storage for Helipad boosts
+// Postgres-based persistent storage for Helipad boosts
 export interface StoredHelipadBoost {
   index?: number;
   uuid?: string;
@@ -29,91 +28,242 @@ export interface StoredHelipadBoost {
   nostrError?: string;
 }
 
-// Storage file path
-const STORAGE_DIR = path.join(process.cwd(), 'data');
-const STORAGE_FILE = path.join(STORAGE_DIR, 'helipad-boosts.json');
+// Initialize database table if it doesn't exist
+let tableInitialized = false;
 
-// Ensure storage directory exists
-function ensureStorageDir() {
-  if (!fs.existsSync(STORAGE_DIR)) {
-    fs.mkdirSync(STORAGE_DIR, { recursive: true });
+async function ensureTableExists() {
+  if (tableInitialized) return;
+  
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS helipad_boosts (
+        id SERIAL PRIMARY KEY,
+        boost_index INTEGER,
+        boost_uuid VARCHAR(255),
+        value_msat BIGINT,
+        value_msat_total BIGINT,
+        action INTEGER,
+        sender TEXT,
+        app TEXT,
+        message TEXT,
+        podcast TEXT,
+        episode TEXT,
+        boost_time BIGINT,
+        remote_podcast TEXT,
+        remote_episode TEXT,
+        tlv TEXT,
+        reply_sent BOOLEAN,
+        custom_key TEXT,
+        custom_value TEXT,
+        payment_info JSONB,
+        platform VARCHAR(20) NOT NULL DEFAULT 'helipad',
+        timestamp BIGINT NOT NULL,
+        stored_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        nostr_event_id TEXT,
+        nevent TEXT,
+        nostr_error TEXT,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      )
+    `;
+    
+    // Create indexes for better query performance
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_helipad_boosts_timestamp ON helipad_boosts(timestamp DESC)
+    `;
+    
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_helipad_boosts_index ON helipad_boosts(boost_index)
+    `;
+    
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_helipad_boosts_uuid ON helipad_boosts(boost_uuid)
+    `;
+    
+    tableInitialized = true;
+    console.log('✅ Helipad boosts table initialized');
+  } catch (error) {
+    console.error('❌ Error initializing helipad_boosts table:', error);
+    throw error;
   }
 }
 
-// Load boosts from file
-function loadBoostsFromFile(): StoredHelipadBoost[] {
+// Add a boost to storage
+export async function addHelipadBoost(boostData: StoredHelipadBoost) {
   try {
-    ensureStorageDir();
-    if (!fs.existsSync(STORAGE_FILE)) {
-      console.log('📁 Helipad boosts file not found, starting with empty storage');
-      return [];
+    await ensureTableExists();
+    
+    console.log('💾 Storing Helipad boost:', boostData.index || boostData.uuid);
+    
+    // Check if boost already exists (by index or uuid) to prevent duplicates
+    let existingBoost = null;
+    
+    if (boostData.index) {
+      const result = await sql`
+        SELECT id FROM helipad_boosts WHERE boost_index = ${boostData.index} LIMIT 1
+      `;
+      if (result.rows.length > 0) {
+        existingBoost = result.rows[0];
+      }
     }
     
-    const fileContent = fs.readFileSync(STORAGE_FILE, 'utf-8');
-    const boosts: StoredHelipadBoost[] = JSON.parse(fileContent);
-    console.log(`📂 Loaded ${boosts.length} Helipad boosts from file`);
-    return boosts;
+    if (!existingBoost && boostData.uuid) {
+      const result = await sql`
+        SELECT id FROM helipad_boosts WHERE boost_uuid = ${boostData.uuid} LIMIT 1
+      `;
+      if (result.rows.length > 0) {
+        existingBoost = result.rows[0];
+      }
+    }
+    
+    if (existingBoost) {
+      // Update existing boost
+      await sql`
+        UPDATE helipad_boosts SET
+          value_msat = ${boostData.value_msat},
+          value_msat_total = ${boostData.value_msat_total},
+          action = ${boostData.action},
+          sender = ${boostData.sender},
+          app = ${boostData.app},
+          message = ${boostData.message},
+          podcast = ${boostData.podcast},
+          episode = ${boostData.episode},
+          boost_time = ${boostData.time},
+          remote_podcast = ${boostData.remote_podcast},
+          remote_episode = ${boostData.remote_episode},
+          tlv = ${boostData.tlv},
+          reply_sent = ${boostData.reply_sent},
+          custom_key = ${boostData.custom_key},
+          custom_value = ${boostData.custom_value},
+          payment_info = ${JSON.stringify(boostData.payment_info || null)}::jsonb,
+          timestamp = ${boostData.timestamp},
+          stored_at = ${boostData.storedAt}::timestamp with time zone,
+          nostr_event_id = ${boostData.nostrEventId},
+          nevent = ${boostData.nevent},
+          nostr_error = ${boostData.nostrError}
+        WHERE id = ${existingBoost.id}
+      `;
+      console.log('🔄 Updated existing Helipad boost');
+    } else {
+      // Insert new boost
+      await sql`
+        INSERT INTO helipad_boosts (
+          boost_index, boost_uuid, value_msat, value_msat_total, action,
+          sender, app, message, podcast, episode, boost_time,
+          remote_podcast, remote_episode, tlv, reply_sent,
+          custom_key, custom_value, payment_info, platform,
+          timestamp, stored_at, nostr_event_id, nevent, nostr_error
+        ) VALUES (
+          ${boostData.index}, ${boostData.uuid}, ${boostData.value_msat},
+          ${boostData.value_msat_total}, ${boostData.action},
+          ${boostData.sender}, ${boostData.app}, ${boostData.message},
+          ${boostData.podcast}, ${boostData.episode}, ${boostData.time},
+          ${boostData.remote_podcast}, ${boostData.remote_episode},
+          ${boostData.tlv}, ${boostData.reply_sent},
+          ${boostData.custom_key}, ${boostData.custom_value},
+          ${JSON.stringify(boostData.payment_info || null)}::jsonb,
+          ${boostData.platform}, ${boostData.timestamp},
+          ${boostData.storedAt}::timestamp with time zone,
+          ${boostData.nostrEventId}, ${boostData.nevent}, ${boostData.nostrError}
+        )
+      `;
+      console.log('✅ Added new Helipad boost');
+    }
   } catch (error) {
-    console.error('❌ Error loading Helipad boosts from file:', error);
-    // Return empty array if file is corrupted or doesn't exist
+    console.error('❌ Error storing Helipad boost:', error);
+    throw error;
+  }
+}
+
+// Get all stored boosts
+export async function getHelipadBoosts(limit: number = 50): Promise<StoredHelipadBoost[]> {
+  try {
+    await ensureTableExists();
+    
+    const result = await sql`
+      SELECT 
+        boost_index as index,
+        boost_uuid as uuid,
+        value_msat,
+        value_msat_total,
+        action,
+        sender,
+        app,
+        message,
+        podcast,
+        episode,
+        boost_time as time,
+        remote_podcast,
+        remote_episode,
+        tlv,
+        reply_sent,
+        custom_key,
+        custom_value,
+        payment_info,
+        platform,
+        timestamp,
+        stored_at::text as storedAt,
+        nostr_event_id as nostrEventId,
+        nevent,
+        nostr_error as nostrError
+      FROM helipad_boosts
+      ORDER BY timestamp DESC
+      LIMIT ${limit}
+    `;
+    
+    return result.rows.map((row: any) => ({
+      index: row.index,
+      uuid: row.uuid,
+      value_msat: row.value_msat,
+      value_msat_total: row.value_msat_total,
+      action: row.action,
+      sender: row.sender,
+      app: row.app,
+      message: row.message,
+      podcast: row.podcast,
+      episode: row.episode,
+      time: row.time,
+      remote_podcast: row.remote_podcast,
+      remote_episode: row.remote_episode,
+      tlv: row.tlv,
+      reply_sent: row.reply_sent,
+      custom_key: row.custom_key,
+      custom_value: row.custom_value,
+      payment_info: row.payment_info,
+      platform: 'helipad' as const,
+      timestamp: row.timestamp,
+      storedAt: row.storedat || new Date().toISOString(),
+      nostrEventId: row.nostr_event_id,
+      nevent: row.nevent,
+      nostrError: row.nostr_error
+    })) as StoredHelipadBoost[];
+  } catch (error) {
+    console.error('❌ Error fetching Helipad boosts:', error);
     return [];
   }
 }
 
-// Save boosts to file
-function saveBoostsToFile(boosts: StoredHelipadBoost[]) {
-  try {
-    ensureStorageDir();
-    // Sort by timestamp descending before saving
-    const sortedBoosts = [...boosts].sort((a, b) => b.timestamp - a.timestamp);
-    fs.writeFileSync(STORAGE_FILE, JSON.stringify(sortedBoosts, null, 2), 'utf-8');
-    console.log(`💾 Saved ${sortedBoosts.length} Helipad boosts to file`);
-  } catch (error) {
-    console.error('❌ Error saving Helipad boosts to file:', error);
-    // Don't throw - allow in-memory storage to continue working
-  }
-}
-
-// Initialize storage from file
-let helipadBoostsStorage: StoredHelipadBoost[] = loadBoostsFromFile();
-
-// Add a boost to storage
-export function addHelipadBoost(boostData: StoredHelipadBoost) {
-  console.log('💾 Storing Helipad boost:', boostData.index || boostData.uuid);
-  
-  // Check if boost already exists (by index or uuid) to prevent duplicates
-  const existingIndex = helipadBoostsStorage.findIndex(
-    boost => (boost.index && boost.index === boostData.index) || 
-             (boost.uuid && boost.uuid === boostData.uuid)
-  );
-  
-  if (existingIndex >= 0) {
-    // Update existing boost
-    helipadBoostsStorage[existingIndex] = boostData;
-    console.log('🔄 Updated existing Helipad boost');
-  } else {
-    // Add new boost
-    helipadBoostsStorage.push(boostData);
-  }
-  
-  // Save to file immediately
-  saveBoostsToFile(helipadBoostsStorage);
-}
-
-// Get all stored boosts
-export function getHelipadBoosts(limit: number = 50): StoredHelipadBoost[] {
-  const sortedBoosts = [...helipadBoostsStorage].sort((a, b) => b.timestamp - a.timestamp);
-  return sortedBoosts.slice(0, limit);
-}
-
 // Clear all stored boosts
-export function clearHelipadBoosts() {
-  helipadBoostsStorage = [];
-  saveBoostsToFile(helipadBoostsStorage);
-  console.log('🗑️ Cleared all Helipad boosts from storage');
+export async function clearHelipadBoosts() {
+  try {
+    await ensureTableExists();
+    
+    await sql`DELETE FROM helipad_boosts`;
+    console.log('🗑️ Cleared all Helipad boosts from storage');
+  } catch (error) {
+    console.error('❌ Error clearing Helipad boosts:', error);
+    throw error;
+  }
 }
 
 // Get total count
-export function getHelipadBoostsCount(): number {
-  return helipadBoostsStorage.length;
+export async function getHelipadBoostsCount(): Promise<number> {
+  try {
+    await ensureTableExists();
+    
+    const result = await sql`SELECT COUNT(*) as count FROM helipad_boosts`;
+    return parseInt(result.rows[0]?.count || '0', 10);
+  } catch (error) {
+    console.error('❌ Error getting Helipad boosts count:', error);
+    return 0;
+  }
 }

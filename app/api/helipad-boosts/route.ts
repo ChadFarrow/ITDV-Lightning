@@ -7,13 +7,14 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(request.nextUrl.searchParams.get('limit') || '50');
     
     // Return the most recent boosts
-    const recentBoosts = getHelipadBoosts(limit);
+    const recentBoosts = await getHelipadBoosts(limit);
+    const total = await getHelipadBoostsCount();
     
     return NextResponse.json({
       success: true,
       boosts: recentBoosts,
       count: recentBoosts.length,
-      total: getHelipadBoostsCount()
+      total: total
     });
   } catch (error) {
     console.error('Error retrieving Helipad boosts:', error);
@@ -27,7 +28,7 @@ export async function GET(request: NextRequest) {
 // DELETE endpoint to clear all stored Helipad boosts
 export async function DELETE() {
   try {
-    clearHelipadBoosts();
+    await clearHelipadBoosts();
     return NextResponse.json({
       success: true,
       message: 'All Helipad boosts cleared from storage',

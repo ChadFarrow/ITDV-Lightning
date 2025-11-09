@@ -205,7 +205,7 @@ export async function POST(request: NextRequest) {
         timestamp: Date.now(),
         storedAt: new Date().toISOString()
       };
-      addHelipadBoost(storedBoostData);
+      await addHelipadBoost(storedBoostData);
       
       return NextResponse.json({
         success: true,
@@ -236,7 +236,7 @@ export async function POST(request: NextRequest) {
         nostrEventId: boostResult.eventId,
         nevent: boostResult.nevent
       };
-      addHelipadBoost(storedBoostData);
+      await addHelipadBoost(storedBoostData);
       
       return NextResponse.json({
         success: true,
@@ -257,7 +257,7 @@ export async function POST(request: NextRequest) {
         storedAt: new Date().toISOString(),
         nostrError: boostResult.error
       };
-      addHelipadBoost(storedBoostData);
+      await addHelipadBoost(storedBoostData);
       
       // Still return success for the webhook, but log the error
       return NextResponse.json({
