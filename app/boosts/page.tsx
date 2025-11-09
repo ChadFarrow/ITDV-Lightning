@@ -249,32 +249,59 @@ async function fetchHelipadBoosts(): Promise<ParsedBoost[]> {
     }
     
     // Convert stored boost data to ParsedBoost format
-    // Note: Each split may have the same index/uuid but different value_msat (split amount)
-    // We include the value_msat in the ID to distinguish splits
-    const parsedBoosts = data.boosts.map((boost: any) => ({
-      id: `helipad-${boost.index || boost.uuid || boost.timestamp}-${boost.value_msat || ''}`,
-      author: typeof boost.sender === 'string' ? boost.sender : (boost.sender?.name || 'Helipad User'),
-      authorNpub: '', // Helipad boosts don't have Nostr pubkeys
-      authorName: typeof boost.sender === 'string' ? boost.sender : (boost.sender?.name || 'Helipad User'),
-      content: boost.message || '',
-      userMessage: boost.message,
-      amount: boost.value_msat ? boost.value_msat.toString() : (boost.amount?.toString() || ''),
-      trackTitle: typeof boost.podcast === 'string' ? boost.podcast : (boost.podcast?.title || boost.remote_podcast || ''),
-      trackArtist: typeof boost.podcast === 'string' ? boost.podcast : (boost.podcast?.title || boost.remote_podcast || ''),
-      trackAlbum: typeof boost.episode === 'string' ? boost.episode : (boost.episode?.title || boost.remote_episode || ''),
-      timestamp: boost.time || Math.floor(boost.timestamp / 1000),
-      tags: [['t', 'helipad'], ['t', 'boost']],
-      url: undefined,
-      replies: [],
-      isFromApp: false,
-      isFromHelipad: true,
-      platform: 'helipad',
-      // Store original index/uuid for reference
-      helipadIndex: boost.index,
-      helipadUuid: boost.uuid,
-      valueMsat: boost.value_msat,
-      valueMsatTotal: boost.value_msat_total
-    }));
+    // Group splits by index/uuid - show only one entry per boost
+    const boostMap = new Map<string, any>();
+    
+    for (const boost of data.boosts) {
+      const boostKey = boost.index?.toString() || boost.uuid || boost.timestamp?.toString() || '';
+      
+      if (!boostKey) continue;
+      
+      if (!boostMap.has(boostKey)) {
+        // First split for this boost - create entry
+        boostMap.set(boostKey, {
+          id: `helipad-${boostKey}`,
+          author: typeof boost.sender === 'string' ? boost.sender : (boost.sender?.name || 'Helipad User'),
+          authorNpub: '',
+          authorName: typeof boost.sender === 'string' ? boost.sender : (boost.sender?.name || 'Helipad User'),
+          content: boost.message || '',
+          userMessage: boost.message,
+          // Use value_msat_total if available, otherwise use value_msat
+          amount: boost.value_msat_total ? boost.value_msat_total.toString() : (boost.value_msat ? boost.value_msat.toString() : (boost.amount?.toString() || '')),
+          trackTitle: typeof boost.podcast === 'string' ? boost.podcast : (boost.podcast?.title || boost.remote_podcast || ''),
+          trackArtist: typeof boost.podcast === 'string' ? boost.podcast : (boost.podcast?.title || boost.remote_podcast || ''),
+          trackAlbum: typeof boost.episode === 'string' ? boost.episode : (boost.episode?.title || boost.remote_episode || ''),
+          timestamp: boost.time || Math.floor(boost.timestamp / 1000),
+          tags: [['t', 'helipad'], ['t', 'boost']],
+          url: undefined,
+          replies: [],
+          isFromApp: false,
+          isFromHelipad: true,
+          platform: 'helipad',
+          helipadIndex: boost.index,
+          helipadUuid: boost.uuid,
+          valueMsat: boost.value_msat,
+          valueMsatTotal: boost.value_msat_total
+        });
+      } else {
+        // Additional split for same boost - aggregate amounts
+        const existing = boostMap.get(boostKey)!;
+        // If we don't have value_msat_total, sum up the splits
+        if (!existing.valueMsatTotal && boost.value_msat) {
+          const currentAmount = parseInt(existing.amount || '0', 10);
+          const splitAmount = boost.value_msat;
+          existing.amount = (currentAmount + splitAmount).toString();
+          existing.valueMsat = (existing.valueMsat || 0) + splitAmount;
+        }
+        // Use the most recent timestamp
+        const boostTimestamp = boost.time || Math.floor(boost.timestamp / 1000);
+        if (boostTimestamp > existing.timestamp) {
+          existing.timestamp = boostTimestamp;
+        }
+      }
+    }
+    
+    const parsedBoosts = Array.from(boostMap.values());
     
     console.log('✅ Parsed Helipad boosts:', parsedBoosts);
     console.log('🔍 First boost details:', parsedBoosts[0]);
@@ -411,12 +438,11 @@ export default function BoostsPage() {
             console.log('Helipad boosts data:', helipadBoosts);
             
             // Create a set to track Helipad boost identifiers to avoid duplicates
-            // For splits: use index/uuid + value_msat to distinguish different splits
+            // Group splits by index/uuid - use index/uuid for deduplication
             const helipadBoostHashes = new Set(
               helipadBoosts.map(boost => {
-                const boostId = (boost as any).helipadIndex || (boost as any).helipadUuid || boost.id;
-                const splitAmount = (boost as any).valueMsat || boost.amount || '';
-                return `${boostId}-${splitAmount}-${boost.trackTitle || ''}-${boost.trackArtist || ''}-${boost.userMessage || ''}`.toLowerCase();
+                const boostId = (boost as any).helipadIndex || (boost as any).helipadUuid || boost.id?.replace('helipad-', '');
+                return `${boostId}-${boost.trackTitle || ''}-${boost.trackArtist || ''}-${boost.userMessage || ''}`.toLowerCase();
               })
             );
             
@@ -424,10 +450,9 @@ export default function BoostsPage() {
             // Only filter if it's a Helipad boost from Nostr (not from webhook)
             const filteredCachedBoosts = parsedBoosts.filter((boost: ParsedBoost) => {
               if (boost.isFromHelipad) {
-                // Try to extract boost ID and split amount from the boost
+                // Extract boost ID (splits are already grouped, so no need for split amount)
                 const boostId = (boost as any).helipadIndex || (boost as any).helipadUuid || boost.id?.replace('helipad-', '').split('-')[0] || boost.id;
-                const splitAmount = (boost as any).valueMsat || boost.amount || '';
-                const boostHash = `${boostId}-${splitAmount}-${boost.trackTitle || ''}-${boost.trackArtist || ''}-${boost.userMessage || ''}`.toLowerCase();
+                const boostHash = `${boostId}-${boost.trackTitle || ''}-${boost.trackArtist || ''}-${boost.userMessage || ''}`.toLowerCase();
                 if (helipadBoostHashes.has(boostHash)) {
                   console.log(`🔄 Skipping duplicate Helipad boost from cache (already from webhook): ${boost.id}`);
                   return false;
@@ -508,14 +533,12 @@ export default function BoostsPage() {
       let actualBoostCount = 0;
 
       // Create a set to track Helipad boost identifiers to avoid duplicates
-      // For splits: use index/uuid + value_msat to distinguish different splits of the same boost
-      // This allows multiple splits to be shown separately while preventing duplicates from Nostr
+      // Group splits by index/uuid - use index/uuid for deduplication (not split amount)
       const helipadBoostHashes = new Set(
         helipadBoosts.map(boost => {
-          // Use a combination that includes the split amount to distinguish splits
-          const boostId = (boost as any).helipadIndex || (boost as any).helipadUuid || boost.id;
-          const splitAmount = (boost as any).valueMsat || boost.amount || '';
-          return `${boostId}-${splitAmount}-${boost.trackTitle || ''}-${boost.trackArtist || ''}-${boost.userMessage || ''}`.toLowerCase();
+          // Use index/uuid for deduplication (splits are already grouped)
+          const boostId = (boost as any).helipadIndex || (boost as any).helipadUuid || boost.id?.replace('helipad-', '');
+          return `${boostId}-${boost.trackTitle || ''}-${boost.trackArtist || ''}-${boost.userMessage || ''}`.toLowerCase();
         })
       );
       

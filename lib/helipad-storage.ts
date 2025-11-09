@@ -96,6 +96,7 @@ export async function addHelipadBoost(boostData: StoredHelipadBoost) {
     
     // Check if boost already exists (by index/uuid + value_msat) to prevent duplicates
     // For splits: same index/uuid but different value_msat should be stored separately
+    // We store all splits separately for record keeping, but group them when displaying
     let existingBoost = null;
     
     if (boostData.index && boostData.value_msat !== undefined) {
