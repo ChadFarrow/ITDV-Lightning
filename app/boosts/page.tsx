@@ -23,6 +23,13 @@ interface ParsedBoost {
   url?: string;
   replies?: ParsedReply[];
   isFromApp?: boolean;  // Flag to indicate if this boost is from the app's account
+  isFromHelipad?: boolean;  // Flag to indicate if this boost is from Helipad
+  platform?: string;  // Platform source (nostr, helipad, etc.)
+  // Helipad-specific fields for split handling
+  helipadIndex?: number;
+  helipadUuid?: string;
+  valueMsat?: number;
+  valueMsatTotal?: number;
 }
 
 interface ParsedReply {
@@ -104,6 +111,9 @@ function parseBoostFromEvent(event: Event): ParsedBoost | null {
     // Try to get author name from profile tags (this would need to be fetched separately in a real implementation)
     const authorName = event.pubkey.substring(0, 8) + '...'; // Fallback to truncated pubkey
 
+    // Check if this is a Helipad boost by looking for #helipad tag
+    const isFromHelipad = event.tags.some(tag => tag[0] === 't' && tag[1] === 'helipad');
+    const platform = isFromHelipad ? 'helipad' : 'nostr';
 
     return {
       id: event.id,
@@ -118,7 +128,9 @@ function parseBoostFromEvent(event: Event): ParsedBoost | null {
       trackAlbum,
       timestamp: event.created_at,
       tags: event.tags,
-      url
+      url,
+      isFromHelipad,
+      platform
     };
   } catch (error) {
     console.error('Error parsing boost event:', error);
@@ -217,6 +229,203 @@ function buildThreadedReplies(events: any[], rootEventId: string): ParsedReply[]
 
   // Start with direct replies to the root event
   return buildChildren(rootEventId, 0);
+}
+
+// Normalize string for comparison (trim whitespace, lowercase, handle empty strings)
+function normalizeString(str: string | undefined | null): string {
+  if (!str) return '';
+  return str.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+// Deduplicate boosts based on content (track title, artist, message)
+// This ensures we only show one entry per unique boost
+function deduplicateBoosts(boosts: ParsedBoost[]): ParsedBoost[] {
+  const seenBoosts = new Map<string, ParsedBoost>();
+  
+  for (const boost of boosts) {
+    // Normalize content fields for better matching
+    const trackTitle = normalizeString(boost.trackTitle);
+    const trackArtist = normalizeString(boost.trackArtist);
+    const userMessage = normalizeString(boost.userMessage);
+    
+    // Create a unique key based on content (track title, artist, message)
+    // This will catch duplicates even if they have slightly different timestamps or IDs
+    const contentKey = `${trackTitle}-${trackArtist}-${userMessage}`;
+    
+    // Skip if all content fields are empty (invalid boost)
+    if (!contentKey || contentKey === '--') {
+      console.log(`⚠️ Skipping boost with empty content: ${boost.id}`);
+      continue;
+    }
+    
+    if (!seenBoosts.has(contentKey)) {
+      seenBoosts.set(contentKey, boost);
+      console.log(`✅ Added unique boost: ${contentKey.substring(0, 50)}...`);
+    } else {
+      // If we have a duplicate, prefer the one with higher amount (might be aggregated)
+      const existing = seenBoosts.get(contentKey)!;
+      const existingAmount = parseInt(existing.amount || '0', 10);
+      const newAmount = parseInt(boost.amount || '0', 10);
+      if (newAmount > existingAmount) {
+        // Replace with the one that has higher amount
+        seenBoosts.set(contentKey, boost);
+        console.log(`💰 Replaced duplicate boost with higher amount: ${contentKey.substring(0, 50)}... (${newAmount} > ${existingAmount})`);
+      } else {
+        console.log(`⏭️ Skipping duplicate boost: ${contentKey.substring(0, 50)}... (existing: ${existingAmount}, new: ${newAmount})`);
+      }
+    }
+  }
+  
+  const uniqueBoosts = Array.from(seenBoosts.values());
+  console.log(`🔍 Deduplicated ${boosts.length} boosts into ${uniqueBoosts.length} unique boosts`);
+  return uniqueBoosts;
+}
+
+// Fetch Helipad boosts from our webhook storage
+async function fetchHelipadBoosts(): Promise<ParsedBoost[]> {
+  try {
+    console.log('🔍 Fetching Helipad boosts from API...');
+    // Fetch stored Helipad boosts from our API
+    const response = await fetch('/api/helipad-boosts?limit=50');
+    if (!response.ok) {
+      throw new Error(`Failed to fetch Helipad boosts: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    console.log('📊 Helipad API response:', data);
+    
+    if (!data.success) {
+      throw new Error('API returned error');
+    }
+    
+    // Convert stored boost data to ParsedBoost format
+    // Group splits by index/uuid - show only one entry per boost
+    const boostMap = new Map<string, any>();
+    
+    console.log(`📦 Processing ${data.boosts.length} boosts from database`);
+    
+    for (const boost of data.boosts) {
+      // Create a unique key for grouping: prefer index, then uuid, then fallback to a combination
+      // For splits from the same boost, index/uuid should be the same
+      let boostKey: string;
+      
+      if (boost.index !== null && boost.index !== undefined) {
+        boostKey = `index-${boost.index}`;
+      } else if (boost.uuid) {
+        boostKey = `uuid-${boost.uuid}`;
+      } else {
+        // Fallback: use a combination of fields that should be the same for splits
+        const podcast = typeof boost.podcast === 'string' ? boost.podcast : (boost.podcast?.title || boost.remote_podcast || '');
+        const episode = typeof boost.episode === 'string' ? boost.episode : (boost.episode?.title || boost.remote_episode || '');
+        const message = boost.message || '';
+        const sender = typeof boost.sender === 'string' ? boost.sender : (boost.sender?.name || '');
+        // Use timestamp rounded to nearest second to group splits that come in close together
+        const timestamp = boost.time || Math.floor(boost.timestamp / 1000);
+        boostKey = `fallback-${podcast}-${episode}-${message}-${sender}-${timestamp}`;
+      }
+      
+      console.log(`🔑 Boost key: ${boostKey}, index: ${boost.index}, uuid: ${boost.uuid}, value_msat: ${boost.value_msat}`);
+      
+      if (!boostMap.has(boostKey)) {
+        // First split for this boost - create entry
+        const parsedBoost = {
+          id: `helipad-${boostKey}`,
+          author: typeof boost.sender === 'string' ? boost.sender : (boost.sender?.name || 'Helipad User'),
+          authorNpub: '',
+          authorName: typeof boost.sender === 'string' ? boost.sender : (boost.sender?.name || 'Helipad User'),
+          content: boost.message || '',
+          userMessage: boost.message,
+          // Use value_msat_total if available, otherwise use value_msat
+          amount: boost.value_msat_total ? boost.value_msat_total.toString() : (boost.value_msat ? boost.value_msat.toString() : (boost.amount?.toString() || '')),
+          trackTitle: typeof boost.podcast === 'string' ? boost.podcast : (boost.podcast?.title || boost.remote_podcast || ''),
+          trackArtist: typeof boost.podcast === 'string' ? boost.podcast : (boost.podcast?.title || boost.remote_podcast || ''),
+          trackAlbum: typeof boost.episode === 'string' ? boost.episode : (boost.episode?.title || boost.remote_episode || ''),
+          timestamp: boost.time || Math.floor(boost.timestamp / 1000),
+          tags: [['t', 'helipad'], ['t', 'boost']],
+          url: undefined,
+          replies: [],
+          isFromApp: false,
+          isFromHelipad: true,
+          platform: 'helipad',
+          helipadIndex: boost.index,
+          helipadUuid: boost.uuid,
+          valueMsat: boost.value_msat,
+          valueMsatTotal: boost.value_msat_total
+        };
+        boostMap.set(boostKey, parsedBoost);
+        console.log(`✅ Created new boost entry: ${boostKey}`);
+      } else {
+        // Additional split for same boost - aggregate amounts
+        const existing = boostMap.get(boostKey)!;
+        console.log(`🔄 Merging split into existing boost: ${boostKey}, existing amount: ${existing.amount}, new split: ${boost.value_msat}`);
+        
+        // If we don't have value_msat_total, sum up the splits
+        if (!existing.valueMsatTotal && boost.value_msat) {
+          const currentAmount = parseInt(existing.amount || '0', 10);
+          const splitAmount = boost.value_msat;
+          existing.amount = (currentAmount + splitAmount).toString();
+          existing.valueMsat = (existing.valueMsat || 0) + splitAmount;
+          console.log(`💰 Aggregated amount: ${existing.amount}`);
+        }
+        // Use the most recent timestamp
+        const boostTimestamp = boost.time || Math.floor(boost.timestamp / 1000);
+        if (boostTimestamp > existing.timestamp) {
+          existing.timestamp = boostTimestamp;
+        }
+      }
+    }
+    
+    const parsedBoosts = Array.from(boostMap.values());
+    
+    // Final deduplication: remove any duplicates that might have slipped through
+    // Use a combination of track info and message to identify unique boosts
+    // Don't include timestamp to catch boosts with same content but different timestamps
+    const seenBoosts = new Map<string, any>();
+    const uniqueBoosts: any[] = [];
+    
+    for (const boost of parsedBoosts) {
+      // Create a unique key based on content (track title, artist, message)
+      // This will catch duplicates even if they have slightly different timestamps
+      const contentKey = `${boost.trackTitle || ''}-${boost.trackArtist || ''}-${boost.userMessage || ''}`.toLowerCase();
+      
+      if (!seenBoosts.has(contentKey)) {
+        seenBoosts.set(contentKey, boost);
+        uniqueBoosts.push(boost);
+        console.log(`✅ Added unique boost: ${contentKey}`);
+      } else {
+        console.log(`🔄 Found duplicate boost based on content: ${contentKey}`);
+        // If we have a duplicate, prefer the one with higher amount (might be aggregated)
+        const existing = seenBoosts.get(contentKey)!;
+        const existingAmount = parseInt(existing.amount || '0', 10);
+        const newAmount = parseInt(boost.amount || '0', 10);
+        if (newAmount > existingAmount) {
+          // Replace with the one that has higher amount
+          const index = uniqueBoosts.indexOf(existing);
+          if (index !== -1) {
+            uniqueBoosts[index] = boost;
+            seenBoosts.set(contentKey, boost);
+            console.log(`💰 Replaced with higher amount boost: ${contentKey} (${newAmount} > ${existingAmount})`);
+          }
+        } else {
+          console.log(`⏭️ Keeping existing boost with higher amount: ${contentKey} (${existingAmount} >= ${newAmount})`);
+        }
+      }
+    }
+    
+    console.log(`✅ Grouped ${data.boosts.length} database rows into ${parsedBoosts.length} grouped boosts, ${uniqueBoosts.length} unique boosts after deduplication`);
+    console.log('✅ Parsed Helipad boosts:', uniqueBoosts);
+    console.log('🔍 First boost details:', uniqueBoosts[0]);
+    if (uniqueBoosts[0]) {
+      console.log('🔍 Boost has amount:', !!uniqueBoosts[0].amount);
+      console.log('🔍 Boost has trackTitle:', !!uniqueBoosts[0].trackTitle);
+      console.log('🔍 Boost has trackArtist:', !!uniqueBoosts[0].trackArtist);
+      console.log('🔍 Boost will be displayed:', !!(uniqueBoosts[0].amount && (uniqueBoosts[0].trackTitle || uniqueBoosts[0].trackArtist)));
+    }
+    return uniqueBoosts;
+  } catch (error) {
+    console.error('❌ Error fetching Helipad boosts:', error);
+    return [];
+  }
 }
 
 function formatTimestamp(timestamp: number): string {
@@ -331,7 +540,51 @@ export default function BoostsPage() {
           if (timeSinceCache < cacheValidDuration) {
             console.log('✅ Loading boosts from cache - data is fresh');
             const parsedBoosts = JSON.parse(cachedData);
-            setBoosts(parsedBoosts);
+            
+            // Always fetch Helipad boosts even when loading from cache
+            console.log('Fetching Helipad boosts...');
+            const helipadBoosts = await fetchHelipadBoosts();
+            console.log(`Found ${helipadBoosts.length} Helipad boosts`);
+            console.log('Helipad boosts data:', helipadBoosts);
+            
+            // Create a set to track Helipad boost identifiers to avoid duplicates
+            // Group splits by index/uuid - use index/uuid for deduplication
+            const helipadBoostHashes = new Set(
+              helipadBoosts.map(boost => {
+                const boostId = (boost as any).helipadIndex || (boost as any).helipadUuid || boost.id?.replace('helipad-', '');
+                return `${boostId}-${boost.trackTitle || ''}-${boost.trackArtist || ''}-${boost.userMessage || ''}`.toLowerCase();
+              })
+            );
+            
+            // Filter out cached boosts that are duplicates of Helipad boosts
+            // Only filter if it's a Helipad boost from Nostr (not from webhook)
+            const filteredCachedBoosts = parsedBoosts.filter((boost: ParsedBoost) => {
+              if (boost.isFromHelipad) {
+                // Extract boost ID (splits are already grouped, so no need for split amount)
+                const boostId = (boost as any).helipadIndex || (boost as any).helipadUuid || boost.id?.replace('helipad-', '').split('-')[0] || boost.id;
+                const boostHash = `${boostId}-${boost.trackTitle || ''}-${boost.trackArtist || ''}-${boost.userMessage || ''}`.toLowerCase();
+                if (helipadBoostHashes.has(boostHash)) {
+                  console.log(`🔄 Skipping duplicate Helipad boost from cache (already from webhook): ${boost.id}`);
+                  return false;
+                }
+              }
+              return true;
+            });
+            
+            // Merge Helipad boosts with filtered cached boosts
+            const allBoosts = [...helipadBoosts, ...filteredCachedBoosts];
+            
+            // Deduplicate before sorting
+            const uniqueBoosts = deduplicateBoosts(allBoosts);
+            
+            // Sort by timestamp (most recent first)
+            const sortedBoosts = uniqueBoosts.sort((a, b) => {
+              const timeA = a.timestamp || 0;
+              const timeB = b.timestamp || 0;
+              return timeB - timeA;
+            });
+            
+            setBoosts(sortedBoosts);
             setLastCacheTime(parseInt(cachedTime));
             setLoading(false);
             return;
@@ -382,27 +635,76 @@ export default function BoostsPage() {
         allBoosts = [];
       }
 
+      // Also fetch Helipad boosts
+      console.log('Fetching Helipad boosts...');
+      const helipadBoosts = await fetchHelipadBoosts();
+      console.log(`Found ${helipadBoosts.length} Helipad boosts`);
+      console.log('Helipad boosts data:', helipadBoosts);
+
       // Parse boosts and fetch replies progressively
       const parsedBoosts: ParsedBoost[] = [];
       let actualBoostCount = 0;
 
-      // Process each boost and immediately fetch its replies
+      // Create a set to track Helipad boost identifiers to avoid duplicates
+      // Group splits by index/uuid - use index/uuid for deduplication (not split amount)
+      const helipadBoostHashes = new Set(
+        helipadBoosts.map(boost => {
+          // Use index/uuid for deduplication (splits are already grouped)
+          const boostId = (boost as any).helipadIndex || (boost as any).helipadUuid || boost.id?.replace('helipad-', '');
+          return `${boostId}-${boost.trackTitle || ''}-${boost.trackArtist || ''}-${boost.userMessage || ''}`.toLowerCase();
+        })
+      );
+      
+      // Add Helipad boosts first (these take priority over Nostr versions)
+      for (const helipadBoost of helipadBoosts) {
+        parsedBoosts.push(helipadBoost);
+        if (helipadBoost.amount && (helipadBoost.trackTitle || helipadBoost.trackArtist)) {
+          actualBoostCount++;
+        }
+        console.log(`✅ Added Helipad boost: ${helipadBoost.id} - ${helipadBoost.userMessage}`);
+      }
+
+      // Process each Nostr boost and immediately fetch its replies
       for (let i = 0; i < allBoosts.length; i++) {
         const event = allBoosts[i];
         const parsedBoost = parseBoostFromEvent(event);
 
         if (parsedBoost) {
+          // Skip if this is a duplicate Helipad boost (already processed from webhook)
+          // For splits: check if this Nostr boost matches any webhook boost by content
+          // We use a simpler hash here since Nostr boosts don't have split info
+          if (parsedBoost.isFromHelipad) {
+            // For Nostr boosts, we can't distinguish splits, so use a simpler hash
+            // Check if any webhook boost matches this content (ignoring split amount)
+            const boostHash = `${parsedBoost.amount || ''}-${parsedBoost.trackTitle || ''}-${parsedBoost.trackArtist || ''}-${parsedBoost.userMessage || ''}`.toLowerCase();
+            const hasMatchingWebhookBoost = helipadBoosts.some(webhookBoost => {
+              const webhookHash = `${webhookBoost.amount || ''}-${webhookBoost.trackTitle || ''}-${webhookBoost.trackArtist || ''}-${webhookBoost.userMessage || ''}`.toLowerCase();
+              return webhookHash === boostHash;
+            });
+            
+            if (hasMatchingWebhookBoost) {
+              console.log(`🔄 Skipping duplicate Helipad boost from Nostr (already from webhook): ${parsedBoost.id} (hash: ${boostHash})`);
+              continue;
+            } else {
+              console.log(`⚠️ Helipad boost from Nostr not found in webhook storage: ${parsedBoost.id}`);
+            }
+          }
+
           // Check if this looks like an actual boost (has amount and track info)
           if (parsedBoost.amount && (parsedBoost.trackTitle || parsedBoost.trackArtist)) {
             actualBoostCount++;
           }
 
           parsedBoost.isFromApp = true;
+          // Platform is now set by parseBoostFromEvent based on #helipad tag
           parsedBoost.replies = []; // Start with empty replies
           parsedBoosts.push(parsedBoost);
 
+          // Deduplicate before sorting
+          const uniqueBoosts = deduplicateBoosts(parsedBoosts);
+
           // Sort and update the display immediately after adding each boost
-          const sortedBoosts = [...parsedBoosts].sort((a, b) => {
+          const sortedBoosts = uniqueBoosts.sort((a, b) => {
             const timeA = a.timestamp || 0;
             const timeB = b.timestamp || 0;
             return timeB - timeA;
@@ -504,7 +806,26 @@ export default function BoostsPage() {
             onBoost: async (event) => {
               const parsedBoost = parseBoostFromEvent(event);
               if (parsedBoost) {
+                // Skip if this is a Helipad boost that we already have from webhook
+                // For splits: check if this Nostr boost matches any webhook boost by content
+                if (parsedBoost.isFromHelipad) {
+                  // Check if we already have this boost from webhook storage
+                  // Use content hash (ignoring split differences) to match Nostr boosts
+                  const boostHash = `${parsedBoost.amount || ''}-${parsedBoost.trackTitle || ''}-${parsedBoost.trackArtist || ''}-${parsedBoost.userMessage || ''}`.toLowerCase();
+                  const existingBoosts = boosts.filter(b => b.platform === 'helipad');
+                  const hasDuplicate = existingBoosts.some(b => {
+                    const existingHash = `${b.amount || ''}-${b.trackTitle || ''}-${b.trackArtist || ''}-${b.userMessage || ''}`.toLowerCase();
+                    return existingHash === boostHash;
+                  });
+                  
+                  if (hasDuplicate) {
+                    console.log(`🔄 Skipping real-time Helipad boost from Nostr (already from webhook): ${parsedBoost.id}`);
+                    return;
+                  }
+                }
+                
                 parsedBoost.isFromApp = true;
+                // Platform is now set by parseBoostFromEvent based on #helipad tag
 
                 // Fetch threaded replies for real-time boost
                 try {
@@ -535,13 +856,26 @@ export default function BoostsPage() {
                 }
 
                 setBoosts(prev => {
-                  // Check if boost already exists
-                  const exists = prev.some(b => b.id === parsedBoost.id);
-                  if (exists) return prev;
+                  // Check if boost already exists by ID
+                  const existsById = prev.some(b => b.id === parsedBoost.id);
+                  if (existsById) return prev;
+
+                  // Check if boost already exists by content (deduplication)
+                  const contentKey = `${parsedBoost.trackTitle || ''}-${parsedBoost.trackArtist || ''}-${parsedBoost.userMessage || ''}`.toLowerCase();
+                  const existsByContent = prev.some(b => {
+                    const bContentKey = `${b.trackTitle || ''}-${b.trackArtist || ''}-${b.userMessage || ''}`.toLowerCase();
+                    return bContentKey === contentKey;
+                  });
+                  if (existsByContent) {
+                    console.log(`⏭️ Skipping duplicate boost by content: ${contentKey}`);
+                    return prev;
+                  }
 
                   // Add new boost to the beginning and sort by timestamp
                   const updated = [parsedBoost, ...prev];
-                  return updated.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+                  // Deduplicate before returning
+                  const uniqueBoosts = deduplicateBoosts(updated);
+                  return uniqueBoosts.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
                 });
               }
             },
@@ -567,7 +901,8 @@ export default function BoostsPage() {
     }
   }, []);
 
-  const filteredBoosts = boosts;
+  // Final deduplication before rendering - ensure no duplicates make it to the UI
+  const filteredBoosts = deduplicateBoosts(boosts);
 
   // Calculate statistics
   const totalBoosts = boosts.length;
@@ -707,9 +1042,14 @@ export default function BoostsPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredBoosts.map((boost) => (
+            {filteredBoosts.map((boost, index) => {
+              // Create a unique key based on content to prevent duplicate renders
+              const contentKey = `${normalizeString(boost.trackTitle)}-${normalizeString(boost.trackArtist)}-${normalizeString(boost.userMessage)}`;
+              const uniqueKey = contentKey || boost.id || `boost-${index}`;
+              
+              return (
               <div
-                key={boost.id}
+                key={uniqueKey}
                 className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-6 hover:bg-gray-800/70 transition"
               >
                 <div className="flex flex-col gap-4">
@@ -797,9 +1137,28 @@ export default function BoostsPage() {
                       )}
                     </div>
 
-                    {/* Timestamp - Below actions on mobile */}
-                    <div className="text-gray-500 text-sm mt-3 pt-2 border-t border-gray-700/50">
-                      {formatTimestamp(boost.timestamp)}
+                    {/* Platform indicator and timestamp */}
+                    <div className="flex flex-wrap items-center justify-between text-gray-500 text-sm mt-3 pt-2 border-t border-gray-700/50">
+                      <div className="flex items-center gap-2">
+        {(boost.isFromHelipad || boost.platform === 'helipad') && (
+          <span className="bg-blue-500/20 text-blue-400 px-2 py-1 rounded text-xs font-medium">
+            🚁 Helipad
+          </span>
+        )}
+        {boost.isFromApp && !boost.isFromHelipad && (
+          <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs font-medium">
+            📱 App
+          </span>
+        )}
+        {!boost.isFromApp && !boost.isFromHelipad && (
+          <span className="bg-purple-500/20 text-purple-400 px-2 py-1 rounded text-xs font-medium">
+            📡 Nostr
+          </span>
+        )}
+                      </div>
+                      <div>
+                        {formatTimestamp(boost.timestamp)}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -822,7 +1181,8 @@ export default function BoostsPage() {
                   </div>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
