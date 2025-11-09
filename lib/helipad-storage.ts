@@ -1,4 +1,7 @@
-// In-memory storage for Helipad boosts (in production, use a database)
+import fs from 'fs';
+import path from 'path';
+
+// File-based persistent storage for Helipad boosts
 export interface StoredHelipadBoost {
   index?: number;
   uuid?: string;
@@ -26,17 +29,75 @@ export interface StoredHelipadBoost {
   nostrError?: string;
 }
 
-let helipadBoostsStorage: StoredHelipadBoost[] = [];
+// Storage file path
+const STORAGE_DIR = path.join(process.cwd(), 'data');
+const STORAGE_FILE = path.join(STORAGE_DIR, 'helipad-boosts.json');
+
+// Ensure storage directory exists
+function ensureStorageDir() {
+  if (!fs.existsSync(STORAGE_DIR)) {
+    fs.mkdirSync(STORAGE_DIR, { recursive: true });
+  }
+}
+
+// Load boosts from file
+function loadBoostsFromFile(): StoredHelipadBoost[] {
+  try {
+    ensureStorageDir();
+    if (!fs.existsSync(STORAGE_FILE)) {
+      console.log('📁 Helipad boosts file not found, starting with empty storage');
+      return [];
+    }
+    
+    const fileContent = fs.readFileSync(STORAGE_FILE, 'utf-8');
+    const boosts: StoredHelipadBoost[] = JSON.parse(fileContent);
+    console.log(`📂 Loaded ${boosts.length} Helipad boosts from file`);
+    return boosts;
+  } catch (error) {
+    console.error('❌ Error loading Helipad boosts from file:', error);
+    // Return empty array if file is corrupted or doesn't exist
+    return [];
+  }
+}
+
+// Save boosts to file
+function saveBoostsToFile(boosts: StoredHelipadBoost[]) {
+  try {
+    ensureStorageDir();
+    // Sort by timestamp descending before saving
+    const sortedBoosts = [...boosts].sort((a, b) => b.timestamp - a.timestamp);
+    fs.writeFileSync(STORAGE_FILE, JSON.stringify(sortedBoosts, null, 2), 'utf-8');
+    console.log(`💾 Saved ${sortedBoosts.length} Helipad boosts to file`);
+  } catch (error) {
+    console.error('❌ Error saving Helipad boosts to file:', error);
+    // Don't throw - allow in-memory storage to continue working
+  }
+}
+
+// Initialize storage from file
+let helipadBoostsStorage: StoredHelipadBoost[] = loadBoostsFromFile();
 
 // Add a boost to storage
 export function addHelipadBoost(boostData: StoredHelipadBoost) {
   console.log('💾 Storing Helipad boost:', boostData.index || boostData.uuid);
-  helipadBoostsStorage.unshift(boostData); // Add to beginning for newest first
-  // Keep only the most recent 100 boosts in memory to prevent unbounded growth
-  if (helipadBoostsStorage.length > 100) {
-    helipadBoostsStorage.sort((a, b) => b.timestamp - a.timestamp);
-    helipadBoostsStorage.splice(100);
+  
+  // Check if boost already exists (by index or uuid) to prevent duplicates
+  const existingIndex = helipadBoostsStorage.findIndex(
+    boost => (boost.index && boost.index === boostData.index) || 
+             (boost.uuid && boost.uuid === boostData.uuid)
+  );
+  
+  if (existingIndex >= 0) {
+    // Update existing boost
+    helipadBoostsStorage[existingIndex] = boostData;
+    console.log('🔄 Updated existing Helipad boost');
+  } else {
+    // Add new boost
+    helipadBoostsStorage.push(boostData);
   }
+  
+  // Save to file immediately
+  saveBoostsToFile(helipadBoostsStorage);
 }
 
 // Get all stored boosts
@@ -48,6 +109,7 @@ export function getHelipadBoosts(limit: number = 50): StoredHelipadBoost[] {
 // Clear all stored boosts
 export function clearHelipadBoosts() {
   helipadBoostsStorage = [];
+  saveBoostsToFile(helipadBoostsStorage);
   console.log('🗑️ Cleared all Helipad boosts from storage');
 }
 
