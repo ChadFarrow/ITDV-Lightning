@@ -205,7 +205,17 @@ export async function POST(request: NextRequest) {
         timestamp: Date.now(),
         storedAt: new Date().toISOString()
       };
-      await addHelipadBoost(storedBoostData);
+      try {
+        await addHelipadBoost(storedBoostData);
+        console.log('✅ Boost stored successfully (no Nostr keys)');
+      } catch (error) {
+        console.error('❌ Failed to store boost:', error);
+        if (error instanceof Error) {
+          console.error('❌ Storage error message:', error.message);
+          console.error('❌ Storage error stack:', error.stack);
+        }
+        // Continue anyway - don't fail the webhook
+      }
       
       return NextResponse.json({
         success: true,
@@ -236,7 +246,17 @@ export async function POST(request: NextRequest) {
         nostrEventId: boostResult.eventId,
         nevent: boostResult.nevent
       };
-      await addHelipadBoost(storedBoostData);
+      try {
+        await addHelipadBoost(storedBoostData);
+        console.log('✅ Boost stored successfully (with Nostr event)');
+      } catch (error) {
+        console.error('❌ Failed to store boost:', error);
+        if (error instanceof Error) {
+          console.error('❌ Storage error message:', error.message);
+          console.error('❌ Storage error stack:', error.stack);
+        }
+        // Continue anyway - don't fail the webhook
+      }
       
       return NextResponse.json({
         success: true,
@@ -257,7 +277,17 @@ export async function POST(request: NextRequest) {
         storedAt: new Date().toISOString(),
         nostrError: boostResult.error
       };
-      await addHelipadBoost(storedBoostData);
+      try {
+        await addHelipadBoost(storedBoostData);
+        console.log('✅ Boost stored successfully (Nostr posting failed)');
+      } catch (error) {
+        console.error('❌ Failed to store boost:', error);
+        if (error instanceof Error) {
+          console.error('❌ Storage error message:', error.message);
+          console.error('❌ Storage error stack:', error.stack);
+        }
+        // Continue anyway - don't fail the webhook
+      }
       
       // Still return success for the webhook, but log the error
       return NextResponse.json({
