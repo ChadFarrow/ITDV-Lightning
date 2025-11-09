@@ -4,11 +4,17 @@ import { getHelipadBoosts, clearHelipadBoosts, getHelipadBoostsCount } from '@/l
 // GET endpoint to retrieve stored Helipad boosts
 export async function GET(request: NextRequest) {
   try {
+    console.log('🔍 Helipad boosts API called');
+    console.log('🔍 POSTGRES_URL configured:', !!process.env.POSTGRES_URL);
+    
     const limit = parseInt(request.nextUrl.searchParams.get('limit') || '50');
+    console.log(`🔍 Fetching ${limit} boosts...`);
     
     // Return the most recent boosts
     const recentBoosts = await getHelipadBoosts(limit);
     const total = await getHelipadBoostsCount();
+    
+    console.log(`✅ Returning ${recentBoosts.length} boosts (total: ${total})`);
     
     return NextResponse.json({
       success: true,
@@ -17,9 +23,18 @@ export async function GET(request: NextRequest) {
       total: total
     });
   } catch (error) {
-    console.error('Error retrieving Helipad boosts:', error);
+    console.error('❌ Error retrieving Helipad boosts:', error);
+    if (error instanceof Error) {
+      console.error('❌ Error message:', error.message);
+      console.error('❌ Error stack:', error.stack);
+    }
     return NextResponse.json(
-      { error: 'Failed to retrieve boosts' },
+      { 
+        success: false,
+        error: 'Failed to retrieve boosts',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        postgres_url_configured: !!process.env.POSTGRES_URL
+      },
       { status: 500 }
     );
   }
