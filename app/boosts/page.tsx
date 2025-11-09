@@ -231,6 +231,38 @@ function buildThreadedReplies(events: any[], rootEventId: string): ParsedReply[]
   return buildChildren(rootEventId, 0);
 }
 
+// Deduplicate boosts based on content (track title, artist, message)
+// This ensures we only show one entry per unique boost
+function deduplicateBoosts(boosts: ParsedBoost[]): ParsedBoost[] {
+  const seenBoosts = new Map<string, ParsedBoost>();
+  
+  for (const boost of boosts) {
+    // Create a unique key based on content (track title, artist, message)
+    // This will catch duplicates even if they have slightly different timestamps or IDs
+    const contentKey = `${boost.trackTitle || ''}-${boost.trackArtist || ''}-${boost.userMessage || ''}`.toLowerCase();
+    
+    if (!seenBoosts.has(contentKey)) {
+      seenBoosts.set(contentKey, boost);
+    } else {
+      // If we have a duplicate, prefer the one with higher amount (might be aggregated)
+      const existing = seenBoosts.get(contentKey)!;
+      const existingAmount = parseInt(existing.amount || '0', 10);
+      const newAmount = parseInt(boost.amount || '0', 10);
+      if (newAmount > existingAmount) {
+        // Replace with the one that has higher amount
+        seenBoosts.set(contentKey, boost);
+        console.log(`💰 Replaced duplicate boost with higher amount: ${contentKey} (${newAmount} > ${existingAmount})`);
+      } else {
+        console.log(`⏭️ Skipping duplicate boost: ${contentKey} (existing: ${existingAmount}, new: ${newAmount})`);
+      }
+    }
+  }
+  
+  const uniqueBoosts = Array.from(seenBoosts.values());
+  console.log(`🔍 Deduplicated ${boosts.length} boosts into ${uniqueBoosts.length} unique boosts`);
+  return uniqueBoosts;
+}
+
 // Fetch Helipad boosts from our webhook storage
 async function fetchHelipadBoosts(): Promise<ParsedBoost[]> {
   try {
@@ -524,8 +556,11 @@ export default function BoostsPage() {
             // Merge Helipad boosts with filtered cached boosts
             const allBoosts = [...helipadBoosts, ...filteredCachedBoosts];
             
+            // Deduplicate before sorting
+            const uniqueBoosts = deduplicateBoosts(allBoosts);
+            
             // Sort by timestamp (most recent first)
-            const sortedBoosts = allBoosts.sort((a, b) => {
+            const sortedBoosts = uniqueBoosts.sort((a, b) => {
               const timeA = a.timestamp || 0;
               const timeB = b.timestamp || 0;
               return timeB - timeA;
@@ -647,8 +682,11 @@ export default function BoostsPage() {
           parsedBoost.replies = []; // Start with empty replies
           parsedBoosts.push(parsedBoost);
 
+          // Deduplicate before sorting
+          const uniqueBoosts = deduplicateBoosts(parsedBoosts);
+
           // Sort and update the display immediately after adding each boost
-          const sortedBoosts = [...parsedBoosts].sort((a, b) => {
+          const sortedBoosts = uniqueBoosts.sort((a, b) => {
             const timeA = a.timestamp || 0;
             const timeB = b.timestamp || 0;
             return timeB - timeA;
@@ -800,13 +838,26 @@ export default function BoostsPage() {
                 }
 
                 setBoosts(prev => {
-                  // Check if boost already exists
-                  const exists = prev.some(b => b.id === parsedBoost.id);
-                  if (exists) return prev;
+                  // Check if boost already exists by ID
+                  const existsById = prev.some(b => b.id === parsedBoost.id);
+                  if (existsById) return prev;
+
+                  // Check if boost already exists by content (deduplication)
+                  const contentKey = `${parsedBoost.trackTitle || ''}-${parsedBoost.trackArtist || ''}-${parsedBoost.userMessage || ''}`.toLowerCase();
+                  const existsByContent = prev.some(b => {
+                    const bContentKey = `${b.trackTitle || ''}-${b.trackArtist || ''}-${b.userMessage || ''}`.toLowerCase();
+                    return bContentKey === contentKey;
+                  });
+                  if (existsByContent) {
+                    console.log(`⏭️ Skipping duplicate boost by content: ${contentKey}`);
+                    return prev;
+                  }
 
                   // Add new boost to the beginning and sort by timestamp
                   const updated = [parsedBoost, ...prev];
-                  return updated.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+                  // Deduplicate before returning
+                  const uniqueBoosts = deduplicateBoosts(updated);
+                  return uniqueBoosts.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
                 });
               }
             },
