@@ -61,12 +61,8 @@ function createBoostTLVRecords(metadata: BoostMetadata, recipientName?: string, 
     uuid: `boost-${Date.now()}-${Math.floor(Math.random() * 1000)}`, // Unique identifier
     app_version: '1.0.0', // App version
     ...(amount && { value_msat: amount * 1000 }), // Individual payment amount
-    name: 'ITDV Lightning' // App/service name
+    name: recipientName || 'ITDV Lightning' // Recipient name for split payments, app name for single payments
   };
-  
-  // Log the exact TLV data for debugging
-  console.log('🔍 HELIPAD DEBUG - Exact TLV 7629169 data being sent:');
-  console.log(JSON.stringify(podcastMetadata, null, 2));
   
   tlvRecords.push({
     type: 7629169,
@@ -124,10 +120,6 @@ function createSimpleWebLNTLVRecords(metadata: BoostMetadata, recipientName?: st
   
   customRecords[7629169] = Buffer.from(JSON.stringify(podcastMetadata), 'utf8').toString('hex');
 
-  console.log('🔍 WEBLN SIMPLE TLV - Using simplified TLV records for WebLN compatibility');
-  console.log('📝 Message:', message);
-  console.log('📊 Metadata size:', JSON.stringify(podcastMetadata).length, 'bytes');
-
   return customRecords;
 }
 
@@ -149,14 +141,6 @@ export async function makeAutoBoostPayment({
   boostMetadata?: BoostMetadata;
 }): Promise<{ success: boolean; results?: any[]; error?: string }> {
   try {
-    console.log('💡 AUTO BOOST: Using UPDATED makeAutoBoostPayment function (v2)');
-    console.log('🚀 Starting auto boost payment:', {
-      amount,
-      description,
-      recipients: recipients?.length || 0,
-      fallbackRecipient
-    });
-
     // Import NWC services dynamically
     const { getNWCService } = await import('@/lib/nwc-service');
     const { getKeysendBridge } = await import('@/lib/nwc-keysend-bridge');
@@ -189,21 +173,10 @@ export async function makeAutoBoostPayment({
     // Use NWC if we have a connection string, regardless of bcConnectorType
     // This matches how manual payments work in BitcoinConnect component
     const shouldUseNWC = hasNWCConnection;
-    
-    console.log('💡 AUTO BOOST: Payment method detection:', {
-      weblnExists,
-      weblnEnabled,
-      hasNWCConnection,
-      bcConnectorType,
-      shouldUseNWC,
-      nwcConnectionExists: !!nwcConnectionString,
-      nwcStringLength: nwcConnectionString?.length || 0
-    });
 
     // CRITICAL: Auto boost should only work with user's wallet, not site wallet
     // If no user wallet is available, fail gracefully instead of using site wallet
     if (!weblnExists && !hasNWCConnection) {
-      console.warn('💡 AUTO BOOST: No user wallet available - skipping auto boost to prevent site wallet usage');
       return { 
         success: false, 
         error: 'Auto boost requires user wallet connection. Please connect your wallet to enable auto boost.' 
@@ -219,16 +192,13 @@ export async function makeAutoBoostPayment({
         
         // If bridge is needed (wallet doesn't support keysend), disable auto boost
         if (bridge.needsBridge()) {
-          console.warn('💡 AUTO BOOST: Wallet requires bridge (no native keysend) - disabling auto boost to prevent site wallet usage');
           return { 
             success: false, 
             error: 'Auto boost requires a wallet with native keysend support. Please use a wallet like Alby, Zeus, or Phoenix for auto boost.' 
           };
         }
-        
-        console.log('💡 AUTO BOOST: Wallet supports native keysend - auto boost enabled');
       } catch (error) {
-        console.warn('💡 AUTO BOOST: Could not check bridge capabilities, proceeding with caution');
+        // Silently handle errors
       }
     }
 
@@ -237,7 +207,6 @@ export async function makeAutoBoostPayment({
     
     if (recipients && recipients.length > 0) {
       paymentsToMake = recipients.filter(r => r.address && (r.split > 0 || r.fixedAmount));
-      console.log(`💰 Using ${paymentsToMake.length} recipients (including fixed amounts)`);
     }
 
     // Fallback to single recipient if no valid recipients
@@ -248,7 +217,6 @@ export async function makeAutoBoostPayment({
         name: 'Default',
         type: 'node'
       }];
-      console.log('💰 Using fallback single recipient for auto boost');
     }
 
     const totalSplit = paymentsToMake.reduce((sum, r) => sum + r.split, 0);
@@ -256,35 +224,23 @@ export async function makeAutoBoostPayment({
 
     // Use NWC if available and preferred (same logic as BitcoinConnect)
     if (shouldUseNWC && hasNWCConnection) {
-      console.log('💡 AUTO BOOST: Using NWC for auto boost payments');
-      console.log('💡 AUTO BOOST: NWC connection string length:', nwcConnectionString?.length);
-      
       try {
         // Initialize keysend bridge (same logic as BitcoinConnect manual boost)
-        console.log('💡 AUTO BOOST: Initializing keysend bridge...');
         const bridge = getKeysendBridge();
         
         // Check if bridge needs initialization (same check as manual boost)
         if (!bridge.getCapabilities().walletName || bridge.getCapabilities().walletName === 'Unknown') {
-          console.log('💡 AUTO BOOST: Bridge needs initialization, setting up...');
           await bridge.initialize({ userWalletConnection: nwcConnectionString });
-        } else {
-          console.log('💡 AUTO BOOST: Bridge already initialized with wallet:', bridge.getCapabilities().walletName);
         }
         
         // CRITICAL: Verify bridge is using user wallet, not site wallet
         const capabilities = bridge.getCapabilities();
         if (capabilities.walletName && capabilities.walletName.toLowerCase().includes('alby hub')) {
-          console.error('💡 AUTO BOOST: Bridge is using site wallet (Alby Hub) - this should not happen for auto boost');
           throw new Error('Auto boost cannot use site wallet - user wallet required');
         }
         
-        console.log('💡 AUTO BOOST: Bridge ready for auto boost payments');
-        
         const paymentPromises = paymentsToMake.map(async (recipientData) => {
           const recipientAmount = (recipientData as any).fixedAmount || Math.floor((amount * recipientData.split) / totalSplit);
-          
-          console.log(`💰 Auto boost sending ${recipientAmount} sats to ${recipientData.name || recipientData.address}`);
           
           // Create TLV records for boost metadata - all keysend payments should include TLVs
           const tlvRecords = boostMetadata ? createBoostTLVRecords(boostMetadata, recipientData.name, recipientAmount) : undefined;
@@ -297,7 +253,6 @@ export async function makeAutoBoostPayment({
           });
           
           if (result.success) {
-            console.log(`✅ Auto boost payment successful: ${recipientAmount} sats to ${recipientData.name || recipientData.address}`);
             return { recipient: recipientData.name || recipientData.address, amount: recipientAmount, preimage: result.preimage };
           } else {
             throw new Error(result.error || 'Payment failed');
@@ -316,7 +271,6 @@ export async function makeAutoBoostPayment({
         });
 
         if (results.length > 0) {
-          console.log(`✅ Auto boost completed: ${results.length}/${paymentsToMake.length} payments successful`);
           return { success: true, results };
         } else {
           throw new Error('All NWC auto boost payments failed');
@@ -326,14 +280,10 @@ export async function makeAutoBoostPayment({
         console.error('💡 AUTO BOOST: NWC auto boost failed, trying WebLN fallback:', nwcError);
         // Fall through to WebLN
       }
-    } else {
-      console.log('💡 AUTO BOOST: Skipping NWC - shouldUseNWC:', shouldUseNWC, 'hasNWCConnection:', hasNWCConnection);
     }
 
     // WebLN fallback (same as original logic)
     if (weblnExists) {
-      console.log('💡 AUTO BOOST: Using WebLN for auto boost payments (fallback)');
-      
       const webln = (window as any).webln;
 
       // Ensure WebLN is enabled
@@ -348,8 +298,6 @@ export async function makeAutoBoostPayment({
         const paymentPromises = paymentsToMake.map(async (recipientData) => {
           const recipientAmount = (recipientData as any).fixedAmount || Math.floor((amount * recipientData.split) / totalSplit);
           
-          console.log(`💰 WebLN auto boost sending ${recipientAmount} sats to ${recipientData.name || recipientData.address}`);
-          
           // Create TLV records for boost metadata - use simplified version for WebLN
           const customRecords = boostMetadata ? createSimpleWebLNTLVRecords(boostMetadata, recipientData.name, recipientAmount) : {};
           
@@ -359,7 +307,6 @@ export async function makeAutoBoostPayment({
             customRecords
           });
           
-          console.log(`✅ WebLN auto boost payment successful: ${recipientAmount} sats to ${recipientData.name || recipientData.address}`);
           return { recipient: recipientData.name || recipientData.address, amount: recipientAmount, response };
         });
 
@@ -375,7 +322,6 @@ export async function makeAutoBoostPayment({
         });
 
         if (results.length > 0) {
-          console.log(`✅ WebLN auto boost completed: ${results.length}/${paymentsToMake.length} payments successful`);
           return { success: true, results };
         } else {
           throw new Error('All WebLN auto boost payments failed');

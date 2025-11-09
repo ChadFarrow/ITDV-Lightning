@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Zap, Wallet } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
+import { Zap, Wallet, Loader2 } from 'lucide-react';
 import { useBitcoinConnect } from '@/contexts/BitcoinConnectContext';
 import { useBoostToNostr } from '@/hooks/useBoostToNostr';
 import { useLightning } from '@/contexts/LightningContext';
@@ -203,6 +203,7 @@ export function BitcoinConnectPayment({
   const [loading, setLoading] = useState(false);
   const { isConnected } = useBitcoinConnect();
   const { isLightningEnabled } = useLightning();
+  const isProcessingRef = useRef(false); // Guard to prevent multiple simultaneous payments
 
   // Debug: Log when isConnected state changes
   useEffect(() => {
@@ -250,7 +251,7 @@ export function BitcoinConnectPayment({
         uuid: `boost-${Date.now()}-${Math.floor(Math.random() * 1000)}`, // Unique identifier
         app_version: '1.0.0', // App version
         value_msat: recipients ? Math.floor((amount * 1000) / recipients.length) : amount * 1000, // Individual payment amount
-        name: 'ITDV Lightning' // App/service name
+        name: recipientName || 'ITDV Lightning' // Recipient name for split payments, app name for single payments
       };
       
       // Log the exact TLV data for debugging (matching payment-utils.ts)
@@ -405,6 +406,12 @@ export function BitcoinConnectPayment({
   };
 
   const handlePayment = async () => {
+    // Prevent multiple simultaneous payments
+    if (isProcessingRef.current) {
+      console.warn('⚠️ Payment already in progress, ignoring duplicate call');
+      return;
+    }
+    
     // Use enhanced detection logic similar to context
     const weblnExists = !!(window as any).webln;
     const weblnEnabled = weblnExists && !!(window as any).webln?.enabled;
@@ -420,10 +427,16 @@ export function BitcoinConnectPayment({
       weblnExists,
       weblnEnabled,
       hasWeblnMethods,
-      weblnAvailable
+      weblnAvailable,
+      amount,
+      recipientCount: recipients?.length || 1
     });
     
+    // Set processing flag and loading state
+    isProcessingRef.current = true;
     setLoading(true);
+    
+    console.log('🔒 Payment processing started - guard is active');
     try {
       const webln = (window as any).webln;
       
@@ -434,7 +447,7 @@ export function BitcoinConnectPayment({
       const siteOwnerRecipient = {
         address: '03740ea02585ed87b83b2f76317a4562b616bd7b8ec3f925be6596932b2003fc9e',
         split: 0, // Will be handled separately as fixed 2 sats
-        name: 'HPM Site Metadata',
+        name: 'ITDV Site Metadata',
         fee: false,
         type: 'node',
         fixedAmount: 2 // Fixed 2 sat payment
@@ -1112,6 +1125,9 @@ export function BitcoinConnectPayment({
       console.error('Payment failed:', error);
       onError?.(error instanceof Error ? error.message : 'Payment failed');
     } finally {
+      // Reset processing flag and loading state
+      console.log('🔓 Payment processing completed - guard is released');
+      isProcessingRef.current = false;
       setLoading(false);
     }
   };
@@ -1130,18 +1146,55 @@ export function BitcoinConnectPayment({
   }
 
   return (
-    <button
-      key={`boost-button-${renderKey}-${isConnected}`}
-      onClick={handlePayment}
-      disabled={loading || !isConnected}
-      className={`flex items-center gap-2 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-600 disabled:text-gray-400 text-black font-semibold rounded-lg transition-colors ${className}`}
-    >
-      <Zap className="w-4 h-4" />
-      <span>
-        {loading ? 'Processing...' : 
-         !isConnected ? 'Connect Wallet First' : 
-         `Send ${amount} sats`}
-      </span>
-    </button>
+    <>
+      <style jsx>{`
+        @keyframes bounce-dot {
+          0%, 80%, 100% {
+            transform: translateY(0);
+            opacity: 0.5;
+          }
+          40% {
+            transform: translateY(-4px);
+            opacity: 1;
+          }
+        }
+        .dot-1 {
+          animation: bounce-dot 1.4s ease-in-out infinite;
+          animation-delay: 0s;
+        }
+        .dot-2 {
+          animation: bounce-dot 1.4s ease-in-out infinite;
+          animation-delay: 0.2s;
+        }
+        .dot-3 {
+          animation: bounce-dot 1.4s ease-in-out infinite;
+          animation-delay: 0.4s;
+        }
+      `}</style>
+      <button
+        key={`boost-button-${renderKey}-${isConnected}`}
+        onClick={handlePayment}
+        disabled={loading || !isConnected}
+        className={`flex items-center gap-2 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-600 disabled:text-gray-400 text-black font-semibold rounded-lg transition-colors ${className}`}
+      >
+        {loading ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : (
+          <Zap className="w-4 h-4" />
+        )}
+        <span className={loading ? 'animate-pulse' : ''}>
+          {loading ? (
+            <span className="flex items-center gap-1">
+              <span>Processing</span>
+              <span className="flex gap-0.5">
+                <span className="dot-1">.</span>
+                <span className="dot-2">.</span>
+                <span className="dot-3">.</span>
+              </span>
+            </span>
+          ) : !isConnected ? 'Connect Wallet First' : `Send ${amount} sats`}
+        </span>
+      </button>
+    </>
   );
 }

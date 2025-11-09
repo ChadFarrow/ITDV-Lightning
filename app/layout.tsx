@@ -8,6 +8,7 @@ import ClientErrorBoundary from '@/components/ClientErrorBoundary'
 import { ToastContainer } from '@/components/Toast'
 import PerformanceMonitor from '@/components/PerformanceMonitor'
 import { AudioProvider } from '@/contexts/AudioContext'
+import { VideoProvider } from '@/contexts/VideoContext'
 import { BitcoinConnectProvider } from '@/contexts/BitcoinConnectContext'
 import { LightningProvider } from '@/contexts/LightningContext'
 import GlobalNowPlayingBar from '@/components/GlobalNowPlayingBar'
@@ -82,6 +83,7 @@ export default function RootLayout({
         {/* Global Error Handler Script */}
         <script
           async
+          suppressHydrationWarning
           dangerouslySetInnerHTML={{
             __html: `
               // Global error handler for debugging
@@ -110,7 +112,8 @@ export default function RootLayout({
           <ErrorBoundary>
             <LightningProvider>
               <AudioProvider>
-                <BitcoinConnectProvider>
+                <VideoProvider>
+                  <BitcoinConnectProvider>
                   <div className="min-h-screen bg-gray-50 relative">
                     {/* Content overlay with iOS safe area padding */}
                     <div className="relative z-10 pt-ios">
@@ -120,6 +123,7 @@ export default function RootLayout({
                   <GlobalNowPlayingBar />
                   <ToastContainer />
                 </BitcoinConnectProvider>
+                </VideoProvider>
               </AudioProvider>
             </LightningProvider>
           </ErrorBoundary>

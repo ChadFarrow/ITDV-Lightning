@@ -11,21 +11,31 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const { id } = await params;
     const albumId = decodeURIComponent(id);
     
-    console.log(`🔍 Looking for single album with ID: "${albumId}"`);
+    // Check for bypass cache parameter
+    const { searchParams } = new URL(request.url);
+    const bypassCache = searchParams.get('nocache') === '1' || searchParams.get('refresh') === '1';
     
-    // Check cache first
-    const cached = albumCache.get(albumId);
-    if (cached && Date.now() - cached.timestamp < ALBUM_CACHE_TTL) {
-      console.log(`📦 Serving cached album: "${albumId}"`);
-      const response = NextResponse.json({ 
-        album: cached.data,
-        cached: true,
-        timestamp: new Date().toISOString()
-      });
-      
-      // Add cache headers for better performance
-      response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=600');
-      return response;
+    console.log(`🔍 Looking for single album with ID: "${albumId}"${bypassCache ? ' (bypassing cache)' : ''}`);
+    
+    // Check cache first (unless bypassing)
+    if (!bypassCache) {
+      const cached = albumCache.get(albumId);
+      if (cached && Date.now() - cached.timestamp < ALBUM_CACHE_TTL) {
+        console.log(`📦 Serving cached album: "${albumId}"`);
+        const response = NextResponse.json({ 
+          album: cached.data,
+          cached: true,
+          timestamp: new Date().toISOString()
+        });
+        
+        // Add cache headers for better performance
+        response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=600');
+        return response;
+      }
+    } else {
+      // Clear cache if bypassing
+      albumCache.delete(albumId);
+      console.log(`🔄 Cache cleared for: "${albumId}"`);
     }
     
     // Helper function to create URL slug (same as homepage)
@@ -37,7 +47,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         .replace(/^-+|-+$/g, '');       // Remove leading/trailing dashes
 
     // PRIORITY 1: Check static albums data first (fastest, no RSS parsing needed)
-    try {
+    // Skip static cache if bypassing to force fresh RSS parse
+    if (!bypassCache) {
+      try {
       const fs = await import('fs/promises');
       const path = await import('path');
       const staticAlbumsPath = path.join(process.cwd(), 'public', 'albums-static-cached.json');
@@ -87,9 +99,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         response.headers.set('Cache-Control', 'public, max-age=600, s-maxage=3600, stale-while-revalidate=86400');
         return response;
       }
-    } catch (error) {
-      console.log(`⚠️ Failed to check static albums data:`, error);
-      // Continue to RSS parsing fallback
+      } catch (error) {
+        console.log(`⚠️ Failed to check static albums data:`, error);
+        // Continue to RSS parsing fallback
+      }
+    } else {
+      console.log(`🔄 Bypassing static cache to force fresh RSS parse`);
     }
 
     // PRIORITY 2: Fall back to RSS parsing if not in static cache

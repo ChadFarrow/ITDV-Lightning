@@ -9,6 +9,7 @@ interface Track {
   title: string;
   duration: string;
   url: string;
+  videoUrl?: string; // Video enclosure URL (HLS .m3u8 files)
   trackNumber: number;
   image?: string;
   artist?: string;

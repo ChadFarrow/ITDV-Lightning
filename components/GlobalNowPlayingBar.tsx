@@ -3,31 +3,82 @@
 import React from 'react';
 import Image from 'next/image';
 import { useAudio } from '@/contexts/AudioContext';
+import { useVideo } from '@/contexts/VideoContext';
 import { useSwipeGestures } from '@/hooks/useSwipeGestures';
 import NowPlayingScreen from './NowPlayingScreen';
 
 const GlobalNowPlayingBar: React.FC = () => {
-  const {
-    currentTrack,
-    currentAlbum,
-    isPlaying,
-    currentTime,
-    duration,
-    volume,
-    isShuffling,
-    isRepeating,
-    isNowPlayingOpen,
-    openNowPlaying,
-    closeNowPlaying,
-    pause,
-    resume,
-    nextTrack,
-    previousTrack,
-    seekTo,
-    setVolume,
-    toggleShuffle,
-    toggleRepeat,
-  } = useAudio();
+  const audioContext = useAudio();
+  const videoContext = useVideo();
+  
+  // Determine if video or audio is active
+  // Show video in now playing bar if there's a current video (playing or paused)
+  const hasVideo = videoContext.currentVideo !== null;
+  const isVideoPlaying = hasVideo && videoContext.isPlaying;
+  const isAudioPlaying = audioContext.currentTrack !== null && !hasVideo;
+  
+  // Use video context if video is active, otherwise use audio context
+  // For video tracks, don't set a url since it's not an audio track
+  const currentTrack = hasVideo 
+    ? {
+        title: videoContext.currentVideo?.title || '',
+        artist: videoContext.currentVideo?.artist || videoContext.currentAlbum || '',
+        image: videoContext.currentVideo?.image || videoContext.currentVideo?.imageUrl,
+        url: '', // Don't set url for video tracks - they're not audio tracks
+        album: videoContext.currentAlbum || ''
+      }
+    : audioContext.currentTrack;
+  
+  const currentAlbum = hasVideo 
+    ? videoContext.currentAlbum 
+    : audioContext.currentAlbum;
+  
+  const isPlaying = hasVideo 
+    ? videoContext.isPlaying 
+    : audioContext.isPlaying;
+  
+  const currentTime = hasVideo 
+    ? videoContext.currentTime 
+    : audioContext.currentTime;
+  
+  const duration = hasVideo 
+    ? videoContext.duration 
+    : audioContext.duration;
+  
+  const volume = hasVideo 
+    ? videoContext.volume 
+    : audioContext.volume;
+  
+  const pause = hasVideo 
+    ? videoContext.pause 
+    : audioContext.pause;
+  
+  const resume = hasVideo 
+    ? videoContext.resume 
+    : audioContext.resume;
+  
+  const seekTo = hasVideo 
+    ? videoContext.seekTo 
+    : audioContext.seekTo;
+  
+  const setVolume = hasVideo 
+    ? videoContext.setVolume 
+    : audioContext.setVolume;
+  
+  // Audio-only controls
+  const isShuffling = audioContext.isShuffling;
+  const isRepeating = audioContext.isRepeating;
+  const isNowPlayingOpen = audioContext.isNowPlayingOpen;
+  const openNowPlaying = audioContext.openNowPlaying;
+  const closeNowPlaying = audioContext.closeNowPlaying;
+  const nextTrack = hasVideo 
+    ? videoContext.nextVideo 
+    : audioContext.nextTrack;
+  const previousTrack = hasVideo 
+    ? videoContext.previousVideo 
+    : audioContext.previousTrack;
+  const toggleShuffle = audioContext.toggleShuffle;
+  const toggleRepeat = audioContext.toggleRepeat;
 
   // Add swipe gestures for mobile
   const swipeRef = useSwipeGestures({
@@ -45,7 +96,14 @@ const GlobalNowPlayingBar: React.FC = () => {
     velocityThreshold: 0.2
   });
 
-  if (!currentTrack) return null;
+  // Show bar if either audio or video is active
+  // For video, we need to check if there's actually a video set with a valid URL
+  if (!currentTrack && !hasVideo) return null;
+  
+  // If video is active but track object is invalid, don't show bar
+  if (hasVideo && (!videoContext.currentVideo || !videoContext.currentVideo.videoUrl)) {
+    return null;
+  }
 
   const formatTime = (seconds: number) => {
     if (isNaN(seconds)) return '0:00';
@@ -62,6 +120,21 @@ const GlobalNowPlayingBar: React.FC = () => {
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newVolume = parseFloat(e.target.value);
     setVolume(newVolume);
+  };
+
+  // Video skip functions
+  const skipVideoForward = () => {
+    if (hasVideo && seekTo) {
+      const newTime = Math.min(duration || 0, (currentTime || 0) + 30);
+      seekTo(newTime);
+    }
+  };
+
+  const skipVideoBackward = () => {
+    if (hasVideo && seekTo) {
+      const newTime = Math.max(0, (currentTime || 0) - 10);
+      seekTo(newTime);
+    }
   };
 
   return (
@@ -85,11 +158,11 @@ const GlobalNowPlayingBar: React.FC = () => {
               className="flex items-center gap-2 min-w-0 flex-1 cursor-pointer"
               onClick={openNowPlaying}
             >
-              {currentTrack.image && (
+              {currentTrack?.image && (
                 <div className="w-10 h-10 relative overflow-hidden rounded border border-white/20">
                   <Image
                     src={currentTrack.image}
-                    alt={currentTrack.title}
+                    alt={currentTrack.title || ''}
                     fill
                     className="object-cover"
                     sizes="40px"
@@ -98,51 +171,95 @@ const GlobalNowPlayingBar: React.FC = () => {
               )}
               <div className="min-w-0 flex-1">
                 <h4 className="text-sm font-semibold text-white truncate">
-                  {currentTrack.title}
+                  {currentTrack?.title || ''}
                 </h4>
                 <p className="text-xs text-gray-400 truncate">
-                  {currentTrack.artist || 'Unknown Artist'}
+                  {currentTrack?.artist || 'Unknown Artist'}
                 </p>
               </div>
             </div>
 
             {/* Main controls */}
             <div className="flex items-center gap-1">
-              <button
-                onClick={previousTrack}
-                className="p-2 text-gray-400 hover:text-white transition-colors"
-                title="Previous track"
-              >
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
-                </svg>
-              </button>
+              {hasVideo ? (
+                // Video skip buttons (mobile)
+                <>
+                  <button
+                    onClick={skipVideoBackward}
+                    className="p-2 text-gray-400 hover:text-white transition-colors"
+                    title="Skip backward 10 seconds"
+                  >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M11.99 5V1l-5 5 5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
+                    </svg>
+                  </button>
 
-              <button
-                onClick={isPlaying ? pause : resume}
-                className="p-2 bg-white text-black rounded-full hover:bg-gray-200 transition-colors"
-                title={isPlaying ? 'Pause' : 'Play'}
-              >
-                {isPlaying ? (
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
-                  </svg>
-                ) : (
-                  <svg className="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M8 5v14l11-7z"/>
-                  </svg>
-                )}
-              </button>
+                  <button
+                    onClick={isPlaying ? pause : resume}
+                    className="p-2 bg-white text-black rounded-full hover:bg-gray-200 transition-colors"
+                    title={isPlaying ? 'Pause' : 'Play'}
+                  >
+                    {isPlaying ? (
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z"/>
+                      </svg>
+                    )}
+                  </button>
 
-              <button
-                onClick={nextTrack}
-                className="p-2 text-gray-400 hover:text-white transition-colors"
-                title="Next track"
-              >
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
-                </svg>
-              </button>
+                  <button
+                    onClick={skipVideoForward}
+                    className="p-2 text-gray-400 hover:text-white transition-colors"
+                    title="Skip forward 30 seconds"
+                  >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 5V1l5 5-5 5V7c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6h2c0 4.42-3.58 8-8 8s-8-3.58-8-8 3.58-8 8-8z"/>
+                    </svg>
+                  </button>
+                </>
+              ) : (
+                // Audio track skip buttons (mobile)
+                <>
+                  <button
+                    onClick={previousTrack}
+                    className="p-2 text-gray-400 hover:text-white transition-colors"
+                    title="Previous track"
+                  >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
+                    </svg>
+                  </button>
+
+                  <button
+                    onClick={isPlaying ? pause : resume}
+                    className="p-2 bg-white text-black rounded-full hover:bg-gray-200 transition-colors"
+                    title={isPlaying ? 'Pause' : 'Play'}
+                  >
+                    {isPlaying ? (
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z"/>
+                      </svg>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={nextTrack}
+                    className="p-2 text-gray-400 hover:text-white transition-colors"
+                    title="Next track"
+                  >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
+                    </svg>
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
@@ -197,24 +314,26 @@ const GlobalNowPlayingBar: React.FC = () => {
               </button>
             </div>
 
-            {/* Volume control */}
-            <div className="flex items-center gap-1">
-              <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
-              </svg>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={volume}
-                onChange={handleVolumeChange}
-                className="w-16 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer slider"
-                style={{
-                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${volume * 100}%, #374151 ${volume * 100}%, #374151 100%)`
-                }}
-              />
-            </div>
+            {/* Volume control - hide for video */}
+            {!hasVideo && (
+              <div className="flex items-center gap-1">
+                <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
+                </svg>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={volume}
+                  onChange={handleVolumeChange}
+                  className="w-16 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer slider"
+                  style={{
+                    background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${volume * 100}%, #374151 ${volume * 100}%, #374151 100%)`
+                  }}
+                />
+              </div>
+            )}
           </div>
         </div>
 
@@ -225,11 +344,11 @@ const GlobalNowPlayingBar: React.FC = () => {
             className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer"
             onClick={openNowPlaying}
           >
-            {currentTrack.image && (
+            {currentTrack?.image && (
               <div className="w-12 h-12 relative overflow-hidden rounded border border-white/20">
                 <Image
                   src={currentTrack.image}
-                  alt={currentTrack.title}
+                  alt={currentTrack.title || ''}
                   fill
                   className="object-cover"
                   sizes="48px"
@@ -238,10 +357,10 @@ const GlobalNowPlayingBar: React.FC = () => {
             )}
             <div className="min-w-0 flex-1">
               <h4 className="text-sm font-semibold text-white truncate">
-                {currentTrack.title}
+                {currentTrack?.title || ''}
               </h4>
               <p className="text-xs text-gray-400 truncate">
-                {currentTrack.artist || 'Unknown Artist'}
+                {currentTrack?.artist || 'Unknown Artist'}
                 {currentAlbum && ` • ${currentAlbum}`}
               </p>
             </div>
@@ -261,41 +380,85 @@ const GlobalNowPlayingBar: React.FC = () => {
               </svg>
             </button>
 
-            <button
-              onClick={previousTrack}
-              className="p-2 text-gray-400 hover:text-white transition-colors"
-              title="Previous track"
-            >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
-              </svg>
-            </button>
+            {hasVideo ? (
+              // Video skip buttons
+              <>
+                <button
+                  onClick={skipVideoBackward}
+                  className="p-2 text-gray-400 hover:text-white transition-colors"
+                  title="Skip backward 10 seconds"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M11.99 5V1l-5 5 5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
+                  </svg>
+                </button>
 
-            <button
-              onClick={isPlaying ? pause : resume}
-              className="p-3 bg-white text-black rounded-full hover:bg-gray-200 transition-colors"
-              title={isPlaying ? 'Pause' : 'Play'}
-            >
-              {isPlaying ? (
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
-                </svg>
-              ) : (
-                <svg className="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M8 5v14l11-7z"/>
-                </svg>
-              )}
-            </button>
+                <button
+                  onClick={isPlaying ? pause : resume}
+                  className="p-3 bg-white text-black rounded-full hover:bg-gray-200 transition-colors"
+                  title={isPlaying ? 'Pause' : 'Play'}
+                >
+                  {isPlaying ? (
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z"/>
+                    </svg>
+                  )}
+                </button>
 
-            <button
-              onClick={nextTrack}
-              className="p-2 text-gray-400 hover:text-white transition-colors"
-              title="Next track"
-            >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
-              </svg>
-            </button>
+                <button
+                  onClick={skipVideoForward}
+                  className="p-2 text-gray-400 hover:text-white transition-colors"
+                  title="Skip forward 30 seconds"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 5V1l5 5-5 5V7c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6h2c0 4.42-3.58 8-8 8s-8-3.58-8-8 3.58-8 8-8z"/>
+                  </svg>
+                </button>
+              </>
+            ) : (
+              // Audio track skip buttons
+              <>
+                <button
+                  onClick={previousTrack}
+                  className="p-2 text-gray-400 hover:text-white transition-colors"
+                  title="Previous track"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
+                  </svg>
+                </button>
+
+                <button
+                  onClick={isPlaying ? pause : resume}
+                  className="p-3 bg-white text-black rounded-full hover:bg-gray-200 transition-colors"
+                  title={isPlaying ? 'Pause' : 'Play'}
+                >
+                  {isPlaying ? (
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z"/>
+                    </svg>
+                  )}
+                </button>
+
+                <button
+                  onClick={nextTrack}
+                  className="p-2 text-gray-400 hover:text-white transition-colors"
+                  title="Next track"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
+                  </svg>
+                </button>
+              </>
+            )}
 
             <button
               onClick={toggleRepeat}
@@ -333,24 +496,26 @@ const GlobalNowPlayingBar: React.FC = () => {
             </span>
           </div>
 
-          {/* Volume */}
-          <div className="flex items-center gap-2">
-            <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
-            </svg>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.01"
-              value={volume}
-              onChange={handleVolumeChange}
-              className="w-20 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer slider"
-              style={{
-                background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${volume * 100}%, #374151 ${volume * 100}%, #374151 100%)`
-              }}
-            />
-          </div>
+          {/* Volume - hide for video */}
+          {!hasVideo && (
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+              </svg>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={volume}
+                onChange={handleVolumeChange}
+                className="w-20 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer slider"
+                style={{
+                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${volume * 100}%, #374151 ${volume * 100}%, #374151 100%)`
+                }}
+              />
+            </div>
+          )}
         </div>
       </div>
 

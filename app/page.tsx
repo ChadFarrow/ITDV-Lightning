@@ -53,6 +53,7 @@ interface Track {
   title: string;
   duration: string;
   url: string;
+  videoUrl?: string; // Video enclosure URL (HLS .m3u8 files)
   trackNumber: number;
   image?: string;
   value?: any; // Track-level podcast:value data
@@ -389,12 +390,13 @@ export default function HomePage() {
       
       // Load all albums directly
       const allAlbums = await loadAlbumsData();
-      console.log(`📦 Loaded ${allAlbums.length} albums`);
       setAlbums(allAlbums);
       
       // Preload colors for first albums for instant Now Playing screen
       const firstAlbumTitles = allAlbums.slice(0, 10).map((album: any) => album.title);
-      preloadCriticalColors(firstAlbumTitles).catch(console.warn);
+      preloadCriticalColors(firstAlbumTitles).catch(() => {
+        // Silently handle errors
+      });
       
       // Load static publisher data
       try {
@@ -402,12 +404,9 @@ export default function HomePage() {
         if (publisherResponse.ok) {
           const staticPublishers = await publisherResponse.json();
           setPublishers(staticPublishers);
-          console.log('📦 Loaded static publisher data:', staticPublishers.map((p: any) => p.name));
-        } else {
-          console.warn('Failed to load static publisher data');
         }
       } catch (error) {
-        console.error('Error loading static publisher data:', error);
+        // Silently handle errors
       }
       
       setLoadingProgress(100);
@@ -430,9 +429,6 @@ export default function HomePage() {
       return response;
     } catch (error) {
       clearTimeout(timeoutId);
-      if (error instanceof Error && error.name === 'AbortError') {
-        console.log(`⏱️ Request to ${url} timed out after ${timeoutMs}ms`);
-      }
       throw error;
     }
   };
@@ -445,13 +441,11 @@ export default function HomePage() {
         const cacheTime = localStorage.getItem('albumsCacheTimestamp');
 
         if (cached && cacheTime && (Date.now() - parseInt(cacheTime)) < 10 * 60 * 1000) {
-          console.log('📦 Using cached albums');
           return JSON.parse(cached);
         }
       }
 
       // Use static cached data for fast loading (with 3s timeout)
-      console.log('🔄 Loading albums from static cache...');
       let response;
       let data;
       let useStaticCache = false;
@@ -459,7 +453,7 @@ export default function HomePage() {
       try {
         response = await fetchWithTimeout('/api/albums-static-cached', 3000);
       } catch (error) {
-        console.log('⚠️ Static cache fetch failed or timed out, will try alternatives');
+        // Silently handle errors
       }
 
       if (response?.ok) {
@@ -475,15 +469,8 @@ export default function HomePage() {
         );
         
         if (hasValueData && hasGuidData) {
-          console.log('⚡ Using static cached album data (fast loading, includes podcast:value and GUID data)');
           useStaticCache = true;
         } else {
-          if (!hasValueData) {
-            console.log('📦 Static cached data missing podcast:value info, using it anyway for fast load...');
-          }
-          if (!hasGuidData) {
-            console.log('🏷️ Static cached data missing GUID info, using it anyway for fast load...');
-          }
           // Use static cache anyway if it loaded successfully - better than slow dynamic load
           useStaticCache = true;
         }
@@ -492,21 +479,18 @@ export default function HomePage() {
       // Skip slow dynamic loading - just use static cache for better performance
       if (!useStaticCache || !data) {
         // Only try dynamic as last resort with timeout
-        console.log('📡 Attempting dynamic data load with 8s timeout...');
         try {
           response = await fetchWithTimeout('/api/albums-no-db', 8000);
           if (response.ok) {
             data = await response.json();
-            console.log('⚡ Using dynamic album data (includes podcast:value for Lightning)');
           }
         } catch (error) {
-          console.log('⚠️ Dynamic load timed out or failed, falling back to static...');
+          // Silently handle errors
         }
       }
 
       if (!data) {
         // Final fallback to static data (with timeout)
-        console.log('🔄 Falling back to static data...');
         response = await fetchWithTimeout('/api/albums-static', 5000);
 
         if (!response.ok) {
@@ -514,7 +498,6 @@ export default function HomePage() {
         }
 
         data = await response.json();
-        console.log('📦 Using static album data (no podcast:value data available)');
       }
       
       const albums = data.albums || [];
@@ -538,9 +521,8 @@ export default function HomePage() {
         try {
           localStorage.setItem('cachedAlbums', JSON.stringify(uniqueAlbums));
           localStorage.setItem('albumsCacheTimestamp', Date.now().toString());
-          console.log(`📦 Cached ${uniqueAlbums.length} albums`);
         } catch (error) {
-          console.warn('⚠️ Failed to cache albums:', error);
+          // Silently handle errors
         }
       }
       
@@ -564,15 +546,12 @@ export default function HomePage() {
     const firstTrack = album.tracks.find(track => track.url);
     
     if (!firstTrack || !firstTrack.url) {
-      console.warn('Cannot play album: missing track');
       setError('No playable tracks found in this album');
       setTimeout(() => setError(null), 3000);
       return;
     }
 
     try {
-      console.log('🎵 Attempting to play:', album.title, 'Track URL:', firstTrack.url);
-      
       // Use global audio context to play album
       const audioTracks = album.tracks.map(track => ({
         ...track,
@@ -582,7 +561,6 @@ export default function HomePage() {
       }));
       
       globalPlayAlbum(audioTracks, 0, album.title);
-      console.log('✅ Successfully started playback');
     } catch (error) {
       let errorMessage = 'Unable to play audio - please try again';
       
@@ -662,6 +640,9 @@ export default function HomePage() {
         break;
       case 'singles':
         filtered = albumsToUse.filter(album => album.tracks.length === 1);
+        break;
+      case 'video':
+        filtered = albumsToUse.filter(album => album.tracks.some(track => track.videoUrl));
         break;
       case 'publishers':
         // For publishers filter, we'll show publishers instead of albums
@@ -959,6 +940,7 @@ export default function HomePage() {
                   activeFilter === 'albums' ? 'Albums' :
                   activeFilter === 'eps' ? 'EPs' : 
                   activeFilter === 'singles' ? 'Singles' : 
+                  activeFilter === 'video' ? 'Videos' :
                   activeFilter === 'publishers' ? 'Artists' : 'Releases'}
                 className="mb-8"
               />

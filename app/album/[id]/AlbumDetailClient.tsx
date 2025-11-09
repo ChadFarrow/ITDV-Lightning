@@ -3,9 +3,12 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowLeft, Play, Pause, SkipBack, SkipForward, Volume2, Zap } from 'lucide-react';
+import { useParams } from 'next/navigation';
+import { ArrowLeft, Play, Pause, SkipBack, SkipForward, Volume2, Zap, Video } from 'lucide-react';
 import { useAudio } from '@/contexts/AudioContext';
+import { useVideo } from '@/contexts/VideoContext';
 import { useLightning } from '@/contexts/LightningContext';
+import VideoPlayer from '@/components/VideoPlayer';
 import { BitcoinConnectPayment } from '@/components/BitcoinConnect';
 import type { RSSValue } from '@/lib/rss-parser';
 import dynamic from 'next/dynamic';
@@ -32,10 +35,13 @@ interface Track {
   title: string;
   duration: string;
   url: string;
+  videoUrl?: string; // Video enclosure URL (HLS .m3u8 files)
   trackNumber: number;
   image?: string;
   value?: RSSValue; // Track-level podcast:value data
   paymentRecipients?: Array<{ address: string; split: number; name?: string; fee?: boolean }>; // Pre-processed track payment recipients
+  startTime?: number; // Chapter/segment start time in seconds
+  endTime?: number; // Chapter/segment end time in seconds
   // Podcast GUIDs for Nostr boost tagging
   guid?: string; // Standard item GUID
   podcastGuid?: string; // podcast:guid at item level
@@ -95,6 +101,8 @@ interface AlbumDetailClientProps {
 }
 
 export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDetailClientProps) {
+  const params = useParams();
+  const albumId = (params?.id as string) || '';
   const { isLightningEnabled } = useLightning();
   const [album, setAlbum] = useState<Album | null>(initialAlbum);
   const [isLoading, setIsLoading] = useState(!initialAlbum);
@@ -128,9 +136,27 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
     toggleShuffle
   } = useAudio();
 
+  // Global video context
+  const videoContext = useVideo();
+  const {
+    playVideo: globalPlayVideo,
+    currentVideo,
+    isPlaying: isVideoPlaying,
+    pause: pauseVideo,
+    resume: resumeVideo,
+    updateCurrentTime,
+    updateDuration
+  } = videoContext;
+
+  // Video playback state
+  const [playingVideoTrack, setPlayingVideoTrack] = useState<Track | null>(null);
+  const videoPlayerRef = useRef<HTMLDivElement>(null);
+  
+  // Track view state (audio or video)
+  const [trackView, setTrackView] = useState<'audio' | 'video'>('audio');
+
   // Lightning payment handlers
   const handleBoostSuccess = (response: any) => {
-    console.log('✅ Boost successful:', response);
     setShowAlbumBoostModal(false);
     setBoostMessage(''); // Clear the message input after successful boost
     
@@ -176,53 +202,149 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
   };
 
   // Get Lightning payment recipients from pre-processed server-side data
+  // Payment recipients are pre-processed during RSS parsing and stored in the album/track objects
   // Memoize payment recipients to prevent render loop
   const paymentRecipients = useMemo(() => {
     if (!album) return null;
     
-    // Check for album-level value.recipients (Lightning Network value splits)
-    const valueRecipients = album.value?.recipients;
-    
-    // Check for track-level value.recipients (some albums have recipients per track)
-    const trackValueRecipients = album.tracks?.[0]?.value?.recipients;
-    
-    // Use pre-processed payment recipients from server-side parsing
+    // Use pre-processed payment recipients from server-side parsing (preferred)
     if (album.paymentRecipients && album.paymentRecipients.length > 0) {
       return album.paymentRecipients;
     }
     
-    // Check for album-level Lightning Network value splits
+    // Fallback: Check for album-level value.recipients (for backwards compatibility)
+    const valueRecipients = album.value?.recipients;
     if (valueRecipients && valueRecipients.length > 0) {
-      return valueRecipients;
-    }
-    
-    // Check for track-level Lightning Network value splits
-    if (trackValueRecipients && trackValueRecipients.length > 0) {
-      return trackValueRecipients;
+      // Convert RSSValue recipients format to paymentRecipients format
+      return valueRecipients
+        .filter((r: any) => r.type === 'node')
+        .map((r: any) => ({
+          address: r.address,
+          split: r.split,
+          name: r.name,
+          fee: r.fee
+        }));
     }
     
     return null; // Will use fallback single recipient
   }, [album]);
 
   // Get Lightning payment recipients for a specific track
+  // Payment recipients are pre-processed during RSS parsing and stored in track objects
+  // For video tracks, use the corresponding audio track's recipients (not album-level)
   const getTrackPaymentRecipients = (track: Track): Array<{ address: string; split: number; name?: string; fee?: boolean; type?: string; fixedAmount?: number }> | null => {
-    if (!track) return null;
+    if (!track) {
+      return null;
+    }
     
-    // Check for track-level value.recipients (Lightning Network value splits)
-    const trackValueRecipients = track.value?.recipients;
+    // First, try to find the track in the album to get the most up-to-date properties
+    // This ensures we have the correct videoUrl and paymentRecipients
+    if (album && album.tracks) {
+      const albumTrack = album.tracks.find((t: Track) => 
+        t.title.trim().toLowerCase() === track.title.trim().toLowerCase()
+      );
+      if (albumTrack) {
+        // Use the album track's properties (more up-to-date)
+        track = albumTrack;
+      }
+    }
     
-    // Use pre-processed track payment recipients from server-side parsing
+    // Check if this track is a video track (either has videoUrl directly, or exists in album with videoUrl)
+    let isVideoTrack = !!track.videoUrl;
+    if (!isVideoTrack && album) {
+      // Check if a track with the same title exists in album and has videoUrl
+      const albumTrack = album.tracks?.find((t: Track) => 
+        t.title.trim().toLowerCase() === track.title.trim().toLowerCase() && t.videoUrl
+      );
+      if (albumTrack) {
+        isVideoTrack = true;
+      }
+    }
+    
+    // For video tracks, ALWAYS find the corresponding audio track and use its recipients
+    // This ensures videos use track-level splits (e.g., 5 recipients) instead of album-level (e.g., 317 recipients)
+    // Video tracks may have album-level recipients set, so we skip them and look for the audio track
+    if (isVideoTrack && album) {
+      // Find the corresponding audio track (same title, no videoUrl)
+      // Use case-insensitive comparison and trim whitespace for better matching
+      // For CityBeach, the video track is "CityBeach" but audio tracks are "CityBeach - Tomorrow", etc.
+      // So we need to match tracks that start with the video track's title
+      const videoTitleNormalized = track.title.trim().toLowerCase();
+      
+      // First, try to find exact match
+      let correspondingAudioTrack = album.tracks?.find((t: Track) => {
+        const audioTitleNormalized = t.title.trim().toLowerCase();
+        return audioTitleNormalized === videoTitleNormalized && !t.videoUrl;
+      });
+      
+      // If no exact match, try prefix match (e.g., "CityBeach" matches "CityBeach - Tomorrow")
+      // Prioritize tracks that have track-level payment recipients (not album-level)
+      if (!correspondingAudioTrack) {
+        const matchingTracks = album.tracks?.filter((t: Track) => {
+          if (t.videoUrl) return false;
+          const audioTitleNormalized = t.title.trim().toLowerCase();
+          return (
+            audioTitleNormalized.startsWith(videoTitleNormalized + ' ') ||
+            audioTitleNormalized.startsWith(videoTitleNormalized + '-') ||
+            audioTitleNormalized.startsWith(videoTitleNormalized + ' -')
+          );
+        }) || [];
+        
+        // Prioritize tracks that have track-level payment recipients (not album-level)
+        // Track-level recipients are typically 5-6 recipients, album-level are 300+
+        correspondingAudioTrack = matchingTracks.find((t: Track) => {
+          const hasTrackLevelRecipients = t.paymentRecipients && t.paymentRecipients.length > 0 && t.paymentRecipients.length < 50;
+          const hasTrackLevelValue = t.value?.recipients && t.value.recipients.length > 0 && t.value.recipients.length < 50;
+          return hasTrackLevelRecipients || hasTrackLevelValue;
+        });
+        
+        // If no track with track-level recipients, use the first matching track
+        if (!correspondingAudioTrack && matchingTracks.length > 0) {
+          correspondingAudioTrack = matchingTracks[0];
+        }
+      }
+      
+      if (correspondingAudioTrack) {
+        // Use the audio track's payment recipients (preferred)
+        if (correspondingAudioTrack.paymentRecipients && correspondingAudioTrack.paymentRecipients.length > 0) {
+          return correspondingAudioTrack.paymentRecipients;
+        }
+        
+        // Check audio track's value.recipients as fallback
+        const audioTrackValueRecipients = correspondingAudioTrack.value?.recipients;
+        if (audioTrackValueRecipients && audioTrackValueRecipients.length > 0) {
+          return audioTrackValueRecipients
+            .filter((r: any) => r.type === 'node')
+            .map((r: any) => ({
+              address: r.address,
+              split: r.split,
+              name: r.name,
+              fee: r.fee
+            }));
+        }
+      }
+    }
+    
+    // For non-video tracks, use pre-processed track payment recipients from server-side parsing (preferred)
     if (track.paymentRecipients && track.paymentRecipients.length > 0) {
       return track.paymentRecipients;
     }
     
-    // Check for track-level Lightning Network value splits
+    // Fallback: Check for track-level value.recipients (for backwards compatibility)
+    const trackValueRecipients = track.value?.recipients;
     if (trackValueRecipients && trackValueRecipients.length > 0) {
-      console.log('✅ Found track-level Lightning Network value recipients:', trackValueRecipients);
-      return trackValueRecipients;
+      // Convert RSSValue recipients format to paymentRecipients format
+      return trackValueRecipients
+        .filter((r: any) => r.type === 'node')
+        .map((r: any) => ({
+          address: r.address,
+          split: r.split,
+          name: r.name,
+          fee: r.fee
+        }));
     }
     
-    // Fallback to album-level payment recipients if track doesn't have its own
+    // Fallback to album-level payment recipients only if not a video track or no corresponding audio track found
     return paymentRecipients;
   };
   
@@ -233,6 +355,28 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
       amount: 50
     };
   };
+  
+  // Check if album has video tracks (check both album and initialAlbum)
+  const hasVideoTracks = useMemo(() => {
+    const albumHasVideos = album?.tracks?.some(track => track.videoUrl) || false;
+    const initialHasVideos = initialAlbum?.tracks?.some(track => track.videoUrl) || false;
+    const hasVideos = albumHasVideos || initialHasVideos;
+    
+    return hasVideos;
+  }, [album, initialAlbum]);
+  
+  // Filter tracks based on trackView (use album tracks, fallback to initialAlbum)
+  const filteredTracks = useMemo(() => {
+    const tracksToUse = album?.tracks || initialAlbum?.tracks || [];
+    if (tracksToUse.length === 0) return [];
+    
+    if (trackView === 'video') {
+      return tracksToUse.filter(track => track.videoUrl);
+    } else {
+      // 'audio' - show tracks without videoUrl
+      return tracksToUse.filter(track => !track.videoUrl);
+    }
+  }, [album, initialAlbum, trackView]);
   
   // Background state
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
@@ -263,25 +407,138 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
       setAlbum(initialAlbum);
       setIsLoading(false);
 
-      // Defer all non-critical data loading until after initial render
-      // This prevents blocking the main content display
-      setTimeout(() => {
-        loadSiteAlbums().catch(error => {
-          console.warn('Failed to load site albums:', error);
-        });
-      }, 2000); // Increased delay - load after page is fully visible
+      // Defer all non-critical data loading using requestIdleCallback for better performance
+      // This prevents blocking the main content display and only loads when browser is idle
+      const scheduleIdleTask = (callback: () => void, delay: number = 0) => {
+        if ('requestIdleCallback' in window) {
+          const timeoutId = setTimeout(() => {
+            requestIdleCallback(callback, { timeout: 5000 });
+          }, delay);
+          return () => clearTimeout(timeoutId);
+        } else {
+          // Fallback for browsers without requestIdleCallback
+          const timeoutId = setTimeout(callback, delay + 1000);
+          return () => clearTimeout(timeoutId);
+        }
+      };
 
-      setTimeout(() => {
-        loadRelatedAlbums().catch(error => {
-          console.warn('Failed to load related albums:', error);
+      // Load non-critical data only when browser is idle
+      const cleanup1 = scheduleIdleTask(() => {
+        loadSiteAlbums().catch(() => {
+          // Silently handle errors
         });
-      }, 2500); // Stagger to prevent simultaneous requests
+      }, 1000);
 
-      setTimeout(() => {
+      const cleanup2 = scheduleIdleTask(() => {
+        loadRelatedAlbums().catch(() => {
+          // Silently handle errors
+        });
+      }, 1500);
+
+      const cleanup3 = scheduleIdleTask(() => {
         loadPodrollAlbums();
-      }, 3000); // Load podroll last as it's slowest
+      }, 2000);
+
+      return () => {
+        cleanup1();
+        cleanup2();
+        cleanup3();
+      };
     }
   }, [albumTitle, initialAlbum]);
+
+  // Load album with refresh parameter to get video URLs
+  const loadAlbumWithRefresh = useCallback(async () => {
+    try {
+      // Use the actual URL parameter (albumId) if available, otherwise derive from title
+      // Fallback to deriving from title if params not available (e.g., during SSR)
+      const slugFromId = albumId && albumId.trim() ? albumId : null;
+      const albumSlug = slugFromId || albumTitle
+        .toLowerCase()
+        .replace(/[^\w\s-]/g, '')       // Remove punctuation except spaces and hyphens
+        .replace(/\s+/g, '-')           // Replace spaces with dashes
+        .replace(/-+/g, '-')            // Replace multiple consecutive dashes with single dash
+        .replace(/^-+|-+$/g, '');       // Remove leading/trailing dashes
+      
+      // Force refresh to get video URLs
+      const apiUrl = `/api/album/${encodeURIComponent(albumSlug)}?refresh=1`;
+      
+      const response = await fetch(apiUrl);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to load album: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.album) {
+        setAlbum(data.album);
+        setError(null);
+        
+        // Always set background image for vibrant album backgrounds
+        if (data.album.coverArt && !preloadAttemptedRef.current) {
+          preloadAttemptedRef.current = true;
+          preloadBackgroundImage(data.album);
+        }
+      } else {
+        console.error('❌ No album data in response:', data);
+        setError('Album not found');
+      }
+    } catch (err) {
+      console.error('❌ Error loading album with refresh:', err);
+      // Don't set error state - keep showing the cached album
+    }
+  }, [albumTitle, albumId]);
+
+  // Separate useEffect for loading videos when missing from static cache
+  useEffect(() => {
+    if (!initialAlbum) return;
+    
+    // Check if album should have video URLs but doesn't (static cache might be missing them)
+    const albumsWithVideo = [
+      'the-satellite-spotlight',
+      'satellite-spotlight',
+      'satellite-spotlight-sprouting-symphonies-citybeach-tracks'
+    ];
+    
+    // Use albumId from URL params if available, otherwise derive from title
+    const albumSlugFromId = albumId || '';
+    const albumSlugFromTitle = albumTitle
+      .toLowerCase()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    
+    // Check both the URL slug and the title-derived slug
+    const shouldHaveVideo = albumsWithVideo.some(videoAlbum => 
+      albumSlugFromId.includes(videoAlbum) || 
+      albumSlugFromTitle.includes(videoAlbum) || 
+      albumTitle.toLowerCase().includes('satellite spotlight')
+    );
+    
+    // Check if any tracks have video URLs
+    const hasVideoUrls = initialAlbum.tracks?.some((track: Track) => track.videoUrl);
+    
+    // If album should have videos but doesn't, load them immediately
+    if (shouldHaveVideo && !hasVideoUrls) {
+      // Load videos immediately using requestIdleCallback if available, otherwise use minimal delay
+      // This ensures videos start loading as soon as possible without blocking initial render
+      const loadVideos = () => {
+        loadAlbumWithRefresh();
+      };
+      
+      // Use requestIdleCallback for better performance, fallback to minimal delay
+      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+        const idleCallbackId = requestIdleCallback(loadVideos, { timeout: 100 });
+        return () => cancelIdleCallback(idleCallbackId);
+      } else {
+        // Minimal delay to let initial render complete, but start loading ASAP
+        const timeoutId = setTimeout(loadVideos, 50);
+        return () => clearTimeout(timeoutId);
+      }
+    }
+  }, [initialAlbum, albumTitle, albumId, loadAlbumWithRefresh]);
 
   // Separate useEffect for background image preloading to avoid re-running API calls
   useEffect(() => {
@@ -290,6 +547,19 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
       preloadBackgroundImage(initialAlbum);
     }
   }, [initialAlbum]);
+
+  // Scroll to video player when it opens
+  useEffect(() => {
+    if (playingVideoTrack && playingVideoTrack.videoUrl && videoPlayerRef.current) {
+      // Small delay to ensure the video player is rendered
+      setTimeout(() => {
+        videoPlayerRef.current?.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        });
+      }, 100);
+    }
+  }, [playingVideoTrack]);
 
   // Load saved sender name from localStorage
   useEffect(() => {
@@ -341,8 +611,18 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
         .replace(/-+/g, '-')            // Replace multiple consecutive dashes with single dash
         .replace(/^-+|-+$/g, '');       // Remove leading/trailing dashes
       
+      // Only refresh if explicitly requested via URL parameter
+      // Don't force refresh for video albums - let the cache work
+      const urlParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+      const hasRefreshParam = urlParams.get('refresh') === '1' || urlParams.get('nocache') === '1';
+      
       // Use the new individual album endpoint that does live RSS parsing with GUID data
-      const response = await fetch(`/api/album/${encodeURIComponent(albumSlug)}`);
+      // Only add refresh parameter if explicitly requested
+      const apiUrl = hasRefreshParam
+        ? `/api/album/${encodeURIComponent(albumSlug)}?refresh=1`
+        : `/api/album/${encodeURIComponent(albumSlug)}`;
+      
+      const response = await fetch(apiUrl);
       
       if (!response.ok) {
         throw new Error('Failed to load album');
@@ -351,13 +631,6 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
       const data = await response.json();
       
       if (data.album) {
-        console.log(`✅ Album loaded with GUID data:`, {
-          title: data.album.title,
-          feedGuid: data.album.feedGuid,
-          publisherGuid: data.album.publisherGuid,
-          trackGuids: data.album.tracks?.map((t: any) => ({ title: t.title, guid: t.guid })) || []
-        });
-        
         setAlbum(data.album);
         setError(null);
         
@@ -367,22 +640,34 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
           preloadBackgroundImage(data.album);
         }
 
-        // Defer all non-critical data loading to prevent blocking
-        setTimeout(() => {
-          loadSiteAlbums().catch(error => {
-            console.warn('Failed to load site albums:', error);
-          });
-        }, 2000);
+        // Defer all non-critical data loading using requestIdleCallback
+        const scheduleIdleTask = (callback: () => void, delay: number = 0) => {
+          if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+            const timeoutId = setTimeout(() => {
+              requestIdleCallback(callback, { timeout: 5000 });
+            }, delay);
+            return () => clearTimeout(timeoutId);
+          } else {
+            const timeoutId = setTimeout(callback, delay + 1000);
+            return () => clearTimeout(timeoutId);
+          }
+        };
 
-        setTimeout(() => {
-          loadRelatedAlbums().catch(error => {
-            console.warn('Failed to load related albums:', error);
+        scheduleIdleTask(() => {
+          loadSiteAlbums().catch(() => {
+            // Silently handle errors
           });
-        }, 2500);
+        }, 1000);
 
-        setTimeout(() => {
+        scheduleIdleTask(() => {
+          loadRelatedAlbums().catch(() => {
+            // Silently handle errors
+          });
+        }, 1500);
+
+        scheduleIdleTask(() => {
           loadPodrollAlbums();
-        }, 3000);
+        }, 2000);
       } else {
         setError('Album not found');
       }
@@ -409,11 +694,9 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
         const albums = data.albums || [];
         setSiteAlbums(albums);
         return albums;
-      } else {
-        console.warn(`Failed to load site albums: ${response.status} ${response.statusText}`);
       }
     } catch (error) {
-      console.warn('Error loading site albums:', error);
+      // Silently handle errors
     } finally {
       loadingAlbumsRef.current = false;
     }
@@ -442,11 +725,9 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
         }).slice(0, 6);
         
         setRelatedAlbums(relatedAlbums);
-      } else {
-        console.warn(`Failed to load related albums: ${response.status} ${response.statusText}`);
       }
     } catch (error) {
-      console.warn('Error loading related albums:', error);
+      // Silently handle errors
     } finally {
       loadingRelatedRef.current = false;
     }
@@ -459,14 +740,12 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
       // Use site albums if already loaded, otherwise wait for them to load
       let albums: Album[] = siteAlbums;
       if (albums.length === 0) {
-        console.log('⏳ Waiting for site albums to load before processing podroll...');
         // Wait a bit for the site albums to load from the parallel call
         await new Promise(resolve => setTimeout(resolve, 500));
         albums = siteAlbums;
         
         // If still empty after waiting, something went wrong - skip podroll processing
         if (albums.length === 0) {
-          console.warn('❌ Site albums not loaded, skipping podroll processing');
           return;
         }
       }
@@ -512,11 +791,7 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
               }
             }
           } catch (error) {
-            if (error instanceof Error && error.name === 'AbortError') {
-              console.warn(`Timeout fetching podroll album for ${podrollItem.url}`);
-            } else {
-              console.error(`Error fetching podroll album for ${podrollItem.url}:`, error);
-            }
+            // Silently handle errors
           }
           
           // Fallback to basic podroll data
@@ -544,6 +819,13 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
   const handlePlayAlbum = () => {
     if (!album) return;
     
+    // Stop video if currently playing
+    if (playingVideoTrack || isVideoPlaying) {
+      if (pauseVideo) pauseVideo();
+      setPlayingVideoTrack(null);
+    }
+    
+    // Play audio tracks (hero art should just start the album)
     const audioTracks = album.tracks.map(track => ({
       ...track,
       artist: album.artist,
@@ -551,18 +833,17 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
       image: track.image || album.coverArt
     }));
     
-    // Debug: Check if tracks have value data
-    console.log('🔍 Audio tracks being passed to globalPlayAlbum:', audioTracks.map(t => ({
-      title: t.title,
-      hasValue: !!t.value,
-      valueType: t.value?.type
-    })));
-    
     globalPlayAlbum(audioTracks, 0, album.title);
   };
 
   const handlePlayTrack = (track: Track, index: number) => {
     if (!album) return;
+    
+    // Stop video if currently playing
+    if (playingVideoTrack || isVideoPlaying) {
+      if (pauseVideo) pauseVideo();
+      setPlayingVideoTrack(null);
+    }
     
     const audioTracks = album.tracks.map(t => ({
       ...t,
@@ -571,14 +852,41 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
       image: t.image || album.coverArt
     }));
     
-    // Debug: Check if tracks have value data
-    console.log('🔍 Audio tracks being passed to globalPlayAlbum (single track):', audioTracks.map(t => ({
-      title: t.title,
-      hasValue: !!t.value,
-      valueType: t.value?.type
-    })));
-    
     globalPlayAlbum(audioTracks, index, album.title);
+  };
+
+  const handlePlayVideo = (track: Track) => {
+    if (!track.videoUrl) {
+      return;
+    }
+    
+    // Pause audio if playing
+    if (globalIsPlaying) {
+      globalPause();
+    }
+    
+    // Play video with chapter support (startTime/endTime)
+    globalPlayVideo({
+      title: track.title,
+      duration: track.duration,
+      videoUrl: track.videoUrl,
+      trackNumber: track.trackNumber,
+      image: track.image,
+      artist: album?.artist,
+      album: album?.title,
+      startTime: track.startTime, // Chapter start time in seconds
+      endTime: track.endTime, // Chapter end time in seconds
+      value: track.value,
+      guid: track.guid,
+      podcastGuid: track.podcastGuid,
+      feedGuid: track.feedGuid,
+      feedUrl: track.feedUrl,
+      publisherGuid: track.publisherGuid,
+      publisherUrl: track.publisherUrl,
+      imageUrl: track.imageUrl
+    }, album?.title);
+    
+    setPlayingVideoTrack(track);
   };
 
 
@@ -810,12 +1118,13 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
                   href="/"
                   className="p-2 hover:bg-white/10 rounded-lg transition-colors group"
                   title="Back to albums"
+                  suppressHydrationWarning
                 >
                   <ArrowLeft className="w-5 h-5 group-hover:scale-110 transition-transform" />
                 </Link>
                 
                 <div className="hidden sm:flex items-center gap-2 text-sm">
-                  <Link href="/" className="text-gray-400 hover:text-white transition-colors">
+                  <Link href="/" className="text-gray-400 hover:text-white transition-colors" suppressHydrationWarning>
                     Into the Doerfel-Verse
                   </Link>
                   <span className="text-gray-600">/</span>
@@ -965,15 +1274,49 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
         {/* Track List */}
         <div className="container mx-auto px-4 pb-8">
           <div className="max-w-4xl mx-auto">
-            <div className="bg-black/30 backdrop-blur-sm rounded-xl border border-white/20 overflow-hidden">
+            <div className="bg-black/70 backdrop-blur-sm rounded-xl border border-white/20 overflow-hidden">
               <div className="p-6 border-b border-white/10">
-                <h2 className="text-2xl font-bold text-shadow">Tracks</h2>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setTrackView('audio');
+                      // Stop video player when switching to audio view
+                      if (playingVideoTrack || isVideoPlaying) {
+                        pauseVideo();
+                        setPlayingVideoTrack(null);
+                      }
+                    }}
+                    className={`px-4 py-2 rounded-lg text-lg font-bold transition-all ${
+                      trackView === 'audio'
+                        ? 'bg-white/20 text-white shadow-sm'
+                        : 'text-gray-400 hover:text-white hover:bg-white/10'
+                    }`}
+                  >
+                    Tracks
+                  </button>
+                  {hasVideoTracks && (
+                    <button
+                      onClick={() => setTrackView('video')}
+                      className={`px-4 py-2 rounded-lg text-lg font-bold transition-all ${
+                        trackView === 'video'
+                          ? 'bg-white/20 text-white shadow-sm'
+                          : 'text-gray-400 hover:text-white hover:bg-white/10'
+                      }`}
+                    >
+                      Video
+                    </button>
+                  )}
+                </div>
               </div>
               
               <div className="divide-y divide-white/5">
-                {album.tracks.map((track, index) => {
+                {filteredTracks.map((track, index) => {
                   const isCurrentTrack = currentTrack?.url === track.url;
                   const isCurrentlyPlaying = isTrackPlaying(track);
+                  // Find the original index in album.tracks (or initialAlbum.tracks) for handlePlayTrack
+                  const tracksToSearch = album?.tracks || initialAlbum?.tracks || [];
+                  const originalIndex = tracksToSearch.findIndex(t => t.trackNumber === track.trackNumber);
+                  const finalIndex = originalIndex !== -1 ? originalIndex : index;
 
                   return (
                     <div
@@ -981,7 +1324,7 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
                       className={`flex items-center gap-4 p-4 hover:bg-white/5 transition-colors cursor-pointer group ${
                         isCurrentTrack ? 'bg-white/10' : ''
                       }`}
-                      onClick={() => handlePlayTrack(track, index)}
+                      onClick={() => handlePlayTrack(track, finalIndex)}
                     >
                       {/* Track Number / Play Icon */}
                       <div className="w-8 flex items-center justify-center">
@@ -999,7 +1342,18 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
                       </div>
 
                       {/* Track Artwork */}
-                      <div className="w-12 h-12 relative flex-shrink-0 rounded overflow-hidden">
+                      <div 
+                        className="w-12 h-12 relative flex-shrink-0 rounded overflow-hidden cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation(); // Prevent track row click
+                          // If track has video, play video; otherwise play audio
+                          if (track.videoUrl) {
+                            handlePlayVideo(track);
+                          } else {
+                            handlePlayTrack(track, finalIndex);
+                          }
+                        }}
+                      >
                         <Image
                           src={track.image || album.coverArt}
                           alt={track.title}
@@ -1026,6 +1380,28 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
                       <div className="text-sm text-gray-200 font-mono text-shadow-sm">
                         {formatDuration(track.duration)}
                       </div>
+
+                      {/* Video Play Button */}
+                      {track.videoUrl && (
+                        <div 
+                          className="flex items-center justify-center ml-2"
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevent track play when clicking video
+                          }}
+                        >
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handlePlayVideo(track);
+                            }}
+                            className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 hover:from-purple-400 hover:to-pink-500 hover:shadow-lg transform hover:scale-105 active:scale-95"
+                            title="Play video"
+                          >
+                            <Video className="w-4 h-4" />
+                            <span className="hidden sm:inline">Video</span>
+                          </button>
+                        </div>
+                      )}
 
                       {/* Track Lightning Boost Button */}
                       {isLightningEnabled && (
@@ -1056,7 +1432,115 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
           </div>
         </div>
 
-
+        {/* Video Player Section */}
+        {playingVideoTrack && playingVideoTrack.videoUrl && (
+          <div ref={videoPlayerRef} className="container mx-auto px-4 pb-8">
+            <div className="max-w-4xl mx-auto">
+              <div className="bg-black/70 backdrop-blur-sm rounded-xl border border-white/20 overflow-hidden">
+                <div className="p-6 border-b border-white/10 flex items-center justify-between">
+                  <div>
+                    <h2 className="text-2xl font-bold text-shadow">Video Player</h2>
+                    <p className="text-sm text-gray-300 mt-1">{playingVideoTrack.title}</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {/* Video Boost Button */}
+                    {isLightningEnabled && (
+                      <button
+                        onClick={() => {
+                          setSelectedTrack(playingVideoTrack);
+                          setShowTrackBoostModal(true);
+                        }}
+                        className="inline-flex items-center gap-2 bg-gradient-to-r from-yellow-500 to-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:from-yellow-400 hover:to-orange-500 hover:shadow-lg transform hover:scale-105 active:scale-95"
+                        title="Boost this video"
+                      >
+                        <Zap className="w-4 h-4" />
+                        <span className="hidden sm:inline">Boost</span>
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        pauseVideo();
+                        setPlayingVideoTrack(null);
+                      }}
+                      className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                      title="Close video player"
+                    >
+                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                <div className="p-6">
+                  <VideoPlayer
+                    videoUrl={playingVideoTrack.videoUrl}
+                    startTime={playingVideoTrack.startTime} // Chapter start time in seconds
+                    endTime={playingVideoTrack.endTime} // Chapter end time in seconds
+                    seekTime={videoContext.seekRequest ?? undefined} // Sync seek request from context (chapter-relative)
+                    onEnded={() => {
+                      setPlayingVideoTrack(null);
+                    }}
+                    onTimeUpdate={(time) => {
+                      // Calculate chapter-relative time if playing a chapter segment
+                      // This ensures the global now playing bar shows the same time as the main player
+                      if (updateCurrentTime) {
+                        if (playingVideoTrack.startTime !== undefined && playingVideoTrack.endTime !== undefined) {
+                          const chapterRelativeTime = Math.max(0, time - (playingVideoTrack.startTime || 0));
+                          updateCurrentTime(chapterRelativeTime);
+                        } else {
+                          // For full videos, use absolute time
+                          updateCurrentTime(time);
+                        }
+                      }
+                    }}
+                    onPlay={() => {
+                      // Update VideoContext play state for now playing bar sync
+                      resumeVideo();
+                    }}
+                    onPause={() => {
+                      // Update VideoContext pause state for now playing bar sync
+                      pauseVideo();
+                    }}
+                    onDurationChange={(duration) => {
+                      // Calculate chapter duration if playing a chapter segment
+                      // This ensures the global now playing bar shows the same duration as the main player
+                      if (updateDuration) {
+                        if (playingVideoTrack.startTime !== undefined && playingVideoTrack.endTime !== undefined) {
+                          const chapterDuration = (playingVideoTrack.endTime || 0) - (playingVideoTrack.startTime || 0);
+                          updateDuration(chapterDuration);
+                        } else {
+                          // For full videos, use full video duration
+                          updateDuration(duration);
+                        }
+                      }
+                      
+                      // Update track duration if it's missing or 0:00
+                      if (playingVideoTrack && (!playingVideoTrack.duration || playingVideoTrack.duration === '0:00')) {
+                        const mins = Math.floor(duration / 60);
+                        const secs = Math.floor(duration % 60);
+                        const formattedDuration = `${mins}:${secs.toString().padStart(2, '0')}`;
+                        
+                        // Update the track in the album's tracks array
+                        if (album) {
+                          const updatedTracks = album.tracks.map(t => 
+                            t.videoUrl === playingVideoTrack.videoUrl && t.title === playingVideoTrack.title
+                              ? { ...t, duration: formattedDuration }
+                              : t
+                          );
+                          setAlbum({ ...album, tracks: updatedTracks });
+                        }
+                        
+                        // Update the playing video track
+                        setPlayingVideoTrack({ ...playingVideoTrack, duration: formattedDuration });
+                      }
+                    }}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Album Boost Modal */}
         {isLightningEnabled && showAlbumBoostModal && album && (
@@ -1144,7 +1628,26 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
                   onSuccess={handleBoostSuccess}
                   onError={handleBoostError}
                   className="w-full !mt-6"
-                  recipients={paymentRecipients || undefined}
+                  recipients={(() => {
+                    // For album boosts, use a track's recipients instead of album-level recipients
+                    // This ensures we use track-level value blocks (e.g., 6 recipients) instead of channel-level (e.g., 317 recipients)
+                    if (album.tracks && album.tracks.length > 0) {
+                      // Try to find CityBeach track first (for The Satellite Spotlight album)
+                      const cityBeachTrack = album.tracks.find((t: Track) => 
+                        t.title.trim().toLowerCase().includes('citybeach') && !t.videoUrl
+                      );
+                      
+                      // Use CityBeach track if found, otherwise use first track
+                      const trackToUse = cityBeachTrack || album.tracks[0];
+                      const trackRecipients = getTrackPaymentRecipients(trackToUse);
+                      
+                      if (trackRecipients && trackRecipients.length > 0) {
+                        return trackRecipients;
+                      }
+                    }
+                    // Fallback to album-level recipients if no track recipients found
+                    return paymentRecipients || undefined;
+                  })()}
                   recipient={getFallbackRecipient().address}
                   enableBoosts={true}
                   boostMetadata={{

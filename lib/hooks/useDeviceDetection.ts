@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { logger } from '../logger';
+import { getConnectionQuality, isSlowConnection, type ConnectionQuality } from '../video-utils';
 
 interface DeviceInfo {
   isMobile: boolean;
@@ -11,6 +12,8 @@ interface DeviceInfo {
   platform: string;
   vendor: string;
   connectionType?: string;
+  connectionQuality?: ConnectionQuality;
+  isSlowConnection?: boolean;
 }
 
 interface UseDeviceDetectionOptions {
@@ -53,6 +56,8 @@ export function useDeviceDetection(options: UseDeviceDetectionOptions = {}) {
       const platform = navigator.platform;
       const vendor = navigator.vendor;
       const connection = (navigator as any).connection?.effectiveType || 'unknown';
+      const connectionQuality = getConnectionQuality();
+      const isSlow = isSlowConnection(connectionQuality);
 
       const isMobile = width <= mobileBreakpoint;
       const isTablet = width > mobileBreakpoint && width <= tabletBreakpoint;
@@ -67,7 +72,9 @@ export function useDeviceDetection(options: UseDeviceDetectionOptions = {}) {
         userAgent: ua,
         platform,
         vendor,
-        connectionType: connection
+        connectionType: connection,
+        connectionQuality,
+        isSlowConnection: isSlow
       };
 
       setDeviceInfo(newDeviceInfo);
@@ -79,7 +86,9 @@ export function useDeviceDetection(options: UseDeviceDetectionOptions = {}) {
           userAgent: ua.substring(0, 100),
           platform,
           vendor,
-          connection
+          connection,
+          connectionQuality,
+          isSlowConnection: isSlow
         });
       }
     };
@@ -87,7 +96,18 @@ export function useDeviceDetection(options: UseDeviceDetectionOptions = {}) {
     checkDevice();
     window.addEventListener('resize', checkDevice);
     
-    return () => window.removeEventListener('resize', checkDevice);
+    // Listen for connection changes
+    const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
+    if (connection) {
+      connection.addEventListener('change', checkDevice);
+    }
+    
+    return () => {
+      window.removeEventListener('resize', checkDevice);
+      if (connection) {
+        connection.removeEventListener('change', checkDevice);
+      }
+    };
   }, [mobileBreakpoint, tabletBreakpoint, logDeviceInfo, log]);
 
   return {

@@ -81,6 +81,25 @@ export const isMobile = (): boolean => {
 export const getMobileOptimizations = () => {
   const mobile = isMobile();
   
+  // Detect connection quality for video optimizations
+  let connectionQuality: 'slow-2g' | '2g' | '3g' | '4g' | 'wifi' | 'unknown' = 'unknown';
+  if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
+    const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
+    if (connection) {
+      const effectiveType = connection.effectiveType || 'unknown';
+      const type = connection.type || 'unknown';
+      
+      if (type === 'wifi' || effectiveType === '4g') {
+        const downlink = connection.downlink || 0;
+        connectionQuality = downlink > 10 ? 'wifi' : '4g';
+      } else {
+        connectionQuality = effectiveType as any;
+      }
+    }
+  }
+  
+  const isSlowConnection = connectionQuality === 'slow-2g' || connectionQuality === '2g' || connectionQuality === '3g';
+  
   return {
     // Reduce image quality on mobile for faster loading
     imageQuality: mobile ? 75 : 90,
@@ -98,7 +117,30 @@ export const getMobileOptimizations = () => {
     cssContainment: mobile ? 'layout style paint' : 'none',
     
     // Enable hardware acceleration on mobile
-    willChange: mobile ? 'transform, background' : 'auto'
+    willChange: mobile ? 'transform, background' : 'auto',
+    
+    // Video-specific optimizations
+    video: {
+      // Reduced buffer sizes on mobile
+      backBufferLength: mobile ? (isSlowConnection ? 30 : 60) : 90,
+      maxBufferLength: mobile ? (isSlowConnection ? 10 : 20) : 30,
+      maxMaxBufferLength: mobile ? (isSlowConnection ? 60 : 120) : 600,
+      
+      // Enable level capping on mobile to reduce bandwidth
+      capLevelToPlayerSize: mobile,
+      
+      // Shorter timeouts on slow connections
+      levelLoadingTimeOut: mobile ? (isSlowConnection ? 5000 : 10000) : 10000,
+      manifestLoadingTimeOut: mobile ? (isSlowConnection ? 5000 : 10000) : 10000,
+      
+      // Lower bandwidth estimates for slow connections
+      abrEwmaDefaultEstimate: mobile 
+        ? (isSlowConnection ? 500000 : 2000000) // 500 kbps slow, 2 Mbps fast
+        : (isSlowConnection ? 1000000 : 5000000), // 1 Mbps slow, 5 Mbps fast
+      
+      connectionQuality,
+      isSlowConnection
+    }
   };
 };
 

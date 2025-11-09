@@ -5,6 +5,7 @@ export interface RSSTrack {
   title: string;
   duration: string;
   url?: string;
+  videoUrl?: string; // Video enclosure URL (HLS .m3u8 files)
   trackNumber?: number;
   subtitle?: string;
   summary?: string;
@@ -128,8 +129,8 @@ export class RSSParser {
           const filteredTracks = cached.data.tracks.filter((track: RSSTrack) => {
             const titleLower = track.title.toLowerCase();
             const filterLower = trackFilter.toLowerCase();
-            // Include tracks matching the filter, but exclude [Raw Set] videos
-            return titleLower.includes(filterLower) && !titleLower.includes('[raw set]');
+            // Include tracks matching the filter (including [Raw Set] videos)
+            return titleLower.includes(filterLower);
           });
           result = {
             ...cached.data,
@@ -433,6 +434,11 @@ export class RSSParser {
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
         const trackTitle = item.getElementsByTagName('title')[0]?.textContent?.trim() || `Track ${i + 1}`;
+        
+        // Explicitly log "Sprouting Symphonies" item to debug parsing
+        if (trackTitle.toLowerCase().includes('sprouting symphonies')) {
+          console.log(`🎬 Found "Sprouting Symphonies" item at index ${i}, processing...`);
+        }
         // Try multiple duration formats with better parsing
         let duration = '0:00';
         const itunesDuration = item.getElementsByTagName('itunes:duration')[0];
@@ -513,15 +519,35 @@ export class RSSParser {
         }
         // Try multiple ways to get the track URL
         let url: string | undefined = undefined;
+        let videoUrl: string | undefined = undefined;
         
         // Method 1: Try enclosure tag (standard RSS)
         const enclosureElement = item.getElementsByTagName('enclosure')[0];
         if (enclosureElement) {
-          url = enclosureElement.getAttribute('url') || undefined;
+          const enclosureUrl = enclosureElement.getAttribute('url') || undefined;
+          const enclosureType = enclosureElement.getAttribute('type') || '';
+          
+          // Check if this is a video enclosure
+          // HLS videos: application/x-mpegURL, application/vnd.apple.mpegurl
+          // Other videos: video/* types
+          const isVideo = enclosureType.includes('mpegURL') || 
+                         enclosureType.includes('mpegurl') || 
+                         enclosureType.startsWith('video/');
+          
+          if (isVideo && enclosureUrl) {
+            videoUrl = enclosureUrl;
+            verboseLog(`📺 Found video enclosure for "${trackTitle}": ${enclosureUrl} (type: ${enclosureType})`);
+            // Explicitly log video tracks to ensure they're being parsed
+            if (trackTitle.toLowerCase().includes('sprouting')) {
+              console.log(`🎬 Parsing Sprouting Symphonies video track: ${trackTitle}, videoUrl: ${videoUrl}`);
+            }
+          } else if (enclosureUrl) {
+            url = enclosureUrl;
+          }
         }
         
         // Method 2: Try link tag (Wavlake format)
-        if (!url) {
+        if (!url && !videoUrl) {
           const linkElement = item.getElementsByTagName('link')[0];
           if (linkElement) {
             url = linkElement.textContent?.trim() || undefined;
@@ -529,10 +555,22 @@ export class RSSParser {
         }
         
         // Method 3: Try media:content tag
-        if (!url) {
+        if (!url && !videoUrl) {
           const mediaContent = item.getElementsByTagName('media:content')[0];
           if (mediaContent) {
-            url = mediaContent.getAttribute('url') || undefined;
+            const mediaUrl = mediaContent.getAttribute('url') || undefined;
+            const mediaType = mediaContent.getAttribute('type') || '';
+            
+            // Check if this is a video
+            const isVideo = mediaType.includes('mpegURL') || 
+                           mediaType.includes('mpegurl') || 
+                           mediaType.startsWith('video/');
+            
+            if (isVideo && mediaUrl) {
+              videoUrl = mediaUrl;
+            } else if (mediaUrl) {
+              url = mediaUrl;
+            }
           }
         }
         
@@ -677,10 +715,21 @@ export class RSSParser {
           }
         });
         
-        tracks.push({
+        // Always create track, even if it only has videoUrl (no audio URL)
+        // This ensures video-only tracks like "Sprouting Symphonies" are included
+        // Set default duration for CityBeach [Raw Set] if not in feed
+        let finalDuration = duration;
+        if (videoUrl && trackTitle.toLowerCase().includes('citybeach') && trackTitle.toLowerCase().includes('raw set')) {
+          if (!duration || duration === '0:00' || duration.trim() === '') {
+            finalDuration = '51:36'; // Default duration for CityBeach [Raw Set]
+          }
+        }
+        
+        const track = {
           title: trackTitle,
-          duration: duration,
+          duration: finalDuration,
           url: url,
+          videoUrl: videoUrl,
           trackNumber: i + 1,
           subtitle: cleanHtmlContent(trackSubtitle),
           summary: cleanHtmlContent(trackSummary),
@@ -697,7 +746,101 @@ export class RSSParser {
           publisherGuid: itemPublisherGuid,
           publisherUrl: itemPublisherUrl,
           imageUrl: trackImage
-        });
+        };
+        
+        tracks.push(track);
+        
+        // Explicitly log video tracks to ensure they're being created
+        if (videoUrl && trackTitle.toLowerCase().includes('sprouting')) {
+          console.log(`✅ Created Sprouting Symphonies video track: ${trackTitle}, videoUrl: ${videoUrl}, trackNumber: ${track.trackNumber}`);
+        }
+        
+        // Always log video-only tracks (no audio URL) to debug parsing
+        if (videoUrl && !url) {
+          console.log(`📺 Created video-only track: "${trackTitle}" (no audio URL)`);
+        }
+        
+        // Check for podcast:chapters tag and create chapter tracks for video items
+        if (videoUrl) {
+          const chaptersElement1 = item.getElementsByTagName('podcast:chapters')[0];
+          const chaptersElement2 = item.getElementsByTagName('chapters')[0];
+          const chaptersElement = chaptersElement1 || chaptersElement2;
+          
+          if (chaptersElement) {
+            const chaptersUrl = chaptersElement.getAttribute('url');
+            const chaptersType = chaptersElement.getAttribute('type') || 'application/json';
+            
+            if (chaptersUrl && chaptersType === 'application/json') {
+              try {
+                // Fetch chapters JSON (same domain as RSS feed, should be accessible)
+                const chaptersResponse = await fetch(chaptersUrl);
+                
+                if (chaptersResponse.ok) {
+                  const chaptersData = await chaptersResponse.json();
+                  
+                  if (chaptersData.chapters && Array.isArray(chaptersData.chapters)) {
+                    verboseLog(`📖 Found ${chaptersData.chapters.length} chapters for "${trackTitle}"`);
+                    
+                    // Create chapter tracks - only CityBeach
+                    chaptersData.chapters.forEach((chapter: any, chapterIndex: number) => {
+                      // Only create chapter track for CityBeach
+                      const chapterTitle = chapter.title || `Chapter ${chapterIndex + 1}`;
+                      if (!chapterTitle.toLowerCase().includes('citybeach')) {
+                        return; // Skip non-CityBeach chapters
+                      }
+                      
+                      const chapterStartTime = chapter.startTime || 0;
+                      const nextChapter = chaptersData.chapters[chapterIndex + 1];
+                      const chapterEndTime = nextChapter ? nextChapter.startTime : undefined;
+                      
+                      // Skip chapters with very short or zero duration
+                      if (chapterEndTime && chapterEndTime - chapterStartTime < 1) {
+                        return;
+                      }
+                      
+                      // Calculate chapter duration for display
+                      let chapterDuration = '0:00';
+                      if (chapterEndTime) {
+                        const durationSeconds = Math.floor(chapterEndTime - chapterStartTime);
+                        const mins = Math.floor(durationSeconds / 60);
+                        const secs = durationSeconds % 60;
+                        chapterDuration = `${mins}:${secs.toString().padStart(2, '0')}`;
+                      }
+                      
+                      // Create chapter track
+                      const chapterTrack: RSSTrack = {
+                        title: chapterTitle,
+                        duration: chapterDuration,
+                        videoUrl: videoUrl, // Same video URL as parent
+                        startTime: chapterStartTime,
+                        endTime: chapterEndTime,
+                        trackNumber: tracks.length + 1,
+                        image: chapter.img || trackImage || undefined,
+                        value: trackValue, // Inherit value from parent track
+                        paymentRecipients: trackPaymentRecipients, // Inherit payment recipients
+                        guid: itemGuid,
+                        podcastGuid: itemPodcastGuid,
+                        feedGuid: itemFeedGuid || mainFeedGuid,
+                        feedUrl: itemFeedUrl,
+                        publisherGuid: itemPublisherGuid,
+                        publisherUrl: itemPublisherUrl,
+                        imageUrl: chapter.img || trackImage
+                      };
+                      
+                      tracks.push(chapterTrack);
+                      console.log(`✅ Created CityBeach chapter track (item-level): "${chapterTrack.title}" (${chapterStartTime}s - ${chapterEndTime || 'end'}s)`);
+                      verboseLog(`📖 Created chapter track: "${chapterTrack.title}" (${chapterStartTime}s - ${chapterEndTime || 'end'}s)`);
+                    });
+                  }
+                } else {
+                  verboseLog(`⚠️ Failed to fetch chapters JSON: ${chaptersResponse.status}`);
+                }
+              } catch (error) {
+                verboseLog(`⚠️ Error fetching/parsing chapters for "${trackTitle}":`, error);
+              }
+            }
+          }
+        }
         
         // Reduced verbosity - only log missing URLs as warnings in dev
         if (!url) {
@@ -901,15 +1044,192 @@ export class RSSParser {
         }
       }
 
+      // Check for chapters at channel level and match to video items
+      const channelChaptersElement1 = channel.getElementsByTagName('podcast:chapters')[0];
+      const channelChaptersElement2 = channel.getElementsByTagName('chapters')[0];
+      const channelChaptersElement = channelChaptersElement1 || channelChaptersElement2;
+      
+      if (channelChaptersElement) {
+        const chaptersUrl = channelChaptersElement.getAttribute('url');
+        const chaptersType = channelChaptersElement.getAttribute('type') || 'application/json';
+        
+        if (chaptersUrl && chaptersType === 'application/json') {
+          try {
+            // Fetch chapters JSON
+            const chaptersResponse = await fetch(chaptersUrl);
+            
+            if (chaptersResponse.ok) {
+              const chaptersData = await chaptersResponse.json();
+              
+              if (chaptersData.chapters && Array.isArray(chaptersData.chapters)) {
+                verboseLog(`📖 Found ${chaptersData.chapters.length} chapters at channel level`);
+                
+                // Find video items that should have chapters (e.g., "Sprouting Symphonies")
+                const videoTracksWithChapters = tracks.filter(track => 
+                  track.videoUrl && 
+                  (track.title.toLowerCase().includes('sprouting symphonies') ||
+                   track.title.toLowerCase().includes('sprouting'))
+                );
+                
+                console.log(`📖 Found ${videoTracksWithChapters.length} video track(s) for chapters processing`);
+                if (videoTracksWithChapters.length === 0) {
+                  console.log(`⚠️ No video tracks found for chapters. Available video tracks:`, 
+                    tracks.filter(t => t.videoUrl).map(t => t.title));
+                }
+                
+                // Create chapter tracks for each video track that should have chapters
+                videoTracksWithChapters.forEach(videoTrack => {
+                  console.log(`📖 Creating chapters for video track: "${videoTrack.title}"`);
+                  verboseLog(`📖 Creating chapters for video track: "${videoTrack.title}"`);
+                  
+                  chaptersData.chapters.forEach((chapter: any, chapterIndex: number) => {
+                    // Only create chapter track for CityBeach
+                    const chapterTitle = chapter.title || `Chapter ${chapterIndex + 1}`;
+                    if (!chapterTitle.toLowerCase().includes('citybeach')) {
+                      return; // Skip non-CityBeach chapters
+                    }
+                    
+                    const chapterStartTime = chapter.startTime || 0;
+                    const nextChapter = chaptersData.chapters[chapterIndex + 1];
+                    const chapterEndTime = nextChapter ? nextChapter.startTime : undefined;
+                    
+                    // Skip chapters with very short or zero duration
+                    if (chapterEndTime && chapterEndTime - chapterStartTime < 1) {
+                      return;
+                    }
+                    
+                    // Calculate chapter duration for display
+                    let chapterDuration = '0:00';
+                    if (chapterEndTime) {
+                      const durationSeconds = Math.floor(chapterEndTime - chapterStartTime);
+                      const mins = Math.floor(durationSeconds / 60);
+                      const secs = durationSeconds % 60;
+                      chapterDuration = `${mins}:${secs.toString().padStart(2, '0')}`;
+                    }
+                    
+                    // Create chapter track
+                    const chapterTrack: RSSTrack = {
+                      title: chapterTitle,
+                      duration: chapterDuration,
+                      videoUrl: videoTrack.videoUrl, // Same video URL as parent
+                      startTime: chapterStartTime,
+                      endTime: chapterEndTime,
+                      trackNumber: tracks.length + 1,
+                      image: chapter.img || videoTrack.image || undefined,
+                      value: videoTrack.value, // Inherit value from parent track
+                      paymentRecipients: videoTrack.paymentRecipients, // Inherit payment recipients
+                      guid: videoTrack.guid,
+                      podcastGuid: videoTrack.podcastGuid,
+                      feedGuid: videoTrack.feedGuid,
+                      feedUrl: videoTrack.feedUrl,
+                      publisherGuid: videoTrack.publisherGuid,
+                      publisherUrl: videoTrack.publisherUrl,
+                      imageUrl: chapter.img || videoTrack.imageUrl
+                    };
+                    
+                    tracks.push(chapterTrack);
+                    console.log(`✅ Created CityBeach chapter track: "${chapterTrack.title}" (${chapterStartTime}s - ${chapterEndTime || 'end'}s)`);
+                    verboseLog(`📖 Created chapter track: "${chapterTrack.title}" (${chapterStartTime}s - ${chapterEndTime || 'end'}s)`);
+                  });
+                });
+              }
+            } else {
+              verboseLog(`⚠️ Failed to fetch chapters JSON: ${chaptersResponse.status}`);
+            }
+          } catch (error) {
+            verboseLog(`⚠️ Error fetching/parsing chapters from channel level:`, error);
+          }
+        }
+      }
+      
       // Apply track filter if specified
-      const filteredTracks = trackFilter
+      let filteredTracks = trackFilter
         ? tracks.filter((track: RSSTrack) => {
             const titleLower = track.title.toLowerCase();
             const filterLower = trackFilter.toLowerCase();
-            // Include tracks matching the filter, but exclude [Raw Set] videos
-            return titleLower.includes(filterLower) && !titleLower.includes('[raw set]');
+            // Include tracks matching the filter (including [Raw Set] videos)
+            return titleLower.includes(filterLower);
           })
         : tracks;
+      
+      // Filter out video tracks except CityBeach chapter track and CityBeach [Raw Set]
+      // Keep:
+      // - CityBeach chapter track (video with startTime/endTime)
+      // - CityBeach [Raw Set] video track
+      // - All CityBeach audio tracks (like "CityBeach - 'This Feels So Emotional'")
+      // Remove:
+      // - "Sprouting Symphonies" main video
+      // - All other "[Raw Set]" video tracks (except CityBeach [Raw Set])
+      // - All non-CityBeach audio tracks
+      filteredTracks = filteredTracks.filter((track: RSSTrack) => {
+        const titleLower = track.title.toLowerCase();
+        
+        // Keep only CityBeach chapter track (has startTime/endTime)
+        if (track.videoUrl && track.startTime !== undefined && track.endTime !== undefined) {
+          if (titleLower.includes('citybeach')) {
+            return true; // Keep CityBeach chapter track
+          }
+        }
+        
+        // Keep CityBeach [Raw Set] video track
+        if (track.videoUrl && track.startTime === undefined && titleLower.includes('citybeach') && titleLower.includes('raw set')) {
+          return true; // Keep CityBeach [Raw Set] video track
+        }
+        
+        // Keep all CityBeach audio tracks (non-video tracks with "CityBeach" in title)
+        if (!track.videoUrl) {
+          if (titleLower.includes('citybeach')) {
+            return true; // Keep CityBeach audio tracks
+          }
+          // Remove all non-CityBeach audio tracks
+          return false;
+        }
+        
+        // Explicitly remove "Sprouting Symphonies" main video
+        if (titleLower.includes('sprouting symphonies') && track.startTime === undefined) {
+          return false; // Remove main "Sprouting Symphonies" video
+        }
+        
+        // Remove all other video tracks (main video and other RAW sets)
+        return false;
+      });
+      
+      // Deduplicate CityBeach chapter tracks (remove duplicates with same startTime/endTime)
+      const seenCityBeach = new Set<string>();
+      filteredTracks = filteredTracks.filter((track: RSSTrack) => {
+        if (track.videoUrl && track.startTime !== undefined && track.endTime !== undefined) {
+          const titleLower = track.title.toLowerCase();
+          if (titleLower.includes('citybeach')) {
+            const key = `${track.startTime}-${track.endTime}`;
+            if (seenCityBeach.has(key)) {
+              return false; // Remove duplicate
+            }
+            seenCityBeach.add(key);
+          }
+        }
+        return true;
+      });
+      
+      // Move CityBeach video tracks to the bottom of the list
+      // Order: CityBeach chapter track first, then CityBeach [Raw Set]
+      const cityBeachChapterTrack: RSSTrack[] = [];
+      const cityBeachRawSetTrack: RSSTrack[] = [];
+      const otherTracks: RSSTrack[] = [];
+      
+      filteredTracks.forEach((track: RSSTrack) => {
+        const titleLower = track.title.toLowerCase();
+        // Check if it's the CityBeach video chapter track (has videoUrl, startTime, and endTime)
+        if (track.videoUrl && track.startTime !== undefined && track.endTime !== undefined && titleLower.includes('citybeach')) {
+          cityBeachChapterTrack.push(track);
+        } else if (track.videoUrl && track.startTime === undefined && titleLower.includes('citybeach') && titleLower.includes('raw set')) {
+          cityBeachRawSetTrack.push(track);
+        } else {
+          otherTracks.push(track);
+        }
+      });
+      
+      // Reorder: audio tracks first, then CityBeach chapter track, then CityBeach [Raw Set] at the bottom
+      filteredTracks = [...otherTracks, ...cityBeachChapterTrack, ...cityBeachRawSetTrack];
 
       const album = {
         title,
@@ -948,6 +1268,8 @@ export class RSSParser {
       });
 
       // Cache the result (only on server-side)
+      // Note: The cached album includes paymentRecipients for both album and tracks,
+      // which are pre-processed during RSS parsing and stored in the cache for production use
       if (isServer) {
         RSSCache.set(feedUrl, album, response.headers.get('etag') || undefined);
       }

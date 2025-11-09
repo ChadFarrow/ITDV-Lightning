@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, memo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Play, Pause, Music, Zap } from 'lucide-react';
+import { Play, Pause, Music, Zap, Video } from 'lucide-react';
 import type { RSSValue, RSSValueRecipient } from '@/lib/rss-parser';
 import { useLightning } from '@/contexts/LightningContext';
 
@@ -11,6 +11,7 @@ interface Track {
   title: string;
   duration: string;
   url: string;
+  videoUrl?: string; // Video enclosure URL (HLS .m3u8 files)
   trackNumber: number;
   image?: string;
   value?: RSSValue; // Track-level podcast:value data
@@ -262,8 +263,13 @@ function AlbumCard({ album, isPlaying = false, onPlay, onBoostClick, className =
         
         {/* Track count badge - kept on the right */}
         {album.tracks.length > 0 && (
-          <div className="absolute top-1 right-1 sm:top-2 sm:right-2 bg-black/50 backdrop-blur-sm rounded-full px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs text-white">
-            {album.tracks.length} {album.tracks.length !== 1 ? 'tracks' : 'track'}
+          <div className="absolute top-1 right-1 sm:top-2 sm:right-2 bg-black/50 backdrop-blur-sm rounded-full px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs text-white flex items-center gap-1">
+            <span>{album.tracks.length} {album.tracks.length !== 1 ? 'tracks' : 'track'}</span>
+            {album.tracks.some(track => track.videoUrl) && (
+              <span className="inline-flex items-center" title="Contains video tracks" aria-label="Contains video tracks">
+                <Video className="w-3 h-3 text-purple-400" />
+              </span>
+            )}
           </div>
         )}
       </div>

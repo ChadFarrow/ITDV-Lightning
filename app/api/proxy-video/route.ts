@@ -2,15 +2,45 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const videoUrl = searchParams.get('url');
+  let videoUrl = searchParams.get('url');
 
   if (!videoUrl) {
     return NextResponse.json({ error: 'Video URL parameter required' }, { status: 400 });
   }
 
   try {
+    // If the URL is already proxied (contains /api/proxy-video), extract the actual URL
+    if (videoUrl.includes('/api/proxy-video')) {
+      try {
+        const proxiedUrl = new URL(videoUrl, 'http://localhost');
+        videoUrl = proxiedUrl.searchParams.get('url') || videoUrl;
+        if (!videoUrl || videoUrl === proxiedUrl.href) {
+          // Try alternative extraction
+          const match = videoUrl.match(/url=([^&]+)/);
+          if (match) {
+            videoUrl = decodeURIComponent(match[1]);
+          }
+        }
+      } catch (e) {
+        // If parsing fails, try to extract URL from the query string
+        const match = videoUrl.match(/url=([^&]+)/);
+        if (match) {
+          videoUrl = decodeURIComponent(match[1]);
+        } else {
+          console.error('❌ Failed to extract URL from proxied URL:', videoUrl);
+          return NextResponse.json({ error: 'Invalid proxied URL format' }, { status: 400 });
+        }
+      }
+    }
+    
     // Validate URL
-    const url = new URL(videoUrl);
+    let url: URL;
+    try {
+      url = new URL(videoUrl);
+    } catch (e) {
+      console.error('❌ Invalid URL format:', videoUrl, e);
+      return NextResponse.json({ error: 'Invalid URL format' }, { status: 400 });
+    }
     
     // Only allow Cloudflare Stream domain for now
     const allowedDomains = [
@@ -18,41 +48,170 @@ export async function GET(request: NextRequest) {
     ];
     
     if (!allowedDomains.includes(url.hostname)) {
+      console.error('❌ Domain not allowed:', url.hostname);
       return NextResponse.json({ error: 'Domain not allowed' }, { status: 403 });
     }
 
-    console.log(`📺 Proxying video: ${videoUrl}`);
+    // Only log for manifests to reduce noise
+    if (videoUrl.includes('.m3u8')) {
+      console.log(`📺 Proxying manifest: ${videoUrl}`);
+    }
 
     // Fetch the video/manifest file
-    const response = await fetch(videoUrl, {
-      headers: {
-        'User-Agent': 'DoerfelVerse/1.0 (Video Proxy)',
-        'Accept': 'application/vnd.apple.mpegurl, video/*, */*',
-        'Origin': 'https://re.podtards.com',
-        'Referer': 'https://re.podtards.com/',
-      },
-      signal: AbortSignal.timeout(30000), // 30 second timeout
-    });
+    // Forward Range header if present (for partial content requests)
+    const rangeHeader = request.headers.get('range');
+    const fetchHeaders: HeadersInit = {
+      'User-Agent': 'DoerfelVerse/1.0 (Video Proxy)',
+      'Accept': 'application/vnd.apple.mpegurl, video/*, */*',
+      'Origin': 'https://re.podtards.com',
+      'Referer': 'https://re.podtards.com/',
+    };
+    
+    if (rangeHeader) {
+      fetchHeaders['Range'] = rangeHeader;
+    }
+    
+    let response: Response;
+    try {
+      response = await fetch(videoUrl, {
+        headers: fetchHeaders,
+        signal: AbortSignal.timeout(30000), // 30 second timeout
+      });
+    } catch (fetchError) {
+      console.error('❌ Video fetch error:', fetchError, 'URL:', videoUrl);
+      return NextResponse.json({ 
+        error: 'Failed to fetch video file',
+        details: fetchError instanceof Error ? fetchError.message : 'Unknown fetch error'
+      }, { status: 500 });
+    }
 
     if (!response.ok) {
-      console.error(`❌ Video fetch failed: ${response.status} ${response.statusText}`);
+      console.error(`❌ Video fetch failed: ${response.status} ${response.statusText} for ${videoUrl}`);
       return NextResponse.json({ 
         error: 'Failed to fetch video file',
         status: response.status 
       }, { status: response.status });
     }
 
-    // Determine content type
-    let contentType = response.headers.get('Content-Type') || 'application/vnd.apple.mpegurl';
+    // Determine content type - use response header if available, otherwise infer from URL
+    let contentType = response.headers.get('Content-Type');
+    
+    // If content-type is not set, infer from URL
+    if (!contentType) {
+      if (videoUrl.includes('.m3u8')) {
+        contentType = 'application/vnd.apple.mpegurl';
+      } else if (videoUrl.includes('.ts')) {
+        contentType = 'video/mp2t'; // MPEG-TS format for HLS fragments
+      } else {
+        contentType = 'application/vnd.apple.mpegurl'; // Default fallback
+      }
+    }
     
     // Handle HLS manifest files
     if (videoUrl.includes('.m3u8')) {
       contentType = 'application/vnd.apple.mpegurl';
+      
+      // For HLS manifests, rewrite relative URLs to absolute proxied URLs
+      const manifestText = await response.text();
+      const baseUrl = new URL(videoUrl);
+      const basePath = baseUrl.pathname.substring(0, baseUrl.pathname.lastIndexOf('/') + 1);
+      
+      // Get the request origin to create absolute proxied URLs
+      const requestUrl = new URL(request.url);
+      const origin = requestUrl.origin;
+      
+      // Track if this is a master playlist (contains variant playlists) or media playlist (contains segments)
+      const isMasterPlaylist = manifestText.includes('#EXT-X-STREAM-INF') || manifestText.includes('#EXT-X-MEDIA');
+      
+      // Rewrite URLs in the manifest (lines that aren't comments and contain URLs)
+      const rewrittenManifest = manifestText.split('\n').map(line => {
+        const trimmedLine = line.trim();
+        
+        // Skip empty lines
+        if (!trimmedLine) {
+          return line;
+        }
+        
+        // Skip if already proxied (absolute or relative)
+        if (trimmedLine.includes('/api/proxy-video')) {
+          return line;
+        }
+        
+        // Handle URLs inside EXT-X-MEDIA tags (URI="...") - these are typically alternate audio tracks
+        if (trimmedLine.includes('URI=')) {
+          return line.replace(/URI="([^"]+)"/g, (match, url) => {
+            if (url.includes('/api/proxy-video')) {
+              return match; // Already proxied
+            }
+            let absoluteUrl: string;
+            if (url.startsWith('http://') || url.startsWith('https://')) {
+              absoluteUrl = url;
+            } else {
+              // Relative URL, convert to absolute
+              try {
+                absoluteUrl = new URL(url, baseUrl.origin + basePath).href;
+              } catch (e) {
+                return match; // If parsing fails, return original
+              }
+            }
+            // Proxy audio track manifests and all segment URLs
+            return `URI="${origin}/api/proxy-video?url=${encodeURIComponent(absoluteUrl)}"`;
+          });
+        }
+        
+        // Skip comment lines (but not EXT-X tags that might contain URLs)
+        if (trimmedLine.startsWith('#') && !trimmedLine.includes('URI=')) {
+          return line;
+        }
+        
+        // This line should be a URL (standalone segment URL or variant playlist URL)
+        // Check if it looks like a URL (contains .m3u8, .ts, or starts with http)
+        // Also check for fragment patterns like stream_*.ts or segment_*.ts
+        if (trimmedLine.includes('.m3u8') || trimmedLine.includes('.ts') || 
+            trimmedLine.startsWith('http://') || trimmedLine.startsWith('https://') ||
+            trimmedLine.startsWith('stream_') || trimmedLine.match(/^[a-f0-9]+\.ts$/i) ||
+            trimmedLine.match(/^segment_\d+\.ts$/i) || trimmedLine.match(/^seg_\d+\.ts$/i)) {
+          let segmentUrl = trimmedLine;
+          
+          // If it's already an absolute URL, proxy it with absolute URL
+          if (segmentUrl.startsWith('http://') || segmentUrl.startsWith('https://')) {
+            return `${origin}/api/proxy-video?url=${encodeURIComponent(segmentUrl)}`;
+          }
+          // If it's a relative URL, convert to absolute and proxy
+          try {
+            const absoluteUrl = new URL(segmentUrl, baseUrl.origin + basePath).href;
+            return `${origin}/api/proxy-video?url=${encodeURIComponent(absoluteUrl)}`;
+          } catch (e) {
+            console.warn(`⚠️ Failed to parse segment URL: ${segmentUrl}`, e);
+            // If URL parsing fails, return original line
+            return line;
+          }
+        }
+        
+        // Return original line if it doesn't match any pattern
+        return line;
+      }).join('\n');
+      
+      // Create response with rewritten manifest
+      const proxyResponse = new NextResponse(rewrittenManifest, {
+        status: response.status,
+        headers: {
+          'Content-Type': contentType,
+          'Cache-Control': 'public, max-age=3600', // 1 hour for video
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, HEAD',
+          'Access-Control-Allow-Headers': 'Range, Accept',
+          'Accept-Ranges': 'bytes',
+        },
+      });
+      
+      console.log(`✅ HLS manifest rewritten with proxied segment URLs`);
+      return proxyResponse;
     }
     
     const contentLength = response.headers.get('Content-Length');
     
-    // Create response with proper headers for video streaming
+    // Create response with proper headers for video streaming (non-manifest files)
     const proxyResponse = new NextResponse(response.body, {
       status: response.status,
       headers: {
@@ -75,11 +234,14 @@ export async function GET(request: NextRequest) {
       proxyResponse.headers.set('Content-Range', contentRange);
     }
 
-    console.log(`✅ Video streamed successfully: ${videoUrl} (${contentLength || 'unknown'} bytes)`);
+    // Only log for manifests to reduce noise
+    if (videoUrl.includes('.m3u8')) {
+      console.log(`✅ Video streamed successfully: ${videoUrl} (${contentLength || 'unknown'} bytes)`);
+    }
     return proxyResponse;
 
   } catch (error) {
-    console.error('❌ Video proxy error:', error);
+    console.error('❌ Video proxy error:', error, 'URL:', videoUrl);
     return NextResponse.json({ 
       error: 'Failed to proxy video file',
       details: error instanceof Error ? error.message : 'Unknown error'
