@@ -1042,9 +1042,14 @@ export default function BoostsPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredBoosts.map((boost) => (
+            {filteredBoosts.map((boost, index) => {
+              // Create a unique key based on content to prevent duplicate renders
+              const contentKey = `${normalizeString(boost.trackTitle)}-${normalizeString(boost.trackArtist)}-${normalizeString(boost.userMessage)}`;
+              const uniqueKey = contentKey || boost.id || `boost-${index}`;
+              
+              return (
               <div
-                key={boost.id}
+                key={uniqueKey}
                 className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-6 hover:bg-gray-800/70 transition"
               >
                 <div className="flex flex-col gap-4">
@@ -1176,7 +1181,8 @@ export default function BoostsPage() {
                   </div>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
