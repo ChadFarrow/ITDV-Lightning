@@ -35,6 +35,11 @@ async function ensureTableExists() {
   if (tableInitialized) return;
   
   try {
+    // Test database connection first
+    console.log('🔍 Testing database connection...');
+    await sql`SELECT 1 as test`;
+    console.log('✅ Database connection successful');
+    
     await sql`
       CREATE TABLE IF NOT EXISTS helipad_boosts (
         id SERIAL PRIMARY KEY,
@@ -185,6 +190,7 @@ export async function getHelipadBoosts(limit: number = 50): Promise<StoredHelipa
   try {
     await ensureTableExists();
     
+    console.log(`🔍 Fetching ${limit} Helipad boosts from database...`);
     const result = await sql`
       SELECT 
         boost_index as index,
@@ -216,6 +222,8 @@ export async function getHelipadBoosts(limit: number = 50): Promise<StoredHelipa
       LIMIT ${limit}
     `;
     
+    console.log(`✅ Fetched ${result.rows.length} boosts from database`);
+    
     return result.rows.map((row: any) => ({
       index: row.index,
       uuid: row.uuid,
@@ -244,6 +252,10 @@ export async function getHelipadBoosts(limit: number = 50): Promise<StoredHelipa
     })) as StoredHelipadBoost[];
   } catch (error) {
     console.error('❌ Error fetching Helipad boosts:', error);
+    if (error instanceof Error) {
+      console.error('❌ Error message:', error.message);
+      console.error('❌ Error stack:', error.stack);
+    }
     return [];
   }
 }
