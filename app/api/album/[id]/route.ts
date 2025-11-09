@@ -15,13 +15,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const { searchParams } = new URL(request.url);
     const bypassCache = searchParams.get('nocache') === '1' || searchParams.get('refresh') === '1';
     
-    console.log(`🔍 Looking for single album with ID: "${albumId}"${bypassCache ? ' (bypassing cache)' : ''}`);
-    
     // Check cache first (unless bypassing)
     if (!bypassCache) {
       const cached = albumCache.get(albumId);
       if (cached && Date.now() - cached.timestamp < ALBUM_CACHE_TTL) {
-        console.log(`📦 Serving cached album: "${albumId}"`);
         const response = NextResponse.json({ 
           album: cached.data,
           cached: true,
@@ -35,7 +32,6 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     } else {
       // Clear cache if bypassing
       albumCache.delete(albumId);
-      console.log(`🔄 Cache cleared for: "${albumId}"`);
     }
     
     // Helper function to create URL slug (same as homepage)
@@ -56,7 +52,6 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       const staticAlbumsData = await fs.readFile(staticAlbumsPath, 'utf8');
       const staticAlbumsJson = JSON.parse(staticAlbumsData);
       const staticAlbums = staticAlbumsJson.albums || [];
-      console.log(`📊 Static albums loaded: ${staticAlbums.length} albums found`);
 
       // Search static albums for matching ID
       const matchingStaticAlbum = staticAlbums.find((album: any) => {
@@ -73,8 +68,6 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       });
 
       if (matchingStaticAlbum) {
-        console.log(`✅ Found static album match: "${matchingStaticAlbum.title}"`);
-
         // Return static album data directly (it's already in the correct format with filtering applied)
         const album = {
           ...matchingStaticAlbum,
@@ -84,12 +77,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         // Cache the result
         albumCache.set(albumId, { data: album, timestamp: Date.now() });
 
-        const parseTime = 0; // Static data doesn't need parse time
-        console.log(`✅ Successfully returned static album in ${parseTime}ms: "${album?.title || 'Unknown'}"`);
-
         const response = NextResponse.json({
           album,
-          parseTime: `${parseTime}ms`,
           timestamp: new Date().toISOString(),
           source: 'static-cache',
           cached: false
@@ -100,15 +89,15 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         return response;
       }
       } catch (error) {
-        console.log(`⚠️ Failed to check static albums data:`, error);
-        // Continue to RSS parsing fallback
+        // Silently handle errors - continue to RSS parsing fallback
       }
-    } else {
-      console.log(`🔄 Bypassing static cache to force fresh RSS parse`);
     }
 
-    // PRIORITY 2: Fall back to RSS parsing if not in static cache
-    console.log(`🔍 Album not in static cache, falling back to RSS parsing...`);
+    // PRIORITY 2: Fall back to RSS parsing if not in static cache (only if bypassCache is true)
+    // For normal requests, return 404 if not in static cache to avoid slow RSS parsing
+    if (!bypassCache) {
+      return NextResponse.json({ error: 'Album not found in cache' }, { status: 404 });
+    }
 
     // Get feeds directly from FeedManager (uses feeds.json, no database)
     const feeds = FeedManager.getActiveFeeds();
@@ -121,19 +110,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     for (const feed of albumFeeds) {
       if (feed.id === albumId) {
         matchingFeed = feed;
-        console.log(`✅ Found direct feedId match: "${feed.id}"`);
         break;
       }
     }
     
     // If no direct match, try parsing RSS feeds to match by album title
     if (!matchingFeed) {
-      console.log(`🔍 No direct feedId match, searching by album title...`);
-      
       for (const feed of albumFeeds) {
         try {
-          console.log(`🎵 Testing feed: ${feed.title}`);
-          
           // Parse this feed to get the actual album data
           const albumData = await RSSParser.parseAlbumFeed(feed.originalUrl, feed.trackFilter);
           if (!albumData?.title) continue;
@@ -153,11 +137,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
             matchingFeed = feed;
             // Store the already parsed album data to avoid re-parsing
             (matchingFeed as any)._parsedAlbumData = albumData;
-            console.log(`✅ Found title match: "${albumTitle}" -> "${feed.id}"`);
             break;
           }
         } catch (error) {
-          console.log(`⚠️ Failed to parse feed ${feed.id} for title matching:`, error);
           continue; // Try next feed
         }
       }
@@ -165,21 +147,16 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     
     // If no feed found after RSS parsing, return 404
     if (!matchingFeed) {
-      console.log(`❌ No matching album found for: "${albumId}"`);
       return NextResponse.json({ error: 'Album not found' }, { status: 404 });
     }
     
-    console.log(`✅ Found matching feed: "${matchingFeed.title || matchingFeed.id}"`);
-    
     // Parse only the single RSS feed we need (or reuse already parsed data)
-    console.log(`🎵 Parsing single RSS feed: ${matchingFeed.originalUrl}`);
     const startTime = Date.now();
     
     let albumData;
     
     // If we already parsed this feed during title matching, reuse the data
     if ((matchingFeed as any)._parsedAlbumData) {
-      console.log(`♻️ Reusing already parsed album data`);
       albumData = (matchingFeed as any)._parsedAlbumData;
     } else {
       albumData = await RSSParser.parseAlbumFeed(matchingFeed.originalUrl, matchingFeed.trackFilter);
@@ -198,7 +175,6 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     };
     
     const parseTime = Date.now() - startTime;
-    console.log(`✅ Successfully parsed album in ${parseTime}ms: "${album?.title || 'Unknown'}"`);
     
     // Cache the result
     albumCache.set(albumId, { data: album, timestamp: Date.now() });
@@ -215,7 +191,6 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     return response;
     
   } catch (error) {
-    console.error('❌ Error fetching single album:', error);
     return NextResponse.json({ 
       error: 'Failed to fetch album',
       details: error instanceof Error ? error.message : String(error)

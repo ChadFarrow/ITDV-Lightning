@@ -88,10 +88,8 @@ function AlbumCard({ album, isPlaying = false, onPlay, onBoostClick, className =
     // Only handle swipes, remove tap-to-play to prevent accidental plays
     if (isLeftSwipe) {
       // Left swipe - play next track (future enhancement)
-      console.log('Left swipe detected - next track');
     } else if (isRightSwipe) {
       // Right swipe - play previous track (future enhancement)
-      console.log('Right swipe detected - previous track');
     }
   };
 

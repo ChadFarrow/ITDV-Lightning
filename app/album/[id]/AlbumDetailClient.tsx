@@ -447,7 +447,7 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
     }
   }, [albumTitle, initialAlbum]);
 
-  // Load album with refresh parameter to get video URLs
+  // Load album to get video URLs (non-blocking, uses static cache first)
   const loadAlbumWithRefresh = useCallback(async () => {
     try {
       // Use the actual URL parameter (albumId) if available, otherwise derive from title
@@ -460,8 +460,8 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
         .replace(/-+/g, '-')            // Replace multiple consecutive dashes with single dash
         .replace(/^-+|-+$/g, '');       // Remove leading/trailing dashes
       
-      // Force refresh to get video URLs
-      const apiUrl = `/api/album/${encodeURIComponent(albumSlug)}?refresh=1`;
+      // Use normal API endpoint (uses static cache first, no refresh=1 to avoid slow RSS parsing)
+      const apiUrl = `/api/album/${encodeURIComponent(albumSlug)}`;
       
       const response = await fetch(apiUrl);
       
@@ -472,23 +472,19 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
       const data = await response.json();
       
       if (data.album) {
-        setAlbum(data.album);
-        setError(null);
+        // Only update if we got video URLs that were missing
+        const hasNewVideoUrls = data.album.tracks?.some((track: Track) => track.videoUrl);
+        const currentHasVideoUrls = album?.tracks?.some((track: Track) => track.videoUrl);
         
-        // Always set background image for vibrant album backgrounds
-        if (data.album.coverArt && !preloadAttemptedRef.current) {
-          preloadAttemptedRef.current = true;
-          preloadBackgroundImage(data.album);
+        if (hasNewVideoUrls && !currentHasVideoUrls) {
+          setAlbum(data.album);
+          setError(null);
         }
-      } else {
-        console.error('❌ No album data in response:', data);
-        setError('Album not found');
       }
     } catch (err) {
-      console.error('❌ Error loading album with refresh:', err);
-      // Don't set error state - keep showing the cached album
+      // Silently handle errors - keep showing the cached album
     }
-  }, [albumTitle, albumId]);
+  }, [albumTitle, albumId, album]);
 
   // Separate useEffect for loading videos when missing from static cache
   useEffect(() => {
@@ -520,21 +516,21 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
     // Check if any tracks have video URLs
     const hasVideoUrls = initialAlbum.tracks?.some((track: Track) => track.videoUrl);
     
-    // If album should have videos but doesn't, load them immediately
+    // If album should have videos but doesn't, load them in background (non-blocking)
     if (shouldHaveVideo && !hasVideoUrls) {
-      // Load videos immediately using requestIdleCallback if available, otherwise use minimal delay
-      // This ensures videos start loading as soon as possible without blocking initial render
+      // Load videos in background after page is fully rendered
+      // Use longer delay to ensure page is interactive before making API call
       const loadVideos = () => {
         loadAlbumWithRefresh();
       };
       
-      // Use requestIdleCallback for better performance, fallback to minimal delay
+      // Use requestIdleCallback with longer timeout to ensure page is fully loaded
       if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
-        const idleCallbackId = requestIdleCallback(loadVideos, { timeout: 100 });
+        const idleCallbackId = requestIdleCallback(loadVideos, { timeout: 2000 });
         return () => cancelIdleCallback(idleCallbackId);
       } else {
-        // Minimal delay to let initial render complete, but start loading ASAP
-        const timeoutId = setTimeout(loadVideos, 50);
+        // Delay to let initial render complete and page become interactive
+        const timeoutId = setTimeout(loadVideos, 1000);
         return () => clearTimeout(timeoutId);
       }
     }
