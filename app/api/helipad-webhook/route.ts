@@ -336,9 +336,12 @@ export async function POST(request: NextRequest) {
 
 // Handle GET requests for webhook verification or health checks
 export async function GET(request: NextRequest) {
+  console.log('🔍 GET request to Helipad webhook endpoint (health check)');
+  console.log('⚠️ Note: Helipad should send POST requests with boost data');
   return NextResponse.json({
     message: 'Helipad webhook endpoint is active',
     timestamp: new Date().toISOString(),
-    version: '1.0.0'
+    version: '1.0.0',
+    note: 'This endpoint expects POST requests from Helipad with boost data'
   });
 }
