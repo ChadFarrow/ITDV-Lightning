@@ -447,7 +447,7 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
     }
   }, [albumTitle, initialAlbum]);
 
-  // Load album to get video URLs (non-blocking, uses static cache first)
+  // Load album to get video URLs (non-blocking, uses refresh=1 to fetch from RSS if missing from cache)
   const loadAlbumWithRefresh = useCallback(async () => {
     try {
       // Use the actual URL parameter (albumId) if available, otherwise derive from title
@@ -460,8 +460,8 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
         .replace(/-+/g, '-')            // Replace multiple consecutive dashes with single dash
         .replace(/^-+|-+$/g, '');       // Remove leading/trailing dashes
       
-      // Use normal API endpoint (uses static cache first, no refresh=1 to avoid slow RSS parsing)
-      const apiUrl = `/api/album/${encodeURIComponent(albumSlug)}`;
+      // Use refresh=1 to force RSS parsing and get video URLs (only called when videos are missing)
+      const apiUrl = `/api/album/${encodeURIComponent(albumSlug)}?refresh=1`;
       
       const response = await fetch(apiUrl);
       
