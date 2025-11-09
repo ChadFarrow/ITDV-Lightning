@@ -25,6 +25,11 @@ interface ParsedBoost {
   isFromApp?: boolean;  // Flag to indicate if this boost is from the app's account
   isFromHelipad?: boolean;  // Flag to indicate if this boost is from Helipad
   platform?: string;  // Platform source (nostr, helipad, etc.)
+  // Helipad-specific fields for split handling
+  helipadIndex?: number;
+  helipadUuid?: string;
+  valueMsat?: number;
+  valueMsatTotal?: number;
 }
 
 interface ParsedReply {
@@ -244,8 +249,10 @@ async function fetchHelipadBoosts(): Promise<ParsedBoost[]> {
     }
     
     // Convert stored boost data to ParsedBoost format
+    // Note: Each split may have the same index/uuid but different value_msat (split amount)
+    // We include the value_msat in the ID to distinguish splits
     const parsedBoosts = data.boosts.map((boost: any) => ({
-      id: `helipad-${boost.index || boost.uuid || boost.timestamp}`,
+      id: `helipad-${boost.index || boost.uuid || boost.timestamp}-${boost.value_msat || ''}`,
       author: typeof boost.sender === 'string' ? boost.sender : (boost.sender?.name || 'Helipad User'),
       authorNpub: '', // Helipad boosts don't have Nostr pubkeys
       authorName: typeof boost.sender === 'string' ? boost.sender : (boost.sender?.name || 'Helipad User'),
@@ -261,7 +268,12 @@ async function fetchHelipadBoosts(): Promise<ParsedBoost[]> {
       replies: [],
       isFromApp: false,
       isFromHelipad: true,
-      platform: 'helipad'
+      platform: 'helipad',
+      // Store original index/uuid for reference
+      helipadIndex: boost.index,
+      helipadUuid: boost.uuid,
+      valueMsat: boost.value_msat,
+      valueMsatTotal: boost.value_msat_total
     }));
     
     console.log('✅ Parsed Helipad boosts:', parsedBoosts);
@@ -399,16 +411,23 @@ export default function BoostsPage() {
             console.log('Helipad boosts data:', helipadBoosts);
             
             // Create a set to track Helipad boost identifiers to avoid duplicates
+            // For splits: use index/uuid + value_msat to distinguish different splits
             const helipadBoostHashes = new Set(
-              helipadBoosts.map(boost => 
-                `${boost.amount || ''}-${boost.trackTitle || ''}-${boost.trackArtist || ''}-${boost.userMessage || ''}`.toLowerCase()
-              )
+              helipadBoosts.map(boost => {
+                const boostId = (boost as any).helipadIndex || (boost as any).helipadUuid || boost.id;
+                const splitAmount = (boost as any).valueMsat || boost.amount || '';
+                return `${boostId}-${splitAmount}-${boost.trackTitle || ''}-${boost.trackArtist || ''}-${boost.userMessage || ''}`.toLowerCase();
+              })
             );
             
             // Filter out cached boosts that are duplicates of Helipad boosts
+            // Only filter if it's a Helipad boost from Nostr (not from webhook)
             const filteredCachedBoosts = parsedBoosts.filter((boost: ParsedBoost) => {
               if (boost.isFromHelipad) {
-                const boostHash = `${boost.amount || ''}-${boost.trackTitle || ''}-${boost.trackArtist || ''}-${boost.userMessage || ''}`.toLowerCase();
+                // Try to extract boost ID and split amount from the boost
+                const boostId = (boost as any).helipadIndex || (boost as any).helipadUuid || boost.id?.replace('helipad-', '').split('-')[0] || boost.id;
+                const splitAmount = (boost as any).valueMsat || boost.amount || '';
+                const boostHash = `${boostId}-${splitAmount}-${boost.trackTitle || ''}-${boost.trackArtist || ''}-${boost.userMessage || ''}`.toLowerCase();
                 if (helipadBoostHashes.has(boostHash)) {
                   console.log(`🔄 Skipping duplicate Helipad boost from cache (already from webhook): ${boost.id}`);
                   return false;
@@ -489,11 +508,15 @@ export default function BoostsPage() {
       let actualBoostCount = 0;
 
       // Create a set to track Helipad boost identifiers to avoid duplicates
-      // We'll track by content hash since IDs might differ between webhook and Nostr
+      // For splits: use index/uuid + value_msat to distinguish different splits of the same boost
+      // This allows multiple splits to be shown separately while preventing duplicates from Nostr
       const helipadBoostHashes = new Set(
-        helipadBoosts.map(boost => 
-          `${boost.amount || ''}-${boost.trackTitle || ''}-${boost.trackArtist || ''}-${boost.userMessage || ''}`.toLowerCase()
-        )
+        helipadBoosts.map(boost => {
+          // Use a combination that includes the split amount to distinguish splits
+          const boostId = (boost as any).helipadIndex || (boost as any).helipadUuid || boost.id;
+          const splitAmount = (boost as any).valueMsat || boost.amount || '';
+          return `${boostId}-${splitAmount}-${boost.trackTitle || ''}-${boost.trackArtist || ''}-${boost.userMessage || ''}`.toLowerCase();
+        })
       );
       
       // Add Helipad boosts first (these take priority over Nostr versions)
@@ -512,11 +535,18 @@ export default function BoostsPage() {
 
         if (parsedBoost) {
           // Skip if this is a duplicate Helipad boost (already processed from webhook)
+          // For splits: check if this Nostr boost matches any webhook boost by content
+          // We use a simpler hash here since Nostr boosts don't have split info
           if (parsedBoost.isFromHelipad) {
+            // For Nostr boosts, we can't distinguish splits, so use a simpler hash
+            // Check if any webhook boost matches this content (ignoring split amount)
             const boostHash = `${parsedBoost.amount || ''}-${parsedBoost.trackTitle || ''}-${parsedBoost.trackArtist || ''}-${parsedBoost.userMessage || ''}`.toLowerCase();
-            console.log(`🔍 Checking Helipad boost from Nostr: ${parsedBoost.id} (hash: ${boostHash})`);
-            console.log(`🔍 Existing Helipad hashes:`, Array.from(helipadBoostHashes));
-            if (helipadBoostHashes.has(boostHash)) {
+            const hasMatchingWebhookBoost = helipadBoosts.some(webhookBoost => {
+              const webhookHash = `${webhookBoost.amount || ''}-${webhookBoost.trackTitle || ''}-${webhookBoost.trackArtist || ''}-${webhookBoost.userMessage || ''}`.toLowerCase();
+              return webhookHash === boostHash;
+            });
+            
+            if (hasMatchingWebhookBoost) {
               console.log(`🔄 Skipping duplicate Helipad boost from Nostr (already from webhook): ${parsedBoost.id} (hash: ${boostHash})`);
               continue;
             } else {
@@ -638,8 +668,10 @@ export default function BoostsPage() {
               const parsedBoost = parseBoostFromEvent(event);
               if (parsedBoost) {
                 // Skip if this is a Helipad boost that we already have from webhook
+                // For splits: check if this Nostr boost matches any webhook boost by content
                 if (parsedBoost.isFromHelipad) {
                   // Check if we already have this boost from webhook storage
+                  // Use content hash (ignoring split differences) to match Nostr boosts
                   const boostHash = `${parsedBoost.amount || ''}-${parsedBoost.trackTitle || ''}-${parsedBoost.trackArtist || ''}-${parsedBoost.userMessage || ''}`.toLowerCase();
                   const existingBoosts = boosts.filter(b => b.platform === 'helipad');
                   const hasDuplicate = existingBoosts.some(b => {

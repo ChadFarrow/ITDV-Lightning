@@ -94,21 +94,26 @@ export async function addHelipadBoost(boostData: StoredHelipadBoost) {
     
     console.log('💾 Storing Helipad boost:', boostData.index || boostData.uuid);
     
-    // Check if boost already exists (by index or uuid) to prevent duplicates
+    // Check if boost already exists (by index/uuid + value_msat) to prevent duplicates
+    // For splits: same index/uuid but different value_msat should be stored separately
     let existingBoost = null;
     
-    if (boostData.index) {
+    if (boostData.index && boostData.value_msat !== undefined) {
       const result = await sql`
-        SELECT id FROM helipad_boosts WHERE boost_index = ${boostData.index} LIMIT 1
+        SELECT id FROM helipad_boosts 
+        WHERE boost_index = ${boostData.index} AND value_msat = ${boostData.value_msat} 
+        LIMIT 1
       `;
       if (result.rows.length > 0) {
         existingBoost = result.rows[0];
       }
     }
     
-    if (!existingBoost && boostData.uuid) {
+    if (!existingBoost && boostData.uuid && boostData.value_msat !== undefined) {
       const result = await sql`
-        SELECT id FROM helipad_boosts WHERE boost_uuid = ${boostData.uuid} LIMIT 1
+        SELECT id FROM helipad_boosts 
+        WHERE boost_uuid = ${boostData.uuid} AND value_msat = ${boostData.value_msat} 
+        LIMIT 1
       `;
       if (result.rows.length > 0) {
         existingBoost = result.rows[0];
