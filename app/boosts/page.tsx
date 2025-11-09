@@ -231,18 +231,36 @@ function buildThreadedReplies(events: any[], rootEventId: string): ParsedReply[]
   return buildChildren(rootEventId, 0);
 }
 
+// Normalize string for comparison (trim whitespace, lowercase, handle empty strings)
+function normalizeString(str: string | undefined | null): string {
+  if (!str) return '';
+  return str.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
 // Deduplicate boosts based on content (track title, artist, message)
 // This ensures we only show one entry per unique boost
 function deduplicateBoosts(boosts: ParsedBoost[]): ParsedBoost[] {
   const seenBoosts = new Map<string, ParsedBoost>();
   
   for (const boost of boosts) {
+    // Normalize content fields for better matching
+    const trackTitle = normalizeString(boost.trackTitle);
+    const trackArtist = normalizeString(boost.trackArtist);
+    const userMessage = normalizeString(boost.userMessage);
+    
     // Create a unique key based on content (track title, artist, message)
     // This will catch duplicates even if they have slightly different timestamps or IDs
-    const contentKey = `${boost.trackTitle || ''}-${boost.trackArtist || ''}-${boost.userMessage || ''}`.toLowerCase();
+    const contentKey = `${trackTitle}-${trackArtist}-${userMessage}`;
+    
+    // Skip if all content fields are empty (invalid boost)
+    if (!contentKey || contentKey === '--') {
+      console.log(`⚠️ Skipping boost with empty content: ${boost.id}`);
+      continue;
+    }
     
     if (!seenBoosts.has(contentKey)) {
       seenBoosts.set(contentKey, boost);
+      console.log(`✅ Added unique boost: ${contentKey.substring(0, 50)}...`);
     } else {
       // If we have a duplicate, prefer the one with higher amount (might be aggregated)
       const existing = seenBoosts.get(contentKey)!;
@@ -251,9 +269,9 @@ function deduplicateBoosts(boosts: ParsedBoost[]): ParsedBoost[] {
       if (newAmount > existingAmount) {
         // Replace with the one that has higher amount
         seenBoosts.set(contentKey, boost);
-        console.log(`💰 Replaced duplicate boost with higher amount: ${contentKey} (${newAmount} > ${existingAmount})`);
+        console.log(`💰 Replaced duplicate boost with higher amount: ${contentKey.substring(0, 50)}... (${newAmount} > ${existingAmount})`);
       } else {
-        console.log(`⏭️ Skipping duplicate boost: ${contentKey} (existing: ${existingAmount}, new: ${newAmount})`);
+        console.log(`⏭️ Skipping duplicate boost: ${contentKey.substring(0, 50)}... (existing: ${existingAmount}, new: ${newAmount})`);
       }
     }
   }
@@ -883,7 +901,8 @@ export default function BoostsPage() {
     }
   }, []);
 
-  const filteredBoosts = boosts;
+  // Final deduplication before rendering - ensure no duplicates make it to the UI
+  const filteredBoosts = deduplicateBoosts(boosts);
 
   // Calculate statistics
   const totalBoosts = boosts.length;
