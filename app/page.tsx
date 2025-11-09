@@ -361,8 +361,13 @@ export default function HomePage() {
         setAlbums(albums);
         setIsLoading(false);
         
-        // Still fetch fresh data in background
-        setTimeout(() => loadCriticalAlbums(), 1000);
+        // Still fetch fresh data in background (non-blocking)
+        // Use requestIdleCallback for better performance
+        if ('requestIdleCallback' in window) {
+          requestIdleCallback(() => loadCriticalAlbums(), { timeout: 2000 });
+        } else {
+          setTimeout(() => loadCriticalAlbums(), 100);
+        }
         return;
       }
     }
@@ -445,43 +450,24 @@ export default function HomePage() {
         }
       }
 
-      // Use static cached data for fast loading (with 3s timeout)
+      // Use static cached data for fast loading (with 2s timeout - reduced from 3s)
       let response;
       let data;
-      let useStaticCache = false;
 
       try {
-        response = await fetchWithTimeout('/api/albums-static-cached', 3000);
-      } catch (error) {
-        // Silently handle errors
-      }
-
-      if (response?.ok) {
-        data = await response.json();
-        // Check if the data includes podcast:value and GUID information
-        const hasValueData = data.albums?.some((album: any) => 
-          album.value || album.tracks?.some((track: any) => track.value)
-        );
-        
-        // Check if the data includes GUID information needed for Nostr tagging
-        const hasGuidData = data.albums?.some((album: any) => 
-          album.feedGuid || album.tracks?.some((track: any) => track.guid)
-        );
-        
-        if (hasValueData && hasGuidData) {
-          useStaticCache = true;
-        } else {
-          // Use static cache anyway if it loaded successfully - better than slow dynamic load
-          useStaticCache = true;
+        response = await fetchWithTimeout('/api/albums-static-cached', 2000);
+        if (response?.ok) {
+          data = await response.json();
         }
+      } catch (error) {
+        // Silently handle errors - will try fallback
       }
 
-      // Skip slow dynamic loading - just use static cache for better performance
-      if (!useStaticCache || !data) {
-        // Only try dynamic as last resort with timeout
+      // Only try fallback if static cache failed
+      if (!data) {
         try {
-          response = await fetchWithTimeout('/api/albums-no-db', 8000);
-          if (response.ok) {
+          response = await fetchWithTimeout('/api/albums-static', 3000);
+          if (response?.ok) {
             data = await response.json();
           }
         } catch (error) {
@@ -490,14 +476,7 @@ export default function HomePage() {
       }
 
       if (!data) {
-        // Final fallback to static data (with timeout)
-        response = await fetchWithTimeout('/api/albums-static', 5000);
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch albums: ${response.status} ${response.statusText}`);
-        }
-
-        data = await response.json();
+        throw new Error('Failed to fetch albums: All endpoints failed');
       }
       
       const albums = data.albums || [];

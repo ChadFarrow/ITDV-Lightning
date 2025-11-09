@@ -28,7 +28,8 @@ export async function GET() {
     
     return NextResponse.json(response, {
       headers: {
-        'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
+        'Cache-Control': 'public, max-age=3600, s-maxage=7200, stale-while-revalidate=86400', // Aggressive caching
+        'Content-Encoding': 'gzip', // Enable compression
       }
     });
     
