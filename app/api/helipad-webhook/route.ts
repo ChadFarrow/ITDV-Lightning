@@ -94,10 +94,15 @@ export async function POST(request: NextRequest) {
   const startTime = Date.now();
   try {
     console.log('🎯 Helipad webhook received');
+    console.log('🔍 Request URL:', request.url);
+    console.log('🔍 Request method:', request.method);
+    console.log('🔍 Request headers:', JSON.stringify(Object.fromEntries(request.headers.entries())));
     console.log('🔍 POSTGRES_URL configured:', !!process.env.POSTGRES_URL);
     
     // Get the raw body for signature verification
     const body = await request.text();
+    console.log('🔍 Request body length:', body.length);
+    console.log('🔍 Request body preview:', body.substring(0, 200));
     const signature = request.headers.get('x-helipad-signature') || 
                      request.headers.get('x-signature') || 
                      request.headers.get('signature');
