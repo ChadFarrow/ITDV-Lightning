@@ -953,6 +953,7 @@ export default function HomePage() {
                                 album={album}
                                 onPlay={playAlbum}
                                 onBoostClick={handleBoostClick}
+                                priority={index < 8} // Prioritize first 8 images (above the fold)
                               />
                             ))}
                           </div>
@@ -1008,6 +1009,7 @@ export default function HomePage() {
                                 album={album}
                                 onPlay={playAlbum}
                                 onBoostClick={handleBoostClick}
+                                priority={index < 4} // Prioritize first 4 EPs/Singles
                               />
                             ))}
                           </div>
@@ -1061,6 +1063,7 @@ export default function HomePage() {
                         album={album}
                         onPlay={playAlbum}
                         onBoostClick={handleBoostClick}
+                        priority={index < 8} // Prioritize first 8 images (above the fold)
                       />
                     ))}
                   </div>

@@ -55,9 +55,10 @@ interface AlbumCardProps {
   onPlay: (album: Album, e: React.MouseEvent | React.TouchEvent) => void;
   onBoostClick?: (album: Album) => void;
   className?: string;
+  priority?: boolean; // Prioritize image loading for above-the-fold images
 }
 
-function AlbumCard({ album, isPlaying = false, onPlay, onBoostClick, className = '' }: AlbumCardProps) {
+function AlbumCard({ album, isPlaying = false, onPlay, onBoostClick, className = '', priority = false }: AlbumCardProps) {
   const { isLightningEnabled } = useLightning();
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -120,26 +121,13 @@ function AlbumCard({ album, isPlaying = false, onPlay, onBoostClick, className =
   
   const albumUrl = getAlbumUrl(album);
   
-  // Only log in development mode to improve production performance
-  // Log only once when component mounts (not on every render)
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
-      if (isMobile) {
-        console.log(`Mobile album card for "${album.title}": coverArt=${album.coverArt}`);
-      }
-      console.log(`🎵 Album card mounted: "${album.title}" -> URL: ${albumUrl}`);
-    }
-  }, [album.coverArt, album.title, albumUrl]); // Include dependencies for logging
+  // Removed console.log for production performance
 
   return (
     <div className={`group relative bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden transition-all duration-300 hover:bg-white/10 hover:border-white/20 hover:scale-[1.02] active:scale-[0.98] block ${className}`}>
       
       <Link 
         href={albumUrl}
-        onClick={(e) => {
-          console.log(`🔗 Navigating to album: "${album.title}" -> ${albumUrl}`);
-        }}
         aria-label={`View album details for ${album.title} by ${album.artist}`}
         className="block"
       >
@@ -166,7 +154,6 @@ function AlbumCard({ album, isPlaying = false, onPlay, onBoostClick, className =
           // Prevent navigation when clicking on the artwork area (play button handles its own clicks)
           if (!(e.target as HTMLElement).closest('button')) {
             // Let the Link handle the navigation
-            console.log('🎵 Album artwork clicked - navigating to album page');
           }
         }}
       >
@@ -179,7 +166,8 @@ function AlbumCard({ album, isPlaying = false, onPlay, onBoostClick, className =
           }`}
           onLoad={handleImageLoad}
           onError={handleImageError}
-          priority={false}
+          priority={priority}
+          quality={85}
           sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 20vw"
         />
         
