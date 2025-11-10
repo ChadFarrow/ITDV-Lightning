@@ -1217,7 +1217,7 @@ export default function BoostsPage() {
           <div className="flex justify-between items-start">
             <div className="flex items-center gap-3">
               <p className="text-gray-400">
-                Recent boosts sent from this site and their replies from the Nostr network
+                Recent boosts and streams from Helipad and Nostr, with replies from the Nostr network
               </p>
               <div className="flex items-center gap-3">
                 {isRealTimeActive && (
