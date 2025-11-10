@@ -30,6 +30,7 @@ interface ParsedBoost {
   helipadUuid?: string;
   valueMsat?: number;
   valueMsatTotal?: number;
+  app?: string;  // App name that sent the boost (for Helipad boosts)
 }
 
 interface ParsedReply {
@@ -434,7 +435,8 @@ async function fetchHelipadBoosts(): Promise<ParsedBoost[]> {
           helipadIndex: boost.index,
           helipadUuid: boost.uuid,
           valueMsat: boost.value_msat,
-          valueMsatTotal: boost.value_msat_total
+          valueMsatTotal: boost.value_msat_total,
+          app: boost.app || undefined  // App name that sent the boost
         };
         boostMap.set(boostKey, parsedBoost);
         console.log(`✅ Created new boost entry: ${boostKey}`);
@@ -605,6 +607,7 @@ export default function BoostsPage() {
   const [expandedBoosts, setExpandedBoosts] = useState<Set<string>>(new Set());
   const [isRealTimeActive, setIsRealTimeActive] = useState(false);
   const [lastCacheTime, setLastCacheTime] = useState<number | null>(null);
+  const [isHelipadPolling, setIsHelipadPolling] = useState(false);
 
   const loadBoosts = async (forceRefresh = false) => {
     try {
@@ -889,6 +892,7 @@ export default function BoostsPage() {
 
     // Set up real-time subscription for new boosts
     const service = getBoostToNostrService();
+    let subscription: any = null;
 
     // Get the site's Nostr account from environment
     let appPubkey = process.env.NEXT_PUBLIC_SITE_NOSTR_NPUB;
@@ -899,7 +903,7 @@ export default function BoostsPage() {
         appPubkey = data as string;
 
         // Subscribe to new boosts from this account
-        const subscription = service.subscribeToBoosts(
+        subscription = service.subscribeToBoosts(
           { authors: [appPubkey] },
           {
             onBoost: async (event) => {
@@ -986,18 +990,79 @@ export default function BoostsPage() {
         );
 
         setIsRealTimeActive(true);
-
-        // Cleanup subscription on unmount
-        return () => {
-          if (subscription && typeof subscription.close === 'function') {
-            subscription.close();
-          }
-          setIsRealTimeActive(false);
-        };
       } catch (error) {
         console.error('Failed to set up real-time subscription:', error);
       }
     }
+
+    // Set up polling for Helipad boosts (every 30 seconds)
+    const pollHelipadBoosts = async () => {
+      try {
+        setIsHelipadPolling(true);
+        console.log('🔄 Polling for new Helipad boosts...');
+        
+        const helipadBoosts = await fetchHelipadBoosts();
+        
+        if (helipadBoosts.length > 0) {
+          setBoosts(prev => {
+            // Get existing boost IDs to check for duplicates
+            const existingIds = new Set(prev.map(b => b.id));
+            const existingHelipadKeys = new Set(
+              prev
+                .filter(b => b.isFromHelipad || b.platform === 'helipad')
+                .map(b => `${b.helipadIndex || b.helipadUuid || b.id}-${b.trackTitle || ''}-${b.trackArtist || ''}-${b.userMessage || ''}`.toLowerCase())
+            );
+            
+            // Filter out boosts that already exist
+            const newBoosts = helipadBoosts.filter(boost => {
+              // Check by ID first
+              if (existingIds.has(boost.id)) {
+                return false;
+              }
+              
+              // Check by Helipad-specific key (index/uuid + content)
+              const boostKey = `${boost.helipadIndex || boost.helipadUuid || boost.id}-${boost.trackTitle || ''}-${boost.trackArtist || ''}-${boost.userMessage || ''}`.toLowerCase();
+              if (existingHelipadKeys.has(boostKey)) {
+                return false;
+              }
+              
+              return true;
+            });
+            
+            if (newBoosts.length > 0) {
+              console.log(`✅ Found ${newBoosts.length} new Helipad boost(s)`);
+              // Merge new boosts with existing ones and sort by timestamp
+              const updated = [...newBoosts, ...prev];
+              const uniqueBoosts = deduplicateBoosts(updated);
+              return uniqueBoosts.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+            }
+            
+            return prev;
+          });
+        }
+      } catch (error) {
+        console.error('❌ Error polling Helipad boosts:', error);
+      } finally {
+        setIsHelipadPolling(false);
+      }
+    };
+
+    // Poll immediately, then every 30 seconds
+    pollHelipadBoosts();
+    const helipadPollInterval = setInterval(pollHelipadBoosts, 30000); // Poll every 30 seconds
+
+    // Combined cleanup for both Nostr subscription and Helipad polling
+    return () => {
+      // Cleanup Nostr subscription
+      if (subscription && typeof subscription.close === 'function') {
+        subscription.close();
+      }
+      setIsRealTimeActive(false);
+      
+      // Cleanup Helipad polling
+      clearInterval(helipadPollInterval);
+      setIsHelipadPolling(false);
+    };
   }, []);
 
   // Final deduplication before rendering - ensure no duplicates make it to the UI
@@ -1082,12 +1147,20 @@ export default function BoostsPage() {
               <p className="text-gray-400">
                 Recent boosts sent from this site and their replies from the Nostr network
               </p>
-              {isRealTimeActive && (
-                <div className="flex items-center gap-2 text-green-400 text-sm">
-                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                  Live Updates
-                </div>
-              )}
+              <div className="flex items-center gap-3">
+                {isRealTimeActive && (
+                  <div className="flex items-center gap-2 text-green-400 text-sm">
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                    Live Updates
+                  </div>
+                )}
+                {isHelipadPolling && (
+                  <div className="flex items-center gap-2 text-blue-400 text-sm">
+                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                    Checking Helipad...
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="flex flex-col gap-2">
@@ -1253,9 +1326,16 @@ export default function BoostsPage() {
                     <div className="flex flex-wrap items-center justify-between text-gray-500 text-sm mt-3 pt-2 border-t border-gray-700/50">
                       <div className="flex items-center gap-2">
         {(boost.isFromHelipad || boost.platform === 'helipad') && (
-          <span className="bg-blue-500/20 text-blue-400 px-2 py-1 rounded text-xs font-medium">
-            🚁 Helipad
-          </span>
+          <>
+            <span className="bg-blue-500/20 text-blue-400 px-2 py-1 rounded text-xs font-medium">
+              🚁 Helipad
+            </span>
+            {boost.app && (
+              <span className="bg-gray-700/50 text-gray-300 px-2 py-1 rounded text-xs font-medium">
+                📱 {boost.app}
+              </span>
+            )}
+          </>
         )}
         {boost.isFromApp && !boost.isFromHelipad && (
           <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs font-medium">
