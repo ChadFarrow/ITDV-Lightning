@@ -57,6 +57,7 @@ interface Track {
   trackNumber: number;
   image?: string;
   value?: any; // Track-level podcast:value data
+  paymentRecipients?: Array<{ address: string; split: number; name?: string; fee?: boolean }>; // Pre-processed track payment recipients
   // Podcast GUIDs for Nostr boost tagging
   guid?: string; // Standard item GUID
   podcastGuid?: string; // podcast:guid at item level
