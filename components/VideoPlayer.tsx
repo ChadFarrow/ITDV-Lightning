@@ -627,6 +627,17 @@ export default function VideoPlayer({
     if (!video) return;
 
     try {
+      // Check if we're on iOS (Safari on iOS)
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      
+      // iOS Safari uses webkitEnterFullscreen() method on the video element
+      if (isIOS && (video as any).webkitEnterFullscreen) {
+        // iOS Safari: Use native fullscreen method
+        (video as any).webkitEnterFullscreen();
+        return;
+      }
+
       const isCurrentlyFullscreen = !!(
         document.fullscreenElement === video ||
         (document as any).webkitFullscreenElement === video ||
