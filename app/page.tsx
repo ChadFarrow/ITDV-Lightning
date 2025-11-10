@@ -1212,7 +1212,37 @@ export default function HomePage() {
                 onError={handleBoostError}
                 className="w-full !mt-6"
                 recipients={(() => {
-                  // Get payment recipients from selected album
+                  // For album boosts, use a track's recipients instead of album-level recipients
+                  // This ensures we use track-level value blocks (e.g., 6 recipients) instead of channel-level (e.g., 317 recipients)
+                  if (selectedAlbum.tracks && selectedAlbum.tracks.length > 0) {
+                    // Try to find CityBeach track first (for The Satellite Spotlight album)
+                    const cityBeachTrack = selectedAlbum.tracks.find((t: any) => 
+                      t.title?.trim().toLowerCase().includes('citybeach') && !t.videoUrl
+                    );
+                    
+                    // Use CityBeach track if found, otherwise use first track
+                    const trackToUse = cityBeachTrack || selectedAlbum.tracks[0];
+                    
+                    // Check if track has paymentRecipients (pre-processed)
+                    if (trackToUse.paymentRecipients && trackToUse.paymentRecipients.length > 0) {
+                      return trackToUse.paymentRecipients;
+                    }
+                    
+                    // Check if track has value.recipients
+                    if (trackToUse.value && trackToUse.value.type === 'lightning' && trackToUse.value.method === 'keysend') {
+                      return trackToUse.value.recipients
+                        .filter((r: any) => r.type === 'node')
+                        .map((r: any) => ({
+                          address: r.address,
+                          split: r.split,
+                          name: r.name,
+                          fee: r.fee,
+                          type: 'node'
+                        }));
+                    }
+                  }
+                  
+                  // Fallback to album-level recipients if no track recipients found
                   if (selectedAlbum.value && selectedAlbum.value.type === 'lightning' && selectedAlbum.value.method === 'keysend') {
                     return selectedAlbum.value.recipients
                       .filter((r: any) => r.type === 'node')
@@ -1224,19 +1254,7 @@ export default function HomePage() {
                         type: 'node'
                       }));
                   }
-                  // Check first track for value data
-                  const firstTrack = selectedAlbum.tracks?.[0];
-                  if (firstTrack?.value && firstTrack.value.type === 'lightning' && firstTrack.value.method === 'keysend') {
-                    return firstTrack.value.recipients
-                      .filter((r: any) => r.type === 'node')
-                      .map((r: any) => ({
-                        address: r.address,
-                        split: r.split,
-                        name: r.name,
-                        fee: r.fee,
-                        type: 'node'
-                      }));
-                  }
+                  
                   return undefined;
                 })()}
                 recipient="03740ea02585ed87b83b2f76317a4562b616bd7b8ec3f925be6596932b2003fc9e"
