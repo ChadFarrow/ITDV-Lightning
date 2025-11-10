@@ -848,19 +848,40 @@ export class RSSParser {
         }
       }
       
-      // Check if channel-level link is a video URL and apply to tracks that don't have one
+      // Check if channel-level link is a video URL and create a separate video-only track
       // This must happen after all tracks are created but before filtering
-      if (link && (link.includes('/video') || link.toLowerCase().includes('video'))) {
+      // Skip for Autumn Rust if we have chapters (we'll create chapter tracks instead)
+      const hasChapters = channel.getElementsByTagName('podcast:chapters')[0] || channel.getElementsByTagName('chapters')[0];
+      const shouldCreateFullVideo = !(title.toLowerCase().includes('autumn rust') && hasChapters);
+      
+      if (link && (link.includes('/video') || link.toLowerCase().includes('video')) && shouldCreateFullVideo) {
         const channelVideoUrl = link;
         verboseLog(`📺 Found channel-level video URL: ${channelVideoUrl}`);
         
-        // Apply video URL to all tracks that don't already have one
-        tracks.forEach((track: RSSTrack) => {
-          if (!track.videoUrl) {
-            track.videoUrl = channelVideoUrl;
-            verboseLog(`📺 Applied channel-level video URL to track: "${track.title}"`);
-          }
-        });
+        // Create a separate video-only track (no audio URL) for the video tab
+        // This ensures audio tracks stay in the audio tab and only one video appears in the video tab
+        // Match The Satellite Spotlight pattern: use "[Raw Set]" for full video tracks
+        const videoTrackTitle = title.toLowerCase().includes('autumn rust') 
+          ? `${title} [Raw Set]`
+          : `${title} - Full Video`;
+        const videoTrack: RSSTrack = {
+          title: videoTrackTitle,
+          duration: '0:00', // Duration will be determined when video loads
+          videoUrl: channelVideoUrl,
+          trackNumber: tracks.length + 1,
+          image: coverArt || undefined,
+          explicit: false,
+          value: value,
+          paymentRecipients: paymentRecipients,
+          feedGuid: mainFeedGuid,
+          feedUrl: feedUrl,
+          publisherGuid: publisher?.feedGuid,
+          publisherUrl: publisher?.feedUrl,
+          imageUrl: coverArt || undefined
+        };
+        
+        tracks.push(videoTrack);
+        verboseLog(`📺 Created separate video-only track: "${videoTrack.title}"`);
       }
       
       // Extract release date
@@ -1079,12 +1100,39 @@ export class RSSParser {
               if (chaptersData.chapters && Array.isArray(chaptersData.chapters)) {
                 verboseLog(`📖 Found ${chaptersData.chapters.length} chapters at channel level`);
                 
-                // Find video items that should have chapters (e.g., "Sprouting Symphonies")
+                // Find video items that should have chapters (e.g., "Sprouting Symphonies" or "Autumn Rust")
                 const videoTracksWithChapters = tracks.filter(track => 
                   track.videoUrl && 
                   (track.title.toLowerCase().includes('sprouting symphonies') ||
-                   track.title.toLowerCase().includes('sprouting'))
+                   track.title.toLowerCase().includes('sprouting') ||
+                   track.title.toLowerCase().includes('autumn rust') ||
+                   title.toLowerCase().includes('autumn rust'))
                 );
+                
+                // Also check if we have a channel-level video URL that needs chapters
+                // For Autumn Rust, we want to create chapter tracks instead of a full video track
+                const channelVideoUrl = link && (link.includes('/video') || link.toLowerCase().includes('video')) ? link : null;
+                if (channelVideoUrl && !videoTracksWithChapters.length && title.toLowerCase().includes('autumn rust')) {
+                  // Create a temporary video track for Autumn Rust to attach chapters to
+                  // This track won't be added to tracks array, it's just used to create chapter tracks
+                  const tempVideoTrack: RSSTrack = {
+                    title: `${title} - Full Video`,
+                    duration: '0:00',
+                    videoUrl: channelVideoUrl,
+                    trackNumber: tracks.length + 1,
+                    image: coverArt || undefined,
+                    explicit: false,
+                    value: value,
+                    paymentRecipients: paymentRecipients,
+                    feedGuid: mainFeedGuid,
+                    feedUrl: feedUrl,
+                    publisherGuid: publisher?.feedGuid,
+                    publisherUrl: publisher?.feedUrl,
+                    imageUrl: coverArt || undefined
+                  };
+                  videoTracksWithChapters.push(tempVideoTrack);
+                  verboseLog(`📺 Created temporary video track for Autumn Rust chapters: "${tempVideoTrack.videoUrl}"`);
+                }
                 
                 console.log(`📖 Found ${videoTracksWithChapters.length} video track(s) for chapters processing`);
                 if (videoTracksWithChapters.length === 0) {
@@ -1098,10 +1146,21 @@ export class RSSParser {
                   verboseLog(`📖 Creating chapters for video track: "${videoTrack.title}"`);
                   
                   chaptersData.chapters.forEach((chapter: any, chapterIndex: number) => {
-                    // Only create chapter track for CityBeach
                     const chapterTitle = chapter.title || `Chapter ${chapterIndex + 1}`;
-                    if (!chapterTitle.toLowerCase().includes('citybeach')) {
-                      return; // Skip non-CityBeach chapters
+                    const titleLower = title.toLowerCase();
+                    const chapterTitleLower = chapterTitle.toLowerCase();
+                    
+                    // Only create chapter track for CityBeach (Sprouting Symphonies) or The Doerfels (Autumn Rust)
+                    if (titleLower.includes('autumn rust')) {
+                      // For Autumn Rust, only create chapter track for "The Doerfels"
+                      if (!chapterTitleLower.includes('doerfel')) {
+                        return; // Skip non-Doerfels chapters
+                      }
+                    } else {
+                      // For Sprouting Symphonies, only create chapter track for CityBeach
+                      if (!chapterTitleLower.includes('citybeach')) {
+                        return; // Skip non-CityBeach chapters
+                      }
                     }
                     
                     const chapterStartTime = chapter.startTime || 0;
@@ -1143,7 +1202,8 @@ export class RSSParser {
                     };
                     
                     tracks.push(chapterTrack);
-                    console.log(`✅ Created CityBeach chapter track: "${chapterTrack.title}" (${chapterStartTime}s - ${chapterEndTime || 'end'}s)`);
+                    const chapterType = titleLower.includes('autumn rust') ? 'Doerfels' : 'CityBeach';
+                    console.log(`✅ Created ${chapterType} chapter track: "${chapterTrack.title}" (${chapterStartTime}s - ${chapterEndTime || 'end'}s)`);
                     verboseLog(`📖 Created chapter track: "${chapterTrack.title}" (${chapterStartTime}s - ${chapterEndTime || 'end'}s)`);
                   });
                 });
@@ -1158,8 +1218,13 @@ export class RSSParser {
       }
       
       // Apply track filter if specified
+      // Video-only tracks (with videoUrl but no url) should always be included regardless of filter
       let filteredTracks = trackFilter
         ? tracks.filter((track: RSSTrack) => {
+            // Always include video-only tracks (tracks with videoUrl but no url)
+            if (track.videoUrl && !track.url) {
+              return true;
+            }
             const titleLower = track.title.toLowerCase();
             const filterLower = trackFilter.toLowerCase();
             // Include tracks matching the filter (including [Raw Set] videos)
@@ -1209,26 +1274,26 @@ export class RSSParser {
         return true;
       });
       
-      // Move CityBeach video tracks to the bottom of the list
-      // Order: CityBeach chapter track first, then CityBeach [Raw Set]
-      const cityBeachChapterTrack: RSSTrack[] = [];
-      const cityBeachRawSetTrack: RSSTrack[] = [];
+      // Move video tracks to the bottom of the list
+      // Order: chapter tracks first, then [Raw Set] videos
+      const chapterTracks: RSSTrack[] = [];
+      const rawSetTracks: RSSTrack[] = [];
       const otherTracks: RSSTrack[] = [];
       
       filteredTracks.forEach((track: RSSTrack) => {
         const titleLower = track.title.toLowerCase();
-        // Check if it's the CityBeach video chapter track (has videoUrl, startTime, and endTime)
-        if (track.videoUrl && track.startTime !== undefined && track.endTime !== undefined && titleLower.includes('citybeach')) {
-          cityBeachChapterTrack.push(track);
-        } else if (track.videoUrl && track.startTime === undefined && titleLower.includes('citybeach') && titleLower.includes('raw set')) {
-          cityBeachRawSetTrack.push(track);
+        // Check if it's a video chapter track (has videoUrl, startTime, and endTime)
+        if (track.videoUrl && track.startTime !== undefined && track.endTime !== undefined) {
+          chapterTracks.push(track);
+        } else if (track.videoUrl && track.startTime === undefined && titleLower.includes('raw set')) {
+          rawSetTracks.push(track);
         } else {
           otherTracks.push(track);
         }
       });
       
-      // Reorder: audio tracks first, then CityBeach chapter track, then CityBeach [Raw Set] at the bottom
-      filteredTracks = [...otherTracks, ...cityBeachChapterTrack, ...cityBeachRawSetTrack];
+      // Reorder: audio tracks first, then chapter tracks, then [Raw Set] videos at the bottom
+      filteredTracks = [...otherTracks, ...chapterTracks, ...rawSetTracks];
 
       const album = {
         title,
