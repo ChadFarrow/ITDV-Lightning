@@ -1231,11 +1231,15 @@ export class RSSParser {
       }
       
       // Apply track filter if specified
-      // Video-only tracks (with videoUrl but no url) should always be included regardless of filter
+      // Video-only tracks (with videoUrl but no url) and chapter tracks should always be included regardless of filter
       let filteredTracks = trackFilter
         ? tracks.filter((track: RSSTrack) => {
             // Always include video-only tracks (tracks with videoUrl but no url)
             if (track.videoUrl && !track.url) {
+              return true;
+            }
+            // Always include chapter tracks (tracks with videoUrl, startTime, and endTime)
+            if (track.videoUrl && track.startTime !== undefined && track.endTime !== undefined) {
               return true;
             }
             const titleLower = track.title.toLowerCase();
