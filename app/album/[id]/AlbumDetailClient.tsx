@@ -501,7 +501,10 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
     const albumsWithVideo = [
       'the-satellite-spotlight',
       'satellite-spotlight',
-      'satellite-spotlight-sprouting-symphonies-citybeach-tracks'
+      'satellite-spotlight-sprouting-symphonies-citybeach-tracks',
+      'autumn-rust',
+      'autumn rust',
+      'satellite-spotlight-autumn-rust-the-doerfels-tracks'
     ];
     
     // Use albumId from URL params if available, otherwise derive from title
@@ -517,7 +520,8 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
     const shouldHaveVideo = albumsWithVideo.some(videoAlbum => 
       albumSlugFromId.includes(videoAlbum) || 
       albumSlugFromTitle.includes(videoAlbum) || 
-      albumTitle.toLowerCase().includes('satellite spotlight')
+      albumTitle.toLowerCase().includes('satellite spotlight') ||
+      albumTitle.toLowerCase().includes('autumn rust')
     );
     
     // Check if any tracks have video URLs

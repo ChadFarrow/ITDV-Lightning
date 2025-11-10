@@ -28,7 +28,10 @@ async function getAlbumData(albumId: string) {
     const albumsWithVideo = [
       'the-satellite-spotlight',
       'satellite-spotlight',
-      'satellite-spotlight-sprouting-symphonies-citybeach-tracks'
+      'satellite-spotlight-sprouting-symphonies-citybeach-tracks',
+      'autumn-rust',
+      'autumn rust',
+      'satellite-spotlight-autumn-rust-the-doerfels-tracks'
     ];
 
     // Try both static cache files (prioritize cached version)

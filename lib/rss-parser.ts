@@ -848,6 +848,21 @@ export class RSSParser {
         }
       }
       
+      // Check if channel-level link is a video URL and apply to tracks that don't have one
+      // This must happen after all tracks are created but before filtering
+      if (link && (link.includes('/video') || link.toLowerCase().includes('video'))) {
+        const channelVideoUrl = link;
+        verboseLog(`📺 Found channel-level video URL: ${channelVideoUrl}`);
+        
+        // Apply video URL to all tracks that don't already have one
+        tracks.forEach((track: RSSTrack) => {
+          if (!track.videoUrl) {
+            track.videoUrl = channelVideoUrl;
+            verboseLog(`📺 Applied channel-level video URL to track: "${track.title}"`);
+          }
+        });
+      }
+      
       // Extract release date
       const pubDateElement = channel.getElementsByTagName('pubDate')[0] || channel.getElementsByTagName('lastBuildDate')[0];
       const releaseDate = pubDateElement?.textContent?.trim() || new Date().toISOString();
