@@ -1111,10 +1111,13 @@ export class RSSParser {
                 
                 // Also check if we have a channel-level video URL that needs chapters
                 // For Autumn Rust, we want to create chapter tracks instead of a full video track
+                // Always create a temporary video track for Autumn Rust from the channel-level video URL
                 const channelVideoUrl = link && (link.includes('/video') || link.toLowerCase().includes('video')) ? link : null;
-                if (channelVideoUrl && !videoTracksWithChapters.length && title.toLowerCase().includes('autumn rust')) {
+                if (channelVideoUrl && title.toLowerCase().includes('autumn rust')) {
                   // Create a temporary video track for Autumn Rust to attach chapters to
                   // This track won't be added to tracks array, it's just used to create chapter tracks
+                  // Clear existing video tracks for Autumn Rust since we want to use the channel-level video URL
+                  videoTracksWithChapters.length = 0;
                   const tempVideoTrack: RSSTrack = {
                     title: `${title} - Full Video`,
                     duration: '0:00',
