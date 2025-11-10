@@ -281,6 +281,47 @@ function deduplicateBoosts(boosts: ParsedBoost[]): ParsedBoost[] {
   return uniqueBoosts;
 }
 
+// Helper function to convert millisats to sats and format
+function convertMsatsToSats(msats: number | undefined | null): string {
+  if (!msats || msats === 0) return '';
+  const sats = msats / 1000;
+  // Round to 2 decimal places if needed, otherwise show as whole number
+  if (sats % 1 === 0) {
+    return sats.toString();
+  }
+  return sats.toFixed(2);
+}
+
+// Helper function to generate track URL for Helipad boosts
+function generateHelipadTrackUrl(podcast: string | undefined, episode: string | undefined): string | undefined {
+  if (!podcast) return undefined;
+  
+  const baseUrl = 'https://itdv.podtards.com';
+  
+  // Create album slug from podcast name
+  const albumSlug = podcast
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  
+  let url = `${baseUrl}/album/${albumSlug}`;
+  
+  // Add episode as hash if available and different from podcast
+  if (episode && episode !== podcast) {
+    const trackSlug = episode
+      .toLowerCase()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    url += `#${trackSlug}`;
+  }
+  
+  return url;
+}
+
 // Fetch Helipad boosts from our webhook storage
 async function fetchHelipadBoosts(): Promise<ParsedBoost[]> {
   try {
@@ -340,21 +381,32 @@ async function fetchHelipadBoosts(): Promise<ParsedBoost[]> {
       
       if (!boostMap.has(boostKey)) {
         // First split for this boost - create entry
+        const podcast = typeof boost.podcast === 'string' ? boost.podcast : (boost.podcast?.title || boost.remote_podcast || '');
+        const episode = typeof boost.episode === 'string' ? boost.episode : (boost.episode?.title || boost.remote_episode || '');
+        const sender = typeof boost.sender === 'string' ? boost.sender : (boost.sender?.name || 'Helipad User');
+        
+        // Convert millisats to sats
+        const amountInSats = convertMsatsToSats(boost.value_msat_total || boost.value_msat);
+        
+        // Generate track URL
+        const trackUrl = generateHelipadTrackUrl(podcast, episode);
+        
         const parsedBoost = {
           id: `helipad-${boostKey}`,
-          author: typeof boost.sender === 'string' ? boost.sender : (boost.sender?.name || 'Helipad User'),
+          author: sender,
           authorNpub: '',
-          authorName: typeof boost.sender === 'string' ? boost.sender : (boost.sender?.name || 'Helipad User'),
+          authorName: sender,
           content: boost.message || '',
-          userMessage: boost.message,
-          // Use value_msat_total if available, otherwise use value_msat
-          amount: boost.value_msat_total ? boost.value_msat_total.toString() : (boost.value_msat ? boost.value_msat.toString() : (boost.amount?.toString() || '')),
-          trackTitle: typeof boost.podcast === 'string' ? boost.podcast : (boost.podcast?.title || boost.remote_podcast || ''),
-          trackArtist: typeof boost.podcast === 'string' ? boost.podcast : (boost.podcast?.title || boost.remote_podcast || ''),
-          trackAlbum: typeof boost.episode === 'string' ? boost.episode : (boost.episode?.title || boost.remote_episode || ''),
+          userMessage: boost.message || undefined,
+          // Convert millisats to sats
+          amount: amountInSats,
+          trackTitle: episode || podcast,
+          trackArtist: podcast,
+          // Use sender name for "Sent by:" field instead of episode
+          trackAlbum: sender,
           timestamp: boost.time || Math.floor(boost.timestamp / 1000),
           tags: [['t', 'helipad'], ['t', 'boost']],
-          url: undefined,
+          url: trackUrl,
           replies: [],
           isFromApp: false,
           isFromHelipad: true,
@@ -373,11 +425,12 @@ async function fetchHelipadBoosts(): Promise<ParsedBoost[]> {
         
         // If we don't have value_msat_total, sum up the splits
         if (!existing.valueMsatTotal && boost.value_msat) {
-          const currentAmount = parseInt(existing.amount || '0', 10);
-          const splitAmount = boost.value_msat;
-          existing.amount = (currentAmount + splitAmount).toString();
-          existing.valueMsat = (existing.valueMsat || 0) + splitAmount;
-          console.log(`💰 Aggregated amount: ${existing.amount}`);
+          // Sum millisats first, then convert to sats
+          const totalMsats = (existing.valueMsat || 0) + boost.value_msat;
+          existing.valueMsat = totalMsats;
+          // Convert total millisats to sats
+          existing.amount = convertMsatsToSats(totalMsats);
+          console.log(`💰 Aggregated amount: ${existing.amount} sats (${totalMsats} msats)`);
         }
         // Use the most recent timestamp
         const boostTimestamp = boost.time || Math.floor(boost.timestamp / 1000);
@@ -940,12 +993,20 @@ export default function BoostsPage() {
     let sats = 0;
     const amount = boost.amount;
 
-    if (amount.endsWith('M')) {
-      sats = parseFloat(amount.slice(0, -1)) * 1000000;
-    } else if (amount.endsWith('k') || amount.endsWith('K')) {
-      sats = parseFloat(amount.slice(0, -1)) * 1000;
-    } else {
+    // For Helipad boosts, amount is already in sats (converted from millisats)
+    // For Nostr boosts, parse the amount string which may have "M" or "k" suffixes
+    if (boost.isFromHelipad || boost.platform === 'helipad') {
+      // Helipad boosts are already converted to sats, just parse as number
       sats = parseFloat(amount);
+    } else {
+      // Nostr boosts may have suffixes like "M" or "k"
+      if (amount.endsWith('M')) {
+        sats = parseFloat(amount.slice(0, -1)) * 1000000;
+      } else if (amount.endsWith('k') || amount.endsWith('K')) {
+        sats = parseFloat(amount.slice(0, -1)) * 1000;
+      } else {
+        sats = parseFloat(amount);
+      }
     }
 
     // Debug: Log unusual amounts for verification
@@ -1132,25 +1193,30 @@ export default function BoostsPage() {
                           🎧 Listen
                         </a>
                       )}
-                      <a
-                        href={`https://primal.net/e/${boost.id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-purple-400 hover:text-purple-300 transition text-sm py-1"
-                      >
-                        View on Nostr
-                      </a>
-                      <a
-                        href={`https://primal.net/p/${boost.author}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-400 hover:text-blue-300 transition text-sm py-1"
-                      >
-                        Profile
-                      </a>
+                      {/* Only show Nostr links for Nostr boosts, not Helipad boosts */}
+                      {!(boost.isFromHelipad || boost.platform === 'helipad') && (
+                        <>
+                          <a
+                            href={`https://primal.net/e/${boost.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-purple-400 hover:text-purple-300 transition text-sm py-1"
+                          >
+                            View on Nostr
+                          </a>
+                          <a
+                            href={`https://primal.net/p/${boost.author}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-400 hover:text-blue-300 transition text-sm py-1"
+                          >
+                            Profile
+                          </a>
+                        </>
+                      )}
 
-                      {/* Show replies button if there are replies */}
-                      {boost.replies && boost.replies.length > 0 && (
+                      {/* Show replies button if there are replies (only for Nostr boosts) */}
+                      {!(boost.isFromHelipad || boost.platform === 'helipad') && boost.replies && boost.replies.length > 0 && (
                         <button
                           onClick={() => toggleBoostExpansion(boost.id)}
                           className="text-gray-400 hover:text-gray-300 transition flex items-center gap-1 text-sm py-1"
@@ -1189,8 +1255,8 @@ export default function BoostsPage() {
                   </div>
                 </div>
 
-                {/* Threaded Replies Section */}
-                {boost.replies && boost.replies.length > 0 && expandedBoosts.has(boost.id) && (
+                {/* Threaded Replies Section - Only show for Nostr boosts, not Helipad boosts */}
+                {!(boost.isFromHelipad || boost.platform === 'helipad') && boost.replies && boost.replies.length > 0 && expandedBoosts.has(boost.id) && (
                   <div className="mt-4 border-l-2 border-gray-700 pl-4">
                     <div className="text-sm text-gray-400 font-semibold mb-3">
                       Replies ({boost.replies.length}):
