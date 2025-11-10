@@ -1175,7 +1175,7 @@ export function BitcoinConnectPayment({
         key={`boost-button-${renderKey}-${isConnected}`}
         onClick={handlePayment}
         disabled={loading || !isConnected}
-        className={`flex items-center gap-2 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-600 disabled:text-gray-400 text-black font-semibold rounded-lg transition-colors ${className}`}
+        className={`flex items-center gap-2 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-600 disabled:text-gray-400 text-black font-semibold rounded-lg transition-colors touch-manipulation min-w-[44px] min-h-[44px] ${className}`}
       >
         {loading ? (
           <Loader2 className="w-4 h-4 animate-spin" />
