@@ -1437,15 +1437,15 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
 
         {/* Video Player Section */}
         {playingVideoTrack && playingVideoTrack.videoUrl && (
-          <div ref={videoPlayerRef} className="container mx-auto px-4 pb-8">
+          <div ref={videoPlayerRef} className="container mx-auto px-2 sm:px-4 pb-24 sm:pb-8">
             <div className="max-w-4xl mx-auto">
               <div className="bg-black/70 backdrop-blur-sm rounded-xl border border-white/20 overflow-hidden">
-                <div className="p-6 border-b border-white/10 flex items-center justify-between">
-                  <div>
-                    <h2 className="text-2xl font-bold text-shadow">Video Player</h2>
-                    <p className="text-sm text-gray-300 mt-1">{playingVideoTrack.title}</p>
+                <div className="p-3 sm:p-6 border-b border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-lg sm:text-2xl font-bold text-shadow">Video Player</h2>
+                    <p className="text-xs sm:text-sm text-gray-300 mt-1 truncate">{playingVideoTrack.title}</p>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
                     {/* Video Boost Button */}
                     {isLightningEnabled && (
                       <button
@@ -1453,7 +1453,7 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
                           setSelectedTrack(playingVideoTrack);
                           setShowTrackBoostModal(true);
                         }}
-                        className="inline-flex items-center gap-2 bg-gradient-to-r from-yellow-500 to-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:from-yellow-400 hover:to-orange-500 hover:shadow-lg transform hover:scale-105 active:scale-95"
+                        className="inline-flex items-center gap-1 sm:gap-2 bg-gradient-to-r from-yellow-500 to-orange-600 text-white px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 hover:from-yellow-400 hover:to-orange-500 hover:shadow-lg transform hover:scale-105 active:scale-95 touch-manipulation min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0"
                         title="Boost this video"
                       >
                         <Zap className="w-4 h-4" />
@@ -1465,7 +1465,7 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
                         pauseVideo();
                         setPlayingVideoTrack(null);
                       }}
-                      className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                      className="p-2 sm:p-2 hover:bg-white/10 rounded-lg transition-colors touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center"
                       title="Close video player"
                     >
                       <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1474,7 +1474,7 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
                     </button>
                   </div>
                 </div>
-                <div className="p-6">
+                <div className="p-2 sm:p-6">
                   <VideoPlayer
                     videoUrl={playingVideoTrack.videoUrl}
                     startTime={playingVideoTrack.startTime} // Chapter start time in seconds
