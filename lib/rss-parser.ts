@@ -1229,7 +1229,7 @@ export class RSSParser {
           // Remove videoUrl from audio tracks (tracks with url)
           // Keep videoUrl only for chapter tracks (tracks with startTime/endTime)
           if (track.url && track.videoUrl && !track.startTime && !track.endTime) {
-            track.videoUrl = undefined;
+            delete track.videoUrl; // Use delete to actually remove the property
             verboseLog(`📺 Removed videoUrl from audio track: "${track.title}"`);
           }
         });
