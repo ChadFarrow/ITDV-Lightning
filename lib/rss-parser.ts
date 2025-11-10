@@ -1217,6 +1217,19 @@ export class RSSParser {
         }
       }
       
+      // For Autumn Rust with chapters, remove videoUrl from audio tracks
+      // Only the chapter track should have videoUrl, not the audio tracks
+      if (title.toLowerCase().includes('autumn rust') && hasChapters) {
+        tracks.forEach((track: RSSTrack) => {
+          // Remove videoUrl from audio tracks (tracks with url)
+          // Keep videoUrl only for chapter tracks (tracks with startTime/endTime)
+          if (track.url && track.videoUrl && !track.startTime && !track.endTime) {
+            track.videoUrl = undefined;
+            verboseLog(`📺 Removed videoUrl from audio track: "${track.title}"`);
+          }
+        });
+      }
+      
       // Apply track filter if specified
       // Video-only tracks (with videoUrl but no url) should always be included regardless of filter
       let filteredTracks = trackFilter
