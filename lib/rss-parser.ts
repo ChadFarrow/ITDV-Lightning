@@ -1152,28 +1152,18 @@ export class RSSParser {
           })
         : tracks;
       
-      // Filter out video tracks except CityBeach chapter track and CityBeach [Raw Set]
+      // Keep all video tracks and CityBeach audio tracks
       // Keep:
-      // - CityBeach chapter track (video with startTime/endTime)
-      // - CityBeach [Raw Set] video track
-      // - All CityBeach audio tracks (like "CityBeach - 'This Feels So Emotional'")
+      // - All video tracks (videos with videoUrl)
+      // - All CityBeach audio tracks (non-video tracks with "CityBeach" in title)
       // Remove:
-      // - "Sprouting Symphonies" main video
-      // - All other "[Raw Set]" video tracks (except CityBeach [Raw Set])
-      // - All non-CityBeach audio tracks
+      // - All non-CityBeach audio tracks (to keep only CityBeach audio and all videos)
       filteredTracks = filteredTracks.filter((track: RSSTrack) => {
         const titleLower = track.title.toLowerCase();
         
-        // Keep only CityBeach chapter track (has startTime/endTime)
-        if (track.videoUrl && track.startTime !== undefined && track.endTime !== undefined) {
-          if (titleLower.includes('citybeach')) {
-            return true; // Keep CityBeach chapter track
-          }
-        }
-        
-        // Keep CityBeach [Raw Set] video track
-        if (track.videoUrl && track.startTime === undefined && titleLower.includes('citybeach') && titleLower.includes('raw set')) {
-          return true; // Keep CityBeach [Raw Set] video track
+        // Keep all video tracks (any track with videoUrl)
+        if (track.videoUrl) {
+          return true; // Keep all video tracks
         }
         
         // Keep all CityBeach audio tracks (non-video tracks with "CityBeach" in title)
@@ -1185,12 +1175,6 @@ export class RSSParser {
           return false;
         }
         
-        // Explicitly remove "Sprouting Symphonies" main video
-        if (titleLower.includes('sprouting symphonies') && track.startTime === undefined) {
-          return false; // Remove main "Sprouting Symphonies" video
-        }
-        
-        // Remove all other video tracks (main video and other RAW sets)
         return false;
       });
       

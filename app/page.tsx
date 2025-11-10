@@ -6,11 +6,12 @@ import Link from 'next/link';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { getVersionString } from '@/lib/version';
 import { useAudio } from '@/contexts/AudioContext';
+import { useVideo } from '@/contexts/VideoContext';
 import { useLightning } from '@/contexts/LightningContext';
 import { toast } from '@/components/Toast';
 import { preloadCriticalColors } from '@/lib/performance-utils';
 import dynamic from 'next/dynamic';
-import { Zap } from 'lucide-react';
+import { Zap, Video, Play } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { isLightningEnabled } from '@/lib/feature-flags';
 
@@ -58,6 +59,8 @@ interface Track {
   image?: string;
   value?: any; // Track-level podcast:value data
   paymentRecipients?: Array<{ address: string; split: number; name?: string; fee?: boolean }>; // Pre-processed track payment recipients
+  startTime?: number; // Chapter/segment start time in seconds
+  endTime?: number; // Chapter/segment end time in seconds
   // Podcast GUIDs for Nostr boost tagging
   guid?: string; // Standard item GUID
   podcastGuid?: string; // podcast:guid at item level
@@ -122,8 +125,9 @@ export default function HomePage() {
   const [senderName, setSenderName] = useState('');
   const [boostMessage, setBoostMessage] = useState('');
   
-  // Global audio context
-  const { playAlbumAndOpenNowPlaying: globalPlayAlbum, toggleShuffle } = useAudio();
+  // Global audio and video context
+  const { playAlbumAndOpenNowPlaying: globalPlayAlbum, toggleShuffle, pause: globalPause, isPlaying: globalIsPlaying } = useAudio();
+  const { playVideo: globalPlayVideo } = useVideo();
   const hasLoadedRef = useRef(false);
   
   // Handle boost button click from album card
@@ -562,6 +566,31 @@ export default function HomePage() {
     }
   };
 
+  // Helper function to get all video tracks
+  const getAllVideoTracks = useCallback(() => {
+    const videoTracks: Array<Track & { album: Album }> = [];
+    
+    albums.forEach(album => {
+      if (album.title === 'LNURL Testing Podcast') return;
+      
+      album.tracks.forEach(track => {
+        if (track.videoUrl) {
+          videoTracks.push({
+            ...track,
+            album: album
+          });
+        }
+      });
+    });
+    
+    // Sort by album title, then by track number
+    return videoTracks.sort((a, b) => {
+      const albumCompare = a.album.title.localeCompare(b.album.title);
+      if (albumCompare !== 0) return albumCompare;
+      return a.trackNumber - b.trackNumber;
+    });
+  }, [albums]);
+
   // Helper functions for filtering and sorting
   const getFilteredAlbums = () => {
     // Filter out LNURL Testing Podcast from main page display (accessible via sidebar)
@@ -622,8 +651,8 @@ export default function HomePage() {
         filtered = albumsToUse.filter(album => album.tracks.length === 1);
         break;
       case 'video':
-        filtered = albumsToUse.filter(album => album.tracks.some(track => track.videoUrl));
-        break;
+        // For video filter, return empty array - we'll show videos separately
+        return [];
       case 'publishers':
         // For publishers filter, we'll show publishers instead of albums
         return publishers;
@@ -636,6 +665,51 @@ export default function HomePage() {
   };
 
   const filteredAlbums = getFilteredAlbums();
+  const videoTracks = activeFilter === 'video' ? getAllVideoTracks() : [];
+
+  // Handle video play
+  const handlePlayVideo = (track: Track & { album: Album }) => {
+    if (!track.videoUrl) return;
+    
+    // Pause audio if playing
+    if (globalIsPlaying) {
+      globalPause();
+    }
+    
+    // Play video
+    globalPlayVideo({
+      title: track.title,
+      duration: track.duration,
+      videoUrl: track.videoUrl,
+      trackNumber: track.trackNumber,
+      image: track.image || track.album.coverArt,
+      artist: track.album.artist,
+      album: track.album.title,
+      startTime: track.startTime,
+      endTime: track.endTime,
+      value: track.value,
+      guid: track.guid,
+      podcastGuid: track.podcastGuid,
+      feedGuid: track.feedGuid,
+      feedUrl: track.feedUrl,
+      publisherGuid: track.publisherGuid,
+      publisherUrl: track.publisherUrl,
+      imageUrl: track.imageUrl
+    }, track.album.title);
+  };
+
+  const formatDuration = (duration: string): string => {
+    if (!duration) return '0:00';
+    if (duration.includes(':')) return duration;
+    
+    const seconds = parseInt(duration);
+    if (!isNaN(seconds)) {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+    return duration;
+  };
 
 
   return (
@@ -903,7 +977,7 @@ export default function HomePage() {
                 Retry
               </button>
             </div>
-          ) : filteredAlbums.length > 0 ? (
+          ) : (activeFilter === 'video' ? videoTracks.length > 0 : filteredAlbums.length > 0) ? (
             <div className="max-w-7xl mx-auto">
               {/* Controls Bar */}
               <ControlsBar
@@ -915,7 +989,7 @@ export default function HomePage() {
                 onShuffle={handleShuffle}
                 showShuffleAll={true}
                 onShuffleAll={handleShuffleAll}
-                resultCount={filteredAlbums.length}
+                resultCount={activeFilter === 'video' ? videoTracks.length : filteredAlbums.length}
                 resultLabel={activeFilter === 'all' ? 'Releases' : 
                   activeFilter === 'albums' ? 'Albums' :
                   activeFilter === 'eps' ? 'EPs' : 
@@ -926,8 +1000,105 @@ export default function HomePage() {
               />
 
 
-              {/* Albums Display */}
-              {activeFilter === 'publishers' ? (
+              {/* Videos Display */}
+              {activeFilter === 'video' ? (
+                viewType === 'grid' ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+                    {videoTracks.map((track, index) => (
+                      <div
+                        key={`video-${track.album.title}-${track.trackNumber}-${index}`}
+                        className="group relative bg-white/5 backdrop-blur-sm rounded-xl overflow-hidden border border-white/10 hover:border-white/20 transition-all duration-200 cursor-pointer"
+                        onClick={() => handlePlayVideo(track)}
+                      >
+                        {/* Video Thumbnail */}
+                        <div className="relative aspect-square w-full">
+                          <Image
+                            src={track.image || track.album.coverArt}
+                            alt={track.title}
+                            fill
+                            className="object-cover"
+                            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                            priority={index < 8}
+                          />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <div className="bg-white/20 backdrop-blur-sm rounded-full p-3">
+                              <Play className="w-6 h-6 text-white fill-white" />
+                            </div>
+                          </div>
+                          {/* Video Badge */}
+                          <div className="absolute top-2 right-2 bg-purple-500/90 backdrop-blur-sm rounded-full px-2 py-1 flex items-center gap-1">
+                            <Video className="w-3 h-3 text-white" />
+                          </div>
+                        </div>
+
+                        {/* Video Info */}
+                        <div className="p-2 sm:p-3 bg-black/70 backdrop-blur-sm">
+                          <h3 className="font-semibold text-sm sm:text-base truncate mb-1 group-hover:text-blue-400 transition-colors">
+                            {track.title}
+                          </h3>
+                          <p className="text-xs sm:text-sm text-gray-400 truncate">{track.album.artist}</p>
+                          <p className="text-xs text-gray-500 truncate mt-1">{track.album.title}</p>
+                          <div className="flex items-center justify-between mt-2">
+                            <span className="text-xs text-gray-400 font-mono">{formatDuration(track.duration)}</span>
+                            <Link
+                              href={`/album/${encodeURIComponent(track.album.title.toLowerCase().replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, ''))}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                            >
+                              View Album
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {videoTracks.map((track, index) => (
+                      <div
+                        key={`video-${track.album.title}-${track.trackNumber}-${index}`}
+                        className="group flex items-center gap-4 p-4 bg-white/5 backdrop-blur-sm rounded-xl hover:bg-white/10 transition-all duration-200 border border-white/10 hover:border-white/20 cursor-pointer"
+                        onClick={() => handlePlayVideo(track)}
+                      >
+                        <div className="w-16 h-16 relative rounded-lg overflow-hidden flex-shrink-0">
+                          <Image
+                            src={track.image || track.album.coverArt}
+                            alt={track.title}
+                            fill
+                            className="object-cover"
+                            sizes="64px"
+                          />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <Play className="w-4 h-4 text-white fill-white" />
+                          </div>
+                          <div className="absolute top-1 right-1 bg-purple-500/90 backdrop-blur-sm rounded-full p-1">
+                            <Video className="w-2.5 h-2.5 text-white" />
+                          </div>
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-lg group-hover:text-blue-400 transition-colors truncate">
+                            {track.title}
+                          </h3>
+                          <p className="text-sm text-gray-400 truncate">{track.album.artist}</p>
+                          <p className="text-xs text-gray-500 truncate mt-1">{track.album.title}</p>
+                        </div>
+
+                        <div className="flex items-center gap-4 text-sm text-gray-400">
+                          <span className="font-mono">{formatDuration(track.duration)}</span>
+                          <Link
+                            href={`/album/${encodeURIComponent(track.album.title.toLowerCase().replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, ''))}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                          >
+                            View Album
+                          </Link>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
+              ) : activeFilter === 'publishers' ? (
                 // Publishers display
                 <div className="space-y-4">
                   {filteredAlbums.map((publisher: any, index: number) => (
