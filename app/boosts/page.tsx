@@ -298,13 +298,32 @@ function generateHelipadTrackUrl(podcast: string | undefined, episode: string | 
   
   const baseUrl = 'https://itdv.podtards.com';
   
-  // Create album slug from podcast name
-  const albumSlug = podcast
+  // Import the proper slug generation function
+  // Note: We can't import it directly in a client component, so we'll use the same logic
+  // For now, use a simple slug generation that matches the site's pattern
+  // The podcast field might be the artist name, not the album name
+  // Try to map common artist names to album names
+  const artistToAlbumMap: { [key: string]: string } = {
+    'the satellite skirmish': 'the satellite spotlight',
+    'satellite skirmish': 'the satellite spotlight',
+  };
+  
+  // Check if podcast is actually an artist name that needs mapping
+  const podcastLower = podcast.toLowerCase().trim();
+  const albumName = artistToAlbumMap[podcastLower] || podcast;
+  
+  // Create album slug using the same logic as generateAlbumSlug
+  const albumSlug = albumName
     .toLowerCase()
-    .replace(/[^\w\s-]/g, '')
-    .replace(/\s+/g, '-')
+    .trim()
+    .replace(/&/g, 'and')
+    .replace(/\+/g, 'plus')
+    .replace(/@/g, 'at')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, ' ')
+    .replace(/\s/g, '-')
     .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '');
+    .replace(/^-|-$/g, '');
   
   let url = `${baseUrl}/album/${albumSlug}`;
   
@@ -312,7 +331,8 @@ function generateHelipadTrackUrl(podcast: string | undefined, episode: string | 
   if (episode && episode !== podcast) {
     const trackSlug = episode
       .toLowerCase()
-      .replace(/[^\w\s-]/g, '')
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, '')
       .replace(/\s+/g, '-')
       .replace(/-+/g, '-')
       .replace(/^-+|-+$/g, '');
