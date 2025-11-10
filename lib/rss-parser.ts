@@ -1222,7 +1222,9 @@ export class RSSParser {
       
       // For Autumn Rust with chapters, remove videoUrl from audio tracks
       // Only the chapter track should have videoUrl, not the audio tracks
-      if (title.toLowerCase().includes('autumn rust') && hasChapters) {
+      // Check if chapters element exists (hasChapters is a DOM element, so check if it's truthy)
+      const hasChaptersElement = channel.getElementsByTagName('podcast:chapters')[0] || channel.getElementsByTagName('chapters')[0];
+      if (title.toLowerCase().includes('autumn rust') && hasChaptersElement) {
         tracks.forEach((track: RSSTrack) => {
           // Remove videoUrl from audio tracks (tracks with url)
           // Keep videoUrl only for chapter tracks (tracks with startTime/endTime)
