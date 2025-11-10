@@ -1279,16 +1279,27 @@ export default function HomePage() {
             </div>
           ) : (
             <div className="text-center py-12">
-              <h2 className="text-2xl font-semibold mb-4">No Albums Found</h2>
-              <p className="text-gray-400">
-                Unable to load album information from the RSS feeds.
-              </p>
-              <button 
-                onClick={() => loadCriticalAlbums()}
-                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                Retry Loading Albums
-              </button>
+              {activeFilter === 'video' ? (
+                <>
+                  <h2 className="text-2xl font-semibold mb-4">No Videos Found</h2>
+                  <p className="text-gray-400">
+                    There are no videos available on the site at this time.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h2 className="text-2xl font-semibold mb-4">No Albums Found</h2>
+                  <p className="text-gray-400">
+                    Unable to load album information from the RSS feeds.
+                  </p>
+                  <button 
+                    onClick={() => loadCriticalAlbums()}
+                    className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    Retry Loading Albums
+                  </button>
+                </>
+              )}
             </div>
           )}
         </div>
