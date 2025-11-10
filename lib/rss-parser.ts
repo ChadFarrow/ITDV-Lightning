@@ -848,42 +848,6 @@ export class RSSParser {
         }
       }
       
-      // Check if channel-level link is a video URL and create a separate video-only track
-      // This must happen after all tracks are created but before filtering
-      // Skip for Autumn Rust if we have chapters (we'll create chapter tracks instead)
-      const hasChapters = channel.getElementsByTagName('podcast:chapters')[0] || channel.getElementsByTagName('chapters')[0];
-      const shouldCreateFullVideo = !(title.toLowerCase().includes('autumn rust') && hasChapters);
-      
-      if (link && (link.includes('/video') || link.toLowerCase().includes('video')) && shouldCreateFullVideo) {
-        const channelVideoUrl = link;
-        verboseLog(`📺 Found channel-level video URL: ${channelVideoUrl}`);
-        
-        // Create a separate video-only track (no audio URL) for the video tab
-        // This ensures audio tracks stay in the audio tab and only one video appears in the video tab
-        // Match The Satellite Spotlight pattern: use "[Raw Set]" for full video tracks
-        const videoTrackTitle = title.toLowerCase().includes('autumn rust') 
-          ? `${title} [Raw Set]`
-          : `${title} - Full Video`;
-        const videoTrack: RSSTrack = {
-          title: videoTrackTitle,
-          duration: '0:00', // Duration will be determined when video loads
-          videoUrl: channelVideoUrl,
-          trackNumber: tracks.length + 1,
-          image: coverArt || undefined,
-          explicit: false,
-          value: value,
-          paymentRecipients: paymentRecipients,
-          feedGuid: mainFeedGuid,
-          feedUrl: feedUrl,
-          publisherGuid: publisher?.feedGuid,
-          publisherUrl: publisher?.feedUrl,
-          imageUrl: coverArt || undefined
-        };
-        
-        tracks.push(videoTrack);
-        verboseLog(`📺 Created separate video-only track: "${videoTrack.title}"`);
-      }
-      
       // Extract release date
       const pubDateElement = channel.getElementsByTagName('pubDate')[0] || channel.getElementsByTagName('lastBuildDate')[0];
       const releaseDate = pubDateElement?.textContent?.trim() || new Date().toISOString();
@@ -1078,6 +1042,42 @@ export class RSSParser {
         if (paymentRecipients.length > 0) {
           verboseLog(`💰 Processed ${paymentRecipients.length} payment recipients for "${title}"`);
         }
+      }
+
+      // Check if channel-level link is a video URL and create a separate video-only track
+      // This must happen after all tracks are created and after value/paymentRecipients are declared, but before filtering
+      // Skip for Autumn Rust if we have chapters (we'll create chapter tracks instead)
+      const hasChapters = channel.getElementsByTagName('podcast:chapters')[0] || channel.getElementsByTagName('chapters')[0];
+      const shouldCreateFullVideo = !(title.toLowerCase().includes('autumn rust') && hasChapters);
+      
+      if (link && (link.includes('/video') || link.toLowerCase().includes('video')) && shouldCreateFullVideo) {
+        const channelVideoUrl = link;
+        verboseLog(`📺 Found channel-level video URL: ${channelVideoUrl}`);
+        
+        // Create a separate video-only track (no audio URL) for the video tab
+        // This ensures audio tracks stay in the audio tab and only one video appears in the video tab
+        // Match The Satellite Spotlight pattern: use "[Raw Set]" for full video tracks
+        const videoTrackTitle = title.toLowerCase().includes('autumn rust') 
+          ? `${title} [Raw Set]`
+          : `${title} - Full Video`;
+        const videoTrack: RSSTrack = {
+          title: videoTrackTitle,
+          duration: '0:00', // Duration will be determined when video loads
+          videoUrl: channelVideoUrl,
+          trackNumber: tracks.length + 1,
+          image: coverArt || undefined,
+          explicit: false,
+          value: value,
+          paymentRecipients: paymentRecipients,
+          feedGuid: mainFeedGuid,
+          feedUrl: feedUrl,
+          publisherGuid: publisher?.feedGuid,
+          publisherUrl: publisher?.feedUrl,
+          imageUrl: coverArt || undefined
+        };
+        
+        tracks.push(videoTrack);
+        verboseLog(`📺 Created separate video-only track: "${videoTrack.title}"`);
       }
 
       // Check for chapters at channel level and match to video items
