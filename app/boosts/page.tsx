@@ -31,6 +31,7 @@ interface ParsedBoost {
   valueMsat?: number;
   valueMsatTotal?: number;
   app?: string;  // App name that sent the boost (for Helipad boosts)
+  action?: number;  // Helipad action field (indicates stream vs boost)
 }
 
 interface ParsedReply {
@@ -293,6 +294,15 @@ function convertMsatsToSats(msats: number | undefined | null): string {
   return sats.toFixed(2);
 }
 
+// Helper function to detect if action is stream or boost
+// Based on Helipad documentation: action values indicate the type
+// Common values: 1 = boost, 2 = stream (may vary - adjust as needed)
+function isStreamAction(action: number | undefined | null): boolean {
+  if (action === undefined || action === null) return false;
+  // Assuming action === 2 indicates stream (adjust based on actual Helipad values)
+  return action === 2;
+}
+
 // Helper function to generate track URL for Helipad boosts
 function generateHelipadTrackUrl(podcast: string | undefined, episode: string | undefined): string | undefined {
   if (!podcast) return undefined;
@@ -436,7 +446,8 @@ async function fetchHelipadBoosts(): Promise<ParsedBoost[]> {
           helipadUuid: boost.uuid,
           valueMsat: boost.value_msat,
           valueMsatTotal: boost.value_msat_total,
-          app: boost.app || undefined  // App name that sent the boost
+          app: boost.app || undefined,  // App name that sent the boost
+          action: boost.action || undefined  // Helipad action field (indicates stream vs boost)
         };
         boostMap.set(boostKey, parsedBoost);
         console.log(`✅ Created new boost entry: ${boostKey}`);
@@ -444,6 +455,11 @@ async function fetchHelipadBoosts(): Promise<ParsedBoost[]> {
         // Additional split for same boost - aggregate amounts
         const existing = boostMap.get(boostKey)!;
         console.log(`🔄 Merging split into existing boost: ${boostKey}, existing amount: ${existing.amount}, new split: ${boost.value_msat}`);
+        
+        // Preserve action field if not already set
+        if (existing.action === undefined && boost.action !== undefined) {
+          existing.action = boost.action;
+        }
         
         // If we don't have value_msat_total, sum up the splits
         if (!existing.valueMsatTotal && boost.value_msat) {
@@ -1005,30 +1021,86 @@ export default function BoostsPage() {
         
         if (helipadBoosts.length > 0) {
           setBoosts(prev => {
+            // Create a map of existing boosts by Helipad key for quick lookup
+            const existingBoostsMap = new Map<string, ParsedBoost>();
+            prev
+              .filter(b => b.isFromHelipad || b.platform === 'helipad')
+              .forEach(b => {
+                const key = `${b.helipadIndex || b.helipadUuid || b.id}-${b.trackTitle || ''}-${b.trackArtist || ''}-${b.userMessage || ''}`.toLowerCase();
+                existingBoostsMap.set(key, b);
+              });
+            
             // Get existing boost IDs to check for duplicates
             const existingIds = new Set(prev.map(b => b.id));
-            const existingHelipadKeys = new Set(
-              prev
-                .filter(b => b.isFromHelipad || b.platform === 'helipad')
-                .map(b => `${b.helipadIndex || b.helipadUuid || b.id}-${b.trackTitle || ''}-${b.trackArtist || ''}-${b.userMessage || ''}`.toLowerCase())
-            );
             
-            // Filter out boosts that already exist
-            const newBoosts = helipadBoosts.filter(boost => {
+            const newBoosts: ParsedBoost[] = [];
+            const updatedBoosts: ParsedBoost[] = [];
+            
+            // Process each fetched boost
+            for (const boost of helipadBoosts) {
               // Check by ID first
               if (existingIds.has(boost.id)) {
-                return false;
+                // Boost exists - check if it's a streaming boost that needs updating
+                const existingBoost = prev.find(b => b.id === boost.id);
+                if (existingBoost && isStreamAction(existingBoost.action)) {
+                  // Streaming boost - check if amount has changed
+                  const existingAmount = parseFloat(existingBoost.amount || '0');
+                  const newAmount = parseFloat(boost.amount || '0');
+                  
+                  if (newAmount > existingAmount) {
+                    // Amount increased (new splits arrived) - update the boost
+                    console.log(`💰 Updating streaming boost ${boost.id}: ${existingAmount} -> ${newAmount} sats`);
+                    updatedBoosts.push(boost);
+                  }
+                }
+                continue;
               }
               
               // Check by Helipad-specific key (index/uuid + content)
               const boostKey = `${boost.helipadIndex || boost.helipadUuid || boost.id}-${boost.trackTitle || ''}-${boost.trackArtist || ''}-${boost.userMessage || ''}`.toLowerCase();
-              if (existingHelipadKeys.has(boostKey)) {
-                return false;
+              const existingBoost = existingBoostsMap.get(boostKey);
+              
+              if (existingBoost) {
+                // Boost exists - check if it's a streaming boost that needs updating
+                if (isStreamAction(existingBoost.action)) {
+                  // Streaming boost - check if amount has changed
+                  const existingAmount = parseFloat(existingBoost.amount || '0');
+                  const newAmount = parseFloat(boost.amount || '0');
+                  
+                  if (newAmount > existingAmount) {
+                    // Amount increased (new splits arrived) - update the boost
+                    console.log(`💰 Updating streaming boost ${boostKey}: ${existingAmount} -> ${newAmount} sats`);
+                    updatedBoosts.push(boost);
+                  }
+                }
+                continue;
               }
               
-              return true;
-            });
+              // New boost - add it
+              newBoosts.push(boost);
+            }
             
+            // Update existing boosts with new amounts
+            if (updatedBoosts.length > 0) {
+              console.log(`✅ Updating ${updatedBoosts.length} streaming boost(s) with new amounts`);
+              const updated = prev.map(existingBoost => {
+                const updatedBoost = updatedBoosts.find(ub => 
+                  ub.id === existingBoost.id || 
+                  (ub.helipadIndex === existingBoost.helipadIndex && ub.helipadUuid === existingBoost.helipadUuid)
+                );
+                if (updatedBoost) {
+                  return { ...existingBoost, amount: updatedBoost.amount, valueMsatTotal: updatedBoost.valueMsatTotal };
+                }
+                return existingBoost;
+              });
+              
+              // Add new boosts and sort
+              const allBoosts = [...newBoosts, ...updated];
+              const uniqueBoosts = deduplicateBoosts(allBoosts);
+              return uniqueBoosts.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+            }
+            
+            // Only new boosts, no updates
             if (newBoosts.length > 0) {
               console.log(`✅ Found ${newBoosts.length} new Helipad boost(s)`);
               // Merge new boosts with existing ones and sort by timestamp
@@ -1334,6 +1406,19 @@ export default function BoostsPage() {
               <span className="bg-gray-700/50 text-gray-300 px-2 py-1 rounded text-xs font-medium">
                 📱 {boost.app}
               </span>
+            )}
+            {boost.action !== undefined && boost.action !== null && (
+              <>
+                {isStreamAction(boost.action) ? (
+                  <span className="bg-purple-500/20 text-purple-400 px-2 py-1 rounded text-xs font-medium">
+                    🌊 Stream
+                  </span>
+                ) : (
+                  <span className="bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded text-xs font-medium">
+                    ⚡ Boost
+                  </span>
+                )}
+              </>
             )}
           </>
         )}
