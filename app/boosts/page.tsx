@@ -1211,7 +1211,7 @@ export default function BoostsPage() {
           </div>
           <div className="text-center mb-6">
             <h1 className="text-4xl font-bold bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
-              ⚡ Boosts
+              Doerfel-Pad
             </h1>
           </div>
           <div className="flex justify-between items-start">
