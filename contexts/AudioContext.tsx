@@ -123,6 +123,12 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     audioRef.current = new Audio();
     const audio = audioRef.current;
 
+    // Set iOS-specific attributes for background playback
+    audio.setAttribute('playsinline', 'true');
+    audio.setAttribute('webkit-playsinline', 'true');
+    audio.setAttribute('preload', 'auto');
+    audio.setAttribute('crossorigin', 'anonymous');
+
     const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
     const handleDurationChange = () => setDuration(audio.duration);
     const handleLoadStart = () => setCurrentTime(0);
@@ -245,7 +251,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  const nextTrack = useCallback(() => {
+  const nextTrack = useCallback((forcePlay: boolean = false) => {
     if (playlist.length === 0) return;
 
     let nextIndex: number;
@@ -269,8 +275,10 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (audioRef.current) {
       audioRef.current.src = nextTrack.url;
       audioRef.current.load();
-      if (isPlaying) {
-        audioRef.current.play().catch(error => {
+      // Always try to play if forcePlay is true (from ended handler) or if currently playing
+      if (forcePlay || isPlaying) {
+        // Use a small delay to ensure the audio element is ready, especially on iOS
+        const playPromise = audioRef.current.play().catch(error => {
           // Silently handle expected audio loading errors (user navigation, network issues, etc.)
           if (error.name === 'AbortError' || error.message.includes('aborted')) {
             console.log('Audio loading was cancelled (expected behavior)');
@@ -278,6 +286,15 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             console.warn('Audio playback error:', error);
           }
         });
+        
+        // Update playing state after play promise resolves
+        if (forcePlay || isPlaying) {
+          playPromise.then(() => {
+            setIsPlaying(true);
+          }).catch(() => {
+            // If play fails, don't update state
+          });
+        }
       }
     }
 
@@ -291,6 +308,11 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           { src: nextTrack.image, sizes: '512x512', type: 'image/png' }
         ] : []
       });
+      
+      // Set playback state to playing when transitioning tracks
+      if (forcePlay || isPlaying) {
+        navigator.mediaSession.playbackState = 'playing';
+      }
     }
   }, [playlist, currentTrackIndex, isShuffling, isPlaying, currentAlbum]);
 
@@ -463,9 +485,22 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       
       if (isRepeating) {
         audio.currentTime = 0;
-        audio.play();
+        // Always try to play when repeating, even on iOS when locked
+        const playPromise = audio.play().catch(error => {
+          if (error.name === 'AbortError' || error.message.includes('aborted')) {
+            console.log('Audio loading was cancelled (expected behavior)');
+          } else {
+            console.warn('Audio playback error on repeat:', error);
+          }
+        });
+        playPromise.then(() => {
+          setIsPlaying(true);
+        }).catch(() => {
+          // If play fails, don't update state
+        });
       } else {
-        nextTrack();
+        // Force play the next track when current track ends (important for iOS locked screen)
+        nextTrack(true);
       }
     };
 
@@ -519,10 +554,16 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Media Session API handlers - after all functions are declared
   useEffect(() => {
     if ('mediaSession' in navigator) {
-      navigator.mediaSession.setActionHandler('play', () => resume());
-      navigator.mediaSession.setActionHandler('pause', () => pause());
+      navigator.mediaSession.setActionHandler('play', () => {
+        resume();
+        navigator.mediaSession.playbackState = 'playing';
+      });
+      navigator.mediaSession.setActionHandler('pause', () => {
+        pause();
+        navigator.mediaSession.playbackState = 'paused';
+      });
       navigator.mediaSession.setActionHandler('previoustrack', () => previousTrack());
-      navigator.mediaSession.setActionHandler('nexttrack', () => nextTrack());
+      navigator.mediaSession.setActionHandler('nexttrack', () => nextTrack(true));
       navigator.mediaSession.setActionHandler('seekto', (details) => {
         if (details.seekTime !== undefined) {
           seekTo(details.seekTime);
@@ -530,6 +571,13 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       });
     }
   }, [resume, pause, previousTrack, nextTrack, seekTo]);
+  
+  // Update Media Session playback state when isPlaying changes
+  useEffect(() => {
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+    }
+  }, [isPlaying]);
 
   const value: AudioContextType = {
     currentTrack,
