@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, Suspense, lazy, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { getVersionString } from '@/lib/version';
 import { useAudio } from '@/contexts/AudioContext';
@@ -970,68 +971,78 @@ export default function HomePage() {
             <h2 className="text-lg font-bold mb-4">Menu</h2>
             
             <div className="mb-4 space-y-1">
-              <Link 
-                href="/lightning-guide" 
-                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors"
+              <a
+                href="/lightning-guide"
+                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer"
                 onClick={(e) => {
+                  e.preventDefault();
                   e.stopPropagation();
                   setIsSidebarOpen(false);
+                  router.push('/lightning-guide');
                 }}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
                 <span className="text-sm">Lightning Payments</span>
-              </Link>
+              </a>
               
-              <Link 
-                href="/music-guide" 
-                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors"
+              <a
+                href="/music-guide"
+                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer"
                 onClick={(e) => {
+                  e.preventDefault();
                   e.stopPropagation();
                   setIsSidebarOpen(false);
+                  router.push('/music-guide');
                 }}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
                 </svg>
                 <span className="text-sm">Music Streaming</span>
-              </Link>
+              </a>
               
-              <Link 
-                href="/rss-guide" 
-                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors"
+              <a
+                href="/rss-guide"
+                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer"
                 onClick={(e) => {
+                  e.preventDefault();
                   e.stopPropagation();
                   setIsSidebarOpen(false);
+                  router.push('/rss-guide');
                 }}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
                 </svg>
                 <span className="text-sm">RSS & Podcasting 2.0</span>
-              </Link>
+              </a>
               
-              <Link 
-                href="/about" 
-                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors"
+              <a
+                href="/about"
+                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer"
                 onClick={(e) => {
+                  e.preventDefault();
                   e.stopPropagation();
                   setIsSidebarOpen(false);
+                  router.push('/about');
                 }}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <span className="text-sm">About & Support</span>
-              </Link>
+              </a>
               
-              <Link  
-                href="/admin/feeds" 
-                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors"
+              <a
+                href="/admin/feeds"
+                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer"
                 onClick={(e) => {
+                  e.preventDefault();
                   e.stopPropagation();
                   setIsSidebarOpen(false);
+                  router.push('/admin/feeds');
                 }}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1039,35 +1050,39 @@ export default function HomePage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
                 <span className="text-sm">Admin Panel</span>
-              </Link>
+              </a>
               
-              <Link
+              <a
                 href="/album/lnurl-testing-podcast"
-                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors"
+                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer"
                 onClick={(e) => {
+                  e.preventDefault();
                   e.stopPropagation();
                   setIsSidebarOpen(false);
+                  router.push('/album/lnurl-testing-podcast');
                 }}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
                 <span className="text-sm">LNURL Testing Podcast</span>
-              </Link>
+              </a>
 
-              <Link
+              <a
                 href="/boosts"
-                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors"
+                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer"
                 onClick={(e) => {
+                  e.preventDefault();
                   e.stopPropagation();
                   setIsSidebarOpen(false);
+                  router.push('/boosts');
                 }}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
                 <span className="text-sm">⚡ Boosts</span>
-              </Link>
+              </a>
             </div>
             
             {/* Lightning Toggle - moved up to avoid being hidden by now playing bar */}
@@ -1088,7 +1103,12 @@ export default function HomePage() {
         {isSidebarOpen && (
           <div 
             className="fixed inset-0 bg-black/50 z-20" 
-            onClick={() => setIsSidebarOpen(false)}
+            onClick={(e) => {
+              // Only close if clicking directly on the overlay, not on sidebar content
+              if (e.target === e.currentTarget) {
+                setIsSidebarOpen(false);
+              }
+            }}
           />
         )}
         
