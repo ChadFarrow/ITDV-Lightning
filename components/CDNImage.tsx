@@ -78,11 +78,35 @@ export default function CDNImage({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Preload priority GIFs immediately
+  useEffect(() => {
+    if (isGif && priority && isClient) {
+      // Preload priority GIFs immediately - use src directly for preload
+      const preloadLink = document.createElement('link');
+      preloadLink.rel = 'preload';
+      preloadLink.as = 'image';
+      preloadLink.href = src;
+      document.head.appendChild(preloadLink);
+      setShowGif(true);
+      return () => {
+        // Only remove if it still exists
+        const existingLink = document.head.querySelector(`link[href="${src}"]`);
+        if (existingLink) {
+          document.head.removeChild(existingLink);
+        }
+      };
+    }
+  }, [isGif, priority, isClient, src]);
+
   // Intersection Observer for GIF lazy loading
   useEffect(() => {
     if (!isGif || !isClient || priority) {
-      setShowGif(true);
-      return;
+      if (!priority) {
+        // For non-priority GIFs, still use lazy loading
+      } else {
+        // Priority GIFs are handled by preload effect above
+        return;
+      }
     }
 
     const observer = new IntersectionObserver(
@@ -95,7 +119,7 @@ export default function CDNImage({
         });
       },
       {
-        rootMargin: '50px', // Start loading 50px before the image is visible
+        rootMargin: priority ? '200px' : '100px', // Start loading earlier for priority images (above the fold)
         threshold: 0.1
       }
     );

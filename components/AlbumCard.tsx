@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Play, Pause, Music, Zap, Video } from 'lucide-react';
 import type { RSSValue, RSSValueRecipient } from '@/lib/rss-parser';
 import { useLightning } from '@/contexts/LightningContext';
+import CDNImage from '@/components/CDNImage';
 
 interface Track {
   title: string;
@@ -155,19 +156,40 @@ function AlbumCard({ album, isPlaying = false, onPlay, onBoostClick, className =
           }
         }}
       >
-        <Image
-          src={album.coverArt}
-          alt={`${album.title} by ${album.artist}`}
-          fill
-          className={`object-cover transition-opacity duration-300 ${
-            imageLoaded ? 'opacity-100' : 'opacity-0'
-          }`}
-          onLoad={handleImageLoad}
-          onError={handleImageError}
-          priority={priority}
-          quality={85}
-          sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 20vw"
-        />
+        {album.coverArt.toLowerCase().includes('.gif') ? (
+          // Use CDNImage for GIFs with optimized loading
+          <div className="absolute inset-0">
+            <CDNImage
+              src={album.coverArt}
+              alt={`${album.title} by ${album.artist}`}
+              width={400}
+              height={400}
+              className={`w-full h-full object-cover transition-opacity duration-300 ${
+                imageLoaded ? 'opacity-100' : 'opacity-0'
+              }`}
+              onLoad={handleImageLoad}
+              onError={handleImageError}
+              priority={priority}
+              quality={85}
+              sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 20vw"
+            />
+          </div>
+        ) : (
+          // Use regular Image for non-GIF images
+          <Image
+            src={album.coverArt}
+            alt={`${album.title} by ${album.artist}`}
+            fill
+            className={`object-cover transition-opacity duration-300 ${
+              imageLoaded ? 'opacity-100' : 'opacity-0'
+            }`}
+            onLoad={handleImageLoad}
+            onError={handleImageError}
+            priority={priority}
+            quality={85}
+            sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 20vw"
+          />
+        )}
         
         {/* Loading placeholder */}
         {!imageLoaded && !imageError && (
