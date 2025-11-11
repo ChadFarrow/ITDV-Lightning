@@ -772,6 +772,16 @@ export default function HomePage() {
       publisherUrl: track.publisherUrl,
       imageUrl: track.imageUrl
     }, track.album.title);
+    
+    // Scroll to video player after a short delay to ensure it's rendered
+    setTimeout(() => {
+      if (videoPlayerRef.current) {
+        videoPlayerRef.current.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        });
+      }
+    }, 100);
   };
 
   const formatDuration = (duration: string): string => {
