@@ -126,6 +126,11 @@ export default function HomePage() {
   const [senderName, setSenderName] = useState('');
   const [boostMessage, setBoostMessage] = useState('');
   
+  // Video boost modal state
+  const [showVideoBoostModal, setShowVideoBoostModal] = useState(false);
+  const [videoBoostAmount, setVideoBoostAmount] = useState(50);
+  const [videoBoostMessage, setVideoBoostMessage] = useState('');
+  
   // Global audio and video context
   const { playAlbumAndOpenNowPlaying: globalPlayAlbum, toggleShuffle, pause: globalPause, isPlaying: globalIsPlaying } = useAudio();
   const videoContext = useVideo();
@@ -166,6 +171,55 @@ export default function HomePage() {
   };
   
   const handleBoostError = (error: string) => {
+    toast.error('Failed to send boost');
+  };
+  
+  // Handle video boost success
+  const handleVideoBoostSuccess = (response: any) => {
+    setShowVideoBoostModal(false);
+    setVideoBoostMessage('');
+    
+    // Trigger confetti animation
+    const count = 200;
+    const defaults = {
+      origin: { y: 0.7 }
+    };
+
+    function fire(particleRatio: number, opts: any) {
+      confetti({
+        ...defaults,
+        ...opts,
+        particleCount: Math.floor(count * particleRatio)
+      });
+    }
+
+    fire(0.25, {
+      spread: 26,
+      startVelocity: 55,
+    });
+    fire(0.2, {
+      spread: 60,
+    });
+    fire(0.35, {
+      spread: 100,
+      decay: 0.91,
+      scalar: 0.8
+    });
+    fire(0.1, {
+      spread: 120,
+      startVelocity: 25,
+      decay: 0.92,
+      scalar: 1.2
+    });
+    fire(0.1, {
+      spread: 120,
+      startVelocity: 45,
+    });
+
+    toast.success('⚡ Boost sent successfully!');
+  };
+  
+  const handleVideoBoostError = (error: string) => {
     toast.error('Failed to send boost');
   };
   
@@ -1306,14 +1360,29 @@ export default function HomePage() {
                         <h2 className="text-lg sm:text-2xl font-bold text-white">Video Player</h2>
                         <p className="text-sm text-gray-300 mt-1 truncate">{currentVideo.title}</p>
                       </div>
-                      <button
-                        onClick={() => {
-                          stopVideo();
-                        }}
-                        className="ml-4 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
-                      >
-                        Close
-                      </button>
+                      <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                        {/* Video Boost Button */}
+                        {isLightningEnabled && (
+                          <button
+                            onClick={() => {
+                              setShowVideoBoostModal(true);
+                            }}
+                            className="inline-flex items-center gap-1 sm:gap-2 bg-gradient-to-r from-yellow-500 to-orange-600 text-white px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 hover:from-yellow-400 hover:to-orange-500 hover:shadow-lg transform hover:scale-105 active:scale-95 touch-manipulation min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0"
+                            title="Boost this video"
+                          >
+                            <Zap className="w-4 h-4" />
+                            <span className="hidden sm:inline">Boost</span>
+                          </button>
+                        )}
+                        <button
+                          onClick={() => {
+                            stopVideo();
+                          }}
+                          className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                        >
+                          Close
+                        </button>
+                      </div>
                     </div>
                     <div className="p-4 sm:p-6">
                       <VideoPlayer
@@ -1514,6 +1583,138 @@ export default function HomePage() {
                   publisherGuid: selectedAlbum.publisherGuid,
                   publisherUrl: selectedAlbum.publisherUrl,
                   imageUrl: selectedAlbum.imageUrl
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Video Boost Modal */}
+      {isLightningEnabled && showVideoBoostModal && currentVideo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative bg-gradient-to-b from-gray-900 to-black rounded-2xl shadow-2xl w-full sm:max-w-md max-h-[85vh] sm:max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-300">
+            {/* Header with Video Art */}
+            <div className="relative h-48 sm:h-64 bg-gradient-to-b from-gray-800 to-black">
+              {currentVideo.image && (
+                <Image
+                  src={currentVideo.image}
+                  alt={currentVideo.title}
+                  fill
+                  className="object-cover opacity-50"
+                  sizes="(max-width: 640px) 100vw, 400px"
+                />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
+              <button
+                onClick={() => {
+                  setShowVideoBoostModal(false);
+                }}
+                className="absolute top-4 right-4 z-20 p-2 bg-black/50 hover:bg-black/70 rounded-full transition-colors backdrop-blur-sm"
+              >
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              <div className="absolute bottom-4 left-4 right-4 z-10">
+                <h2 className="text-xl sm:text-2xl font-bold text-white mb-1">{currentVideo.title}</h2>
+                <p className="text-gray-300 text-sm">{currentVideo.artist || currentVideo.album}</p>
+              </div>
+            </div>
+
+            {/* Boost Form */}
+            <div className="p-6 overflow-y-auto max-h-[calc(85vh-16rem)] sm:max-h-[calc(90vh-16rem)]">
+              {/* Boost Amount */}
+              <div className="mb-4">
+                <label className="block text-gray-400 text-sm font-medium mb-2">Amount (sats)</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    value={videoBoostAmount}
+                    onChange={(e) => setVideoBoostAmount(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="flex-1 px-4 py-3 bg-gray-800/50 border border-gray-700 text-white rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                    placeholder="Enter amount"
+                    min="1"
+                  />
+                  <span className="text-gray-400 font-medium">sats</span>
+                </div>
+              </div>
+
+              {/* Sender Name */}
+              <div className="mb-4">
+                <label className="block text-gray-400 text-sm font-medium mb-2">Your Name (Optional)</label>
+                <input
+                  type="text"
+                  value={senderName}
+                  onChange={(e) => {
+                    setSenderName(e.target.value);
+                    if (e.target.value.trim()) {
+                      localStorage.setItem('boost-sender-name', e.target.value.trim());
+                    }
+                  }}
+                  className="w-full mt-2 px-4 py-3 bg-gray-800/50 border border-gray-700 text-white rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                  placeholder="Anonymous"
+                  maxLength={50}
+                />
+              </div>
+
+              {/* Boostagram Message */}
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="text-gray-400 text-sm font-medium">Message (Optional)</label>
+                  <span className="text-gray-500 text-xs">{videoBoostMessage.length}/250</span>
+                </div>
+                <textarea
+                  value={videoBoostMessage}
+                  onChange={(e) => setVideoBoostMessage(e.target.value)}
+                  className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 text-white rounded-xl text-base resize-none focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                  placeholder="Share your thoughts..."
+                  maxLength={250}
+                  rows={3}
+                />
+              </div>
+
+              {/* Boost Button */}
+              <BitcoinConnectPayment
+                amount={videoBoostAmount}
+                description={`Boost for ${currentVideo.title}${currentVideo.artist ? ` by ${currentVideo.artist}` : ''}`}
+                onSuccess={handleVideoBoostSuccess}
+                onError={handleVideoBoostError}
+                className="w-full !mt-6"
+                recipients={(() => {
+                  // Use video's value recipients if available
+                  if (currentVideo.value && currentVideo.value.type === 'lightning' && currentVideo.value.method === 'keysend') {
+                    return currentVideo.value.recipients
+                      .filter((r: any) => r.type === 'node')
+                      .map((r: any) => ({
+                        address: r.address,
+                        split: r.split,
+                        name: r.name,
+                        fee: r.fee,
+                        type: 'node'
+                      }));
+                  }
+                  return undefined;
+                })()}
+                fallbackRecipient="03740ea02585ed87b83b2f76317a4562b616bd7b8ec3f925be6596932b2003fc9e"
+                enableBoosts={true}
+                boostMetadata={{
+                  title: currentVideo.title,
+                  artist: currentVideo.artist || currentVideo.album || '',
+                  album: currentVideo.album || '',
+                  episode: currentVideo.title,
+                  url: currentVideo.album ? `https://itdv.podtards.com/album/${encodeURIComponent(currentVideo.album)}#${encodeURIComponent(currentVideo.title || '')}` : 'https://itdv.podtards.com',
+                  appName: 'ITDV Lightning',
+                  timestamp: Math.floor(Date.now() / 1000),
+                  senderName: senderName?.trim() || undefined,
+                  message: videoBoostMessage?.trim() || undefined,
+                  itemGuid: currentVideo.guid,
+                  podcastGuid: currentVideo.podcastGuid,
+                  podcastFeedGuid: currentVideo.feedGuid,
+                  feedUrl: currentVideo.feedUrl,
+                  publisherGuid: currentVideo.publisherGuid,
+                  publisherUrl: currentVideo.publisherUrl,
+                  imageUrl: currentVideo.imageUrl
                 }}
               />
             </div>
