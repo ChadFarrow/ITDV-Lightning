@@ -1887,8 +1887,8 @@ export default function HomePage() {
                     if (selectedVideoTrack?.paymentRecipients && selectedVideoTrack.paymentRecipients.length > 0) {
                       return selectedVideoTrack.paymentRecipients;
                     }
-                    // Try video's paymentRecipients if available
-                    if (video?.paymentRecipients && video.paymentRecipients.length > 0) {
+                    // Try video's paymentRecipients if available (check if property exists)
+                    if (video && 'paymentRecipients' in video && video.paymentRecipients && video.paymentRecipients.length > 0) {
                       return video.paymentRecipients;
                     }
                     // Fallback to value.recipients only if paymentRecipients not available
@@ -1990,8 +1990,8 @@ export default function HomePage() {
                   if (selectedVideoTrack?.paymentRecipients && selectedVideoTrack.paymentRecipients.length > 0) {
                     return selectedVideoTrack.paymentRecipients;
                   }
-                  // Try video's paymentRecipients if available
-                  if (video?.paymentRecipients && video.paymentRecipients.length > 0) {
+                  // Try video's paymentRecipients if available (check if property exists)
+                  if (video && 'paymentRecipients' in video && video.paymentRecipients && video.paymentRecipients.length > 0) {
                     return video.paymentRecipients;
                   }
                   // Fallback to value.recipients only if paymentRecipients not available
