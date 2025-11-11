@@ -4,7 +4,7 @@ import path from 'path';
 
 export async function GET() {
   try {
-    const staticFilePath = path.join(process.cwd(), 'public', 'albums-static-cached.json');
+    const staticFilePath = path.join(process.cwd(), 'public', 'static-albums.json');
     
     // Check if static file exists
     if (!fs.existsSync(staticFilePath)) {
