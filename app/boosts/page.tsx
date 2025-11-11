@@ -1424,7 +1424,7 @@ export default function BoostsPage() {
         )}
         {boost.isFromApp && !boost.isFromHelipad && (
           <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs font-medium">
-            📱 App
+            📱 ITDV App
           </span>
         )}
         {!boost.isFromApp && !boost.isFromHelipad && (
