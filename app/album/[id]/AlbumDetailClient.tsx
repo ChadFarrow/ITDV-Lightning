@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useParams } from 'next/navigation';
-import { ArrowLeft, Play, Pause, SkipBack, SkipForward, Volume2, Zap, Video } from 'lucide-react';
+import { ArrowLeft, Play, Pause, SkipBack, SkipForward, Volume2, Zap, Video, Info } from 'lucide-react';
 import { useAudio } from '@/contexts/AudioContext';
 import { useVideo } from '@/contexts/VideoContext';
 import { useLightning } from '@/contexts/LightningContext';
@@ -117,9 +117,11 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
   const [showTrackBoostModal, setShowTrackBoostModal] = useState(false);
   const [trackBoostAmount, setTrackBoostAmount] = useState(50);
   const [trackBoostMessage, setTrackBoostMessage] = useState('');
+  const [showTrackSplits, setShowTrackSplits] = useState(false);
   
   // Album boost modal state
   const [showAlbumBoostModal, setShowAlbumBoostModal] = useState(false);
+  const [showAlbumSplits, setShowAlbumSplits] = useState(false);
   
   // Request deduplication refs
   const loadingAlbumsRef = useRef(false);
@@ -1648,6 +1650,89 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
                     rows={3}
                   />
                 </div>
+
+                {/* Show Splits Button */}
+                <div className="mt-4">
+                  <button
+                    onClick={() => setShowAlbumSplits(!showAlbumSplits)}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700 text-gray-300 rounded-xl text-sm font-medium transition-colors"
+                  >
+                    <Info className="w-4 h-4" />
+                    <span>{showAlbumSplits ? 'Hide' : 'Show'} Payment Splits</span>
+                  </button>
+                  
+                  {showAlbumSplits && (() => {
+                    const recipients = (() => {
+                      // For album boosts, use a track's recipients instead of album-level recipients
+                      // This ensures we use track-level value blocks (e.g., 6 recipients) instead of channel-level (e.g., 317 recipients)
+                      if (album.tracks && album.tracks.length > 0) {
+                        // Try to find CityBeach track first (for The Satellite Spotlight album)
+                        const cityBeachTrack = album.tracks.find((t: Track) => 
+                          t.title.trim().toLowerCase().includes('citybeach') && !t.videoUrl
+                        );
+                        
+                        // Use CityBeach track if found, otherwise use first track
+                        const trackToUse = cityBeachTrack || album.tracks[0];
+                        const trackRecipients = getTrackPaymentRecipients(trackToUse);
+                        
+                        if (trackRecipients && trackRecipients.length > 0) {
+                          return trackRecipients;
+                        }
+                      }
+                      // Fallback to album-level recipients if no track recipients found
+                      return paymentRecipients || [];
+                    })();
+                    
+                    if (recipients.length === 0) {
+                      return (
+                        <div className="mt-3 p-3 bg-gray-800/30 rounded-lg text-sm text-gray-400">
+                          No payment splits configured
+                        </div>
+                      );
+                    }
+                    
+                    const totalSplit = recipients.reduce((sum: number, r: any) => sum + (r.split || 0), 0);
+                    
+                    return (
+                      <div className="mt-3 p-4 bg-gray-800/30 rounded-lg border border-gray-700">
+                        <div className="text-sm font-medium text-gray-300 mb-3">
+                          Payment will be split among {recipients.length} recipient{recipients.length !== 1 ? 's' : ''}:
+                        </div>
+                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                          {recipients.map((recipient: any, index: number) => {
+                            const percentage = totalSplit > 0 ? ((recipient.split / totalSplit) * 100).toFixed(1) : '0';
+                            const amount = Math.floor((boostAmount * recipient.split) / totalSplit);
+                            return (
+                              <div key={index} className="flex items-center justify-between p-2 bg-gray-900/50 rounded">
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-sm text-white font-medium truncate">
+                                    {recipient.name || `Recipient ${index + 1}`}
+                                  </div>
+                                  <div className="text-xs text-gray-400 truncate font-mono">
+                                    {recipient.address.substring(0, 20)}...
+                                  </div>
+                                </div>
+                                <div className="text-right ml-4">
+                                  <div className="text-sm text-white font-medium">
+                                    {percentage}%
+                                  </div>
+                                  <div className="text-xs text-gray-400">
+                                    {amount} sats
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        {totalSplit !== 100 && totalSplit > 0 && (
+                          <div className="mt-2 text-xs text-yellow-400">
+                            Note: Total split is {totalSplit}% (not 100%)
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
                 
                 {/* Boost Button */}
                 <BitcoinConnectPayment
@@ -1780,6 +1865,70 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
                     maxLength={250}
                     rows={3}
                   />
+                </div>
+
+                {/* Show Splits Button */}
+                <div className="mt-4">
+                  <button
+                    onClick={() => setShowTrackSplits(!showTrackSplits)}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700 text-gray-300 rounded-xl text-sm font-medium transition-colors"
+                  >
+                    <Info className="w-4 h-4" />
+                    <span>{showTrackSplits ? 'Hide' : 'Show'} Payment Splits</span>
+                  </button>
+                  
+                  {showTrackSplits && (() => {
+                    const recipients = getTrackPaymentRecipients(selectedTrack) || [];
+                    
+                    if (recipients.length === 0) {
+                      return (
+                        <div className="mt-3 p-3 bg-gray-800/30 rounded-lg text-sm text-gray-400">
+                          No payment splits configured
+                        </div>
+                      );
+                    }
+                    
+                    const totalSplit = recipients.reduce((sum: number, r: any) => sum + (r.split || 0), 0);
+                    
+                    return (
+                      <div className="mt-3 p-4 bg-gray-800/30 rounded-lg border border-gray-700">
+                        <div className="text-sm font-medium text-gray-300 mb-3">
+                          Payment will be split among {recipients.length} recipient{recipients.length !== 1 ? 's' : ''}:
+                        </div>
+                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                          {recipients.map((recipient: any, index: number) => {
+                            const percentage = totalSplit > 0 ? ((recipient.split / totalSplit) * 100).toFixed(1) : '0';
+                            const amount = Math.floor((trackBoostAmount * recipient.split) / totalSplit);
+                            return (
+                              <div key={index} className="flex items-center justify-between p-2 bg-gray-900/50 rounded">
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-sm text-white font-medium truncate">
+                                    {recipient.name || `Recipient ${index + 1}`}
+                                  </div>
+                                  <div className="text-xs text-gray-400 truncate font-mono">
+                                    {recipient.address.substring(0, 20)}...
+                                  </div>
+                                </div>
+                                <div className="text-right ml-4">
+                                  <div className="text-sm text-white font-medium">
+                                    {percentage}%
+                                  </div>
+                                  <div className="text-xs text-gray-400">
+                                    {amount} sats
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        {totalSplit !== 100 && totalSplit > 0 && (
+                          <div className="mt-2 text-xs text-yellow-400">
+                            Note: Total split is {totalSplit}% (not 100%)
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
                 
                 {/* Boost Button */}
