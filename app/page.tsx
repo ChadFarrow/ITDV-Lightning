@@ -110,6 +110,7 @@ interface Album {
 
 
 export default function HomePage() {
+  const router = useRouter();
   const { isLightningEnabled } = useLightning();
   const [isLoading, setIsLoading] = useState(true);
   const [albums, setAlbums] = useState<Album[]>([]);
