@@ -14,6 +14,7 @@ import dynamic from 'next/dynamic';
 import { Zap, Video, Play } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { isLightningEnabled } from '@/lib/feature-flags';
+import VideoPlayer from '@/components/VideoPlayer';
 
 // Lazy load Lightning components - not needed on initial page load
 const BitcoinConnectWallet = dynamic(
@@ -127,7 +128,8 @@ export default function HomePage() {
   
   // Global audio and video context
   const { playAlbumAndOpenNowPlaying: globalPlayAlbum, toggleShuffle, pause: globalPause, isPlaying: globalIsPlaying } = useAudio();
-  const { playVideo: globalPlayVideo } = useVideo();
+  const videoContext = useVideo();
+  const { playVideo: globalPlayVideo, currentVideo, isPlaying: isVideoPlaying, pause: pauseVideo, resume: resumeVideo, updateCurrentTime, updateDuration, seekRequest, stop: stopVideo } = videoContext;
   const hasLoadedRef = useRef(false);
   
   // Handle boost button click from album card
@@ -997,6 +999,43 @@ export default function HomePage() {
             </div>
           ) : (activeFilter === 'video' ? videoTracks.length > 0 : filteredAlbums.length > 0) ? (
             <div className="max-w-7xl mx-auto">
+              {/* Video Player (when video is playing) */}
+              {currentVideo && currentVideo.videoUrl && (
+                <div className="mb-8 max-w-4xl mx-auto">
+                  <div className="bg-black/70 backdrop-blur-sm rounded-xl border border-white/20 overflow-hidden">
+                    <div className="p-4 sm:p-6 border-b border-white/10 flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <h2 className="text-lg sm:text-2xl font-bold text-white">Video Player</h2>
+                        <p className="text-sm text-gray-300 mt-1 truncate">{currentVideo.title}</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          stopVideo();
+                        }}
+                        className="ml-4 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                      >
+                        Close
+                      </button>
+                    </div>
+                    <div className="p-4 sm:p-6">
+                      <VideoPlayer
+                        videoUrl={currentVideo.videoUrl}
+                        startTime={currentVideo.startTime}
+                        endTime={currentVideo.endTime}
+                        seekTime={seekRequest || undefined}
+                        onTimeUpdate={updateCurrentTime}
+                        onDurationChange={updateDuration}
+                        onPlay={resumeVideo}
+                        onPause={pauseVideo}
+                        onEnded={() => {
+                          stopVideo();
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Controls Bar */}
               <ControlsBar
                 activeFilter={activeFilter}
