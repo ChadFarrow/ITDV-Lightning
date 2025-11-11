@@ -586,10 +586,39 @@ export default function HomePage() {
     // Only prevent default/propagation for the play button, not the entire card
     e.stopPropagation();
     
-    // Find the first playable track
-    const firstTrack = album.tracks.find(track => track.url);
+    // For "The Satellite Spotlight" album, find the first CityBeach audio track (Doerfels track)
+    // Otherwise, find the first playable track
+    let startIndex = 0;
+    const isSatelliteSpotlight = album.title?.toLowerCase().includes('satellite spotlight') || 
+                                  album.artist?.toLowerCase().includes('satellite skirmish');
     
-    if (!firstTrack || !firstTrack.url) {
+    if (isSatelliteSpotlight) {
+      // Find the first audio track (not video) with "CityBeach" in the title
+      const cityBeachTrackIndex = album.tracks.findIndex(track => 
+        track.url && 
+        !track.videoUrl && 
+        track.title?.toLowerCase().includes('citybeach')
+      );
+      
+      if (cityBeachTrackIndex !== -1) {
+        startIndex = cityBeachTrackIndex;
+      } else {
+        // Fallback to first playable track if no CityBeach track found
+        const firstTrack = album.tracks.find(track => track.url && !track.videoUrl);
+        if (firstTrack) {
+          startIndex = album.tracks.indexOf(firstTrack);
+        }
+      }
+    } else {
+      // For other albums, find the first playable track
+      const firstTrack = album.tracks.find(track => track.url);
+      if (firstTrack) {
+        startIndex = album.tracks.indexOf(firstTrack);
+      }
+    }
+    
+    const startTrack = album.tracks[startIndex];
+    if (!startTrack || !startTrack.url) {
       setError('No playable tracks found in this album');
       setTimeout(() => setError(null), 3000);
       return;
@@ -604,7 +633,7 @@ export default function HomePage() {
         image: track.image || album.coverArt
       }));
       
-      globalPlayAlbum(audioTracks, 0, album.title);
+      globalPlayAlbum(audioTracks, startIndex, album.title);
     } catch (error) {
       let errorMessage = 'Unable to play audio - please try again';
       
