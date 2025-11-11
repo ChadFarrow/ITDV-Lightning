@@ -1404,7 +1404,7 @@ export default function BoostsPage() {
             </span>
             {boost.app && (
               <span className="bg-gray-700/50 text-gray-300 px-2 py-1 rounded text-xs font-medium">
-                📱 {boost.app}
+                📱 {boost.app === 'ITDV Lightning' ? 'ITDV App' : boost.app}
               </span>
             )}
             {boost.action !== undefined && boost.action !== null && (
