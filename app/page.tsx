@@ -1696,7 +1696,7 @@ export default function HomePage() {
                   }
                   return undefined;
                 })()}
-                fallbackRecipient="03740ea02585ed87b83b2f76317a4562b616bd7b8ec3f925be6596932b2003fc9e"
+                recipient="03740ea02585ed87b83b2f76317a4562b616bd7b8ec3f925be6596932b2003fc9e"
                 enableBoosts={true}
                 boostMetadata={{
                   title: currentVideo.title,
