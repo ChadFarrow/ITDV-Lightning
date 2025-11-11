@@ -1288,6 +1288,29 @@ export class RSSParser {
                       chapterDuration = `${mins}:${secs.toString().padStart(2, '0')}`;
                     }
                     
+                    // For "The Doerfels" chapter track, use value/paymentRecipients from a "The Doerfels" audio track
+                    // instead of the channel-level value (which has wrong splits)
+                    let chapterValue = videoTrack.value;
+                    let chapterPaymentRecipients = videoTrack.paymentRecipients;
+                    
+                    if (titleLower.includes('autumn rust') && chapterTitleLower.includes('doerfel')) {
+                      // Find a "The Doerfels" audio track (has url but no videoUrl) with track-level value
+                      const doerfelsAudioTrack = tracks.find(track => 
+                        track.url && 
+                        !track.videoUrl && 
+                        track.title.toLowerCase().includes('doerfel') &&
+                        (track.value || track.paymentRecipients)
+                      );
+                      
+                      if (doerfelsAudioTrack) {
+                        console.log(`💰 Using value/paymentRecipients from Doerfels audio track: "${doerfelsAudioTrack.title}"`);
+                        chapterValue = doerfelsAudioTrack.value;
+                        chapterPaymentRecipients = doerfelsAudioTrack.paymentRecipients;
+                      } else {
+                        console.log(`⚠️ Could not find Doerfels audio track with value, using channel-level value`);
+                      }
+                    }
+                    
                     // Create chapter track
                     const chapterTrack: RSSTrack = {
                       title: chapterTitle,
@@ -1297,8 +1320,8 @@ export class RSSParser {
                       endTime: chapterEndTime,
                       trackNumber: tracks.length + 1,
                       image: chapter.img || videoTrack.image || undefined,
-                      value: videoTrack.value, // Inherit value from parent track
-                      paymentRecipients: videoTrack.paymentRecipients, // Inherit payment recipients
+                      value: chapterValue, // Use track-level value for Doerfels, otherwise inherit from parent
+                      paymentRecipients: chapterPaymentRecipients, // Use track-level paymentRecipients for Doerfels
                       guid: videoTrack.guid,
                       podcastGuid: videoTrack.podcastGuid,
                       feedGuid: videoTrack.feedGuid,
