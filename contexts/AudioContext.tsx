@@ -127,7 +127,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     audio.setAttribute('playsinline', 'true');
     audio.setAttribute('webkit-playsinline', 'true');
     audio.setAttribute('preload', 'auto');
-    audio.setAttribute('crossorigin', 'anonymous');
+    // Removed crossorigin='anonymous' - causes CORS issues with external audio files
+    // Only set if needed for specific CORS-enabled sources
 
     const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
     const handleDurationChange = () => setDuration(audio.duration);
@@ -144,6 +145,23 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
   }, []);
 
+  // Helper function to get proxied URL for audio files that need CORS
+  const getProxiedAudioUrl = (url: string): string => {
+    // Proxy external audio files to avoid CORS issues
+    if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+      try {
+        const urlObj = new URL(url);
+        // Proxy external domains (not same origin)
+        if (urlObj.hostname !== window.location.hostname) {
+          return `/api/proxy-audio?url=${encodeURIComponent(url)}`;
+        }
+      } catch (e) {
+        // Invalid URL, return as-is
+      }
+    }
+    return url;
+  };
+
   const playTrack = (track: Track, album?: string) => {
     if (!audioRef.current) return;
 
@@ -152,7 +170,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setPlaylist([track]);
     setCurrentTrackIndex(0);
     
-    audioRef.current.src = track.url;
+    audioRef.current.src = getProxiedAudioUrl(track.url);
     audioRef.current.load();
     audioRef.current.play().catch(error => {
       if (error.name === 'AbortError' || error.message.includes('aborted')) {
@@ -185,7 +203,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setPlaylist(tracks);
     setCurrentTrackIndex(startIndex);
     
-    audioRef.current.src = track.url;
+    audioRef.current.src = getProxiedAudioUrl(track.url);
     audioRef.current.load();
     audioRef.current.play().catch(error => {
       if (error.name === 'AbortError' || error.message.includes('aborted')) {
@@ -273,7 +291,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setCurrentTrackIndex(nextIndex);
     
     if (audioRef.current) {
-      audioRef.current.src = nextTrack.url;
+      audioRef.current.src = getProxiedAudioUrl(nextTrack.url);
       audioRef.current.load();
       // Always try to play if forcePlay is true (from ended handler) or if currently playing
       if (forcePlay || isPlaying) {
@@ -329,7 +347,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setCurrentTrackIndex(prevIndex);
     
     if (audioRef.current) {
-      audioRef.current.src = prevTrack.url;
+      audioRef.current.src = getProxiedAudioUrl(prevTrack.url);
       audioRef.current.load();
       if (isPlaying) {
         audioRef.current.play().catch(error => {
