@@ -965,7 +965,7 @@ export default function HomePage() {
         </header>
         
         {/* Sidebar */}
-        <div className={`fixed top-0 left-0 h-full w-80 bg-gray-900/95 backdrop-blur-sm transform transition-transform duration-300 z-30 border-r border-gray-700 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className={`fixed top-0 left-0 h-full w-80 bg-gray-900/95 backdrop-blur-sm transform transition-transform duration-300 z-30 border-r border-gray-700 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`} onClick={(e) => e.stopPropagation()}>
           <div className="p-4 pt-16 flex flex-col h-full">
             <h2 className="text-lg font-bold mb-4">Menu</h2>
             
@@ -973,7 +973,10 @@ export default function HomePage() {
               <Link 
                 href="/lightning-guide" 
                 className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors"
-                onClick={() => setIsSidebarOpen(false)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsSidebarOpen(false);
+                }}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -984,7 +987,10 @@ export default function HomePage() {
               <Link 
                 href="/music-guide" 
                 className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors"
-                onClick={() => setIsSidebarOpen(false)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsSidebarOpen(false);
+                }}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
@@ -995,7 +1001,10 @@ export default function HomePage() {
               <Link 
                 href="/rss-guide" 
                 className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors"
-                onClick={() => setIsSidebarOpen(false)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsSidebarOpen(false);
+                }}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
@@ -1006,7 +1015,10 @@ export default function HomePage() {
               <Link 
                 href="/about" 
                 className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors"
-                onClick={() => setIsSidebarOpen(false)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsSidebarOpen(false);
+                }}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1017,7 +1029,10 @@ export default function HomePage() {
               <Link  
                 href="/admin/feeds" 
                 className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors"
-                onClick={() => setIsSidebarOpen(false)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsSidebarOpen(false);
+                }}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -1029,7 +1044,10 @@ export default function HomePage() {
               <Link
                 href="/album/lnurl-testing-podcast"
                 className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors"
-                onClick={() => setIsSidebarOpen(false)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsSidebarOpen(false);
+                }}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -1041,9 +1059,8 @@ export default function HomePage() {
                 href="/boosts"
                 className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors"
                 onClick={(e) => {
-                  setIsSidebarOpen(false);
-                  // Ensure navigation works
                   e.stopPropagation();
+                  setIsSidebarOpen(false);
                 }}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
