@@ -1576,6 +1576,48 @@ export default function HomePage() {
                 
                 {showSplits && (() => {
                   const recipients = (() => {
+                    // Special case: Autumn Rust uses specific recipients for all boosts
+                    if (selectedAlbum.title?.toLowerCase().includes('autumn rust')) {
+                      return [
+                        {
+                          address: '03b6f613e88bd874177c28c6ad83b3baba43c4c656f56be1f8df84669556054b79',
+                          split: 1,
+                          name: 'boostbot@fountain.fm',
+                          type: 'node'
+                        },
+                        {
+                          address: '03589f3ddb81f3802f3fc9aaa359b684ed19840b55db88f7c9c2cc671e74ac93e2',
+                          split: 1,
+                          name: 'ThunderRoad',
+                          type: 'node'
+                        },
+                        {
+                          address: '02c7bb6f29f09d92d40d62d64443b688891259dea324406b4678df6235794f24bf',
+                          split: 1,
+                          name: 'ericpp@getalby.com',
+                          type: 'node'
+                        },
+                        {
+                          address: '03d55f4d4c870577e98ac56605a54c5ed20c8897e41197a068fd61bdb580efaa67',
+                          split: 1,
+                          name: 'BoostBot',
+                          type: 'node'
+                        },
+                        {
+                          address: '035ad2c954e264004986da2d9499e1732e5175e1dcef2453c921c6cdcc3536e9d8',
+                          split: 1,
+                          name: 'steven@getalby.com',
+                          type: 'node'
+                        },
+                        {
+                          address: '031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5',
+                          split: 95,
+                          name: 'DoerfelVerse_Node',
+                          type: 'node'
+                        }
+                      ];
+                    }
+                    
                     // For album boosts, use a track's recipients instead of album-level recipients
                     // This ensures we use track-level value blocks (e.g., 6 recipients) instead of channel-level (e.g., 317 recipients)
                     if (selectedAlbum.tracks && selectedAlbum.tracks.length > 0) {
