@@ -1037,18 +1037,20 @@ export default function HomePage() {
                 <span className="text-sm">LNURL Testing Podcast</span>
               </Link>
 
-              {isLightningEnabled && (
-                <Link
-                  href="/boosts"
-                  className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors"
-                  onClick={() => setIsSidebarOpen(false)}
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  <span className="text-sm">⚡ Boosts</span>
-                </Link>
-              )}
+              <Link
+                href="/boosts"
+                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors"
+                onClick={(e) => {
+                  setIsSidebarOpen(false);
+                  // Ensure navigation works
+                  e.stopPropagation();
+                }}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                <span className="text-sm">⚡ Boosts</span>
+              </Link>
             </div>
             
             {/* Lightning Toggle - moved up to avoid being hidden by now playing bar */}
