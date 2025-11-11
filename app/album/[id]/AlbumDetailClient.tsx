@@ -1511,16 +1511,11 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
                       setPlayingVideoTrack(null);
                     }}
                     onTimeUpdate={(time) => {
-                      // Calculate chapter-relative time if playing a chapter segment
+                      // VideoPlayer now passes display time (chapter-relative if playing a chapter, otherwise absolute)
+                      // So we can use it directly - no need to recalculate
                       // This ensures the global now playing bar shows the same time as the main player
                       if (updateCurrentTime) {
-                        if (playingVideoTrack.startTime !== undefined && playingVideoTrack.endTime !== undefined) {
-                          const chapterRelativeTime = Math.max(0, time - (playingVideoTrack.startTime || 0));
-                          updateCurrentTime(chapterRelativeTime);
-                        } else {
-                          // For full videos, use absolute time
-                          updateCurrentTime(time);
-                        }
+                        updateCurrentTime(time);
                       }
                     }}
                     onPlay={() => {
@@ -1532,16 +1527,11 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
                       pauseVideo();
                     }}
                     onDurationChange={(duration) => {
-                      // Calculate chapter duration if playing a chapter segment
+                      // VideoPlayer now passes display duration (chapter duration if playing a chapter, otherwise full video duration)
+                      // So we can use it directly - no need to recalculate
                       // This ensures the global now playing bar shows the same duration as the main player
                       if (updateDuration) {
-                        if (playingVideoTrack.startTime !== undefined && playingVideoTrack.endTime !== undefined) {
-                          const chapterDuration = (playingVideoTrack.endTime || 0) - (playingVideoTrack.startTime || 0);
-                          updateDuration(chapterDuration);
-                        } else {
-                          // For full videos, use full video duration
-                          updateDuration(duration);
-                        }
+                        updateDuration(duration);
                       }
                       
                       // Update track duration if it's missing or 0:00

@@ -140,7 +140,11 @@ export default function VideoPlayer({
           if (video.duration && !isNaN(video.duration) && isFinite(video.duration)) {
             setVideoDuration(video.duration);
             if (onDurationChange) {
-              onDurationChange(video.duration);
+              // Calculate display duration (chapter duration if playing a chapter, otherwise full video duration)
+              const displayDur = startTime !== undefined && endTime !== undefined
+                ? endTime - startTime
+                : video.duration;
+              onDurationChange(displayDur);
             }
           }
         };
@@ -269,7 +273,11 @@ export default function VideoPlayer({
         
         // Get video duration when metadata is available
         if (video.duration && !isNaN(video.duration) && isFinite(video.duration) && onDurationChange) {
-          onDurationChange(video.duration);
+          // Calculate display duration (chapter duration if playing a chapter, otherwise full video duration)
+          const displayDur = startTime !== undefined && endTime !== undefined
+            ? endTime - startTime
+            : video.duration;
+          onDurationChange(displayDur);
         }
         
         // Seek to startTime if provided
@@ -286,7 +294,11 @@ export default function VideoPlayer({
         
         // Get video duration when metadata is available
         if (video.duration && !isNaN(video.duration) && isFinite(video.duration) && onDurationChange) {
-          onDurationChange(video.duration);
+          // Calculate display duration (chapter duration if playing a chapter, otherwise full video duration)
+          const displayDur = startTime !== undefined && endTime !== undefined
+            ? endTime - startTime
+            : video.duration;
+          onDurationChange(displayDur);
         }
         
         // Seek to startTime if provided
@@ -300,8 +312,14 @@ export default function VideoPlayer({
     const handleTimeUpdate = () => {
       setCurrentTime(video.currentTime);
       
+      // Calculate display time (chapter-relative if playing a chapter, otherwise absolute)
+      const displayTime = startTime !== undefined 
+        ? Math.max(0, video.currentTime - startTime)
+        : video.currentTime;
+      
       if (onTimeUpdate) {
-        onTimeUpdate(video.currentTime);
+        // Pass the display time (chapter-relative) so now playing bar matches video player display
+        onTimeUpdate(displayTime);
       }
 
       // Check if we've reached the end time for chapter playback
