@@ -33,28 +33,121 @@ export async function GET(request: NextRequest) {
       }
     }
     
+    // Handle op3.dev proxy URLs - extract the actual video URL
+    let actualVideoUrl = videoUrl;
+    if (videoUrl.includes('op3.dev/e/')) {
+      // op3.dev URLs are in format: https://op3.dev/e/{actual_url}
+      // Extract the actual URL after /e/
+      const match = videoUrl.match(/op3\.dev\/e\/(.+)/);
+      if (match) {
+        actualVideoUrl = decodeURIComponent(match[1]);
+        console.log(`📺 Extracted URL from op3.dev: ${actualVideoUrl}`);
+      }
+    }
+    
     // Validate URL
     let url: URL;
     try {
-      url = new URL(videoUrl);
+      url = new URL(actualVideoUrl);
     } catch (e) {
-      console.error('❌ Invalid URL format:', videoUrl, e);
+      console.error('❌ Invalid URL format:', actualVideoUrl, e);
       return NextResponse.json({ error: 'Invalid URL format' }, { status: 400 });
     }
     
-    // Only allow Cloudflare Stream domain for now
+    // Allow Cloudflare Stream and SplitKit domains (including through op3.dev)
     const allowedDomains = [
-      'customer-dlnbepb8zpz7h846.cloudflarestream.com'
+      'customer-dlnbepb8zpz7h846.cloudflarestream.com',
+      'www.thesplitkit.com',
+      'thesplitkit.com',
+      'op3.dev' // Allow op3.dev as it proxies to Cloudflare Stream
     ];
     
-    if (!allowedDomains.includes(url.hostname)) {
-      console.error('❌ Domain not allowed:', url.hostname);
+    // Check both the original URL (if op3.dev) and the extracted URL
+    const originalUrl = new URL(videoUrl);
+    const isOp3Dev = originalUrl.hostname === 'op3.dev';
+    const isAllowedDomain = allowedDomains.includes(url.hostname) || (isOp3Dev && allowedDomains.includes(url.hostname));
+    
+    if (!isAllowedDomain) {
+      console.error('❌ Domain not allowed:', url.hostname, '(original:', originalUrl.hostname, ')');
       return NextResponse.json({ error: 'Domain not allowed' }, { status: 403 });
     }
+    
+    // Use the actual video URL for fetching (not the op3.dev wrapper)
+    videoUrl = actualVideoUrl;
 
-    // Only log for manifests to reduce noise
-    if (videoUrl.includes('.m3u8')) {
-      console.log(`📺 Proxying manifest: ${videoUrl}`);
+    // Log for manifests and SplitKit URLs to help debug
+    if (videoUrl.includes('.m3u8') || videoUrl.includes('thesplitkit.com') || videoUrl.includes('op3.dev')) {
+      console.log(`📺 Proxying ${videoUrl.includes('.m3u8') ? 'manifest' : videoUrl.includes('op3.dev') ? 'op3.dev URL' : 'SplitKit URL'}: ${videoUrl}`);
+    }
+
+    // For SplitKit URLs, we need to extract the actual video stream URL from the HTML page
+    // SplitKit returns HTML with a video element that loads the stream dynamically
+    if (videoUrl.includes('thesplitkit.com') && !videoUrl.includes('.m3u8')) {
+      try {
+        // Fetch the HTML page
+        const htmlResponse = await fetch(videoUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; VideoProxy/1.0)',
+          }
+        });
+        
+        if (htmlResponse.ok) {
+          const html = await htmlResponse.text();
+          
+          // Try to find video source URLs in the HTML
+          // Look for common patterns: data-src, src, video-url, etc.
+          const videoUrlPatterns = [
+            /(?:src|data-src|video-url|videoUrl)="([^"]*\.m3u8[^"]*)"/gi,
+            /(?:src|data-src|video-url|videoUrl)='([^']*\.m3u8[^']*)'/gi,
+            /https?:\/\/[^\s"']+\.m3u8[^\s"']*/gi,
+          ];
+          
+          for (const pattern of videoUrlPatterns) {
+            const matches = html.match(pattern);
+            if (matches && matches.length > 0) {
+              // Extract the URL from the match
+              const extractedUrl = matches[0].replace(/^(?:src|data-src|video-url|videoUrl)=["']?/, '').replace(/["']$/, '');
+              if (extractedUrl.includes('.m3u8')) {
+                videoUrl = extractedUrl.startsWith('http') ? extractedUrl : new URL(extractedUrl, videoUrl).toString();
+                console.log(`✅ Extracted SplitKit video URL from HTML: ${videoUrl}`);
+                break;
+              }
+            }
+          }
+          
+          // If no m3u8 found, try to find the video ID and construct the stream URL
+          // SplitKit might use a pattern like /live/{id}/stream.m3u8 or similar
+          if (!videoUrl.includes('.m3u8')) {
+            const idMatch = videoUrl.match(/\/live\/([^\/]+)/);
+            if (idMatch) {
+              const streamId = idMatch[1];
+              const possibleStreamUrls = [
+                `https://www.thesplitkit.com/live/${streamId}/stream.m3u8`,
+                `https://www.thesplitkit.com/live/${streamId}/video.m3u8`,
+                `https://www.thesplitkit.com/live/${streamId}/manifest.m3u8`,
+                `https://www.thesplitkit.com/api/live/${streamId}/stream.m3u8`,
+              ];
+              
+              // Test each URL
+              for (const testUrl of possibleStreamUrls) {
+                try {
+                  const testResponse = await fetch(testUrl, { method: 'HEAD' });
+                  if (testResponse.ok && testResponse.headers.get('content-type')?.includes('mpegurl')) {
+                    videoUrl = testUrl;
+                    console.log(`✅ Found SplitKit stream URL: ${videoUrl}`);
+                    break;
+                  }
+                } catch (e) {
+                  // Continue to next URL
+                }
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.error('❌ Error extracting video URL from SplitKit HTML:', e);
+        // Continue with original URL - will return HTML which we can't use
+      }
     }
 
     // Fetch the video/manifest file

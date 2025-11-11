@@ -124,6 +124,9 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
   // Request deduplication refs
   const loadingAlbumsRef = useRef(false);
   const loadingRelatedRef = useRef(false);
+  const lastInitialAlbumTitleRef = useRef<string | null>(null);
+  const videoLoadAttemptedRef = useRef(false);
+  const loadAlbumWithRefreshCalledRef = useRef(false);
   
   
   // Global audio context
@@ -402,8 +405,14 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
   useEffect(() => {
     if (!initialAlbum) {
       loadAlbum();
-    } else {
-      // Set album immediately for faster rendering
+      return;
+    }
+    
+    // Only initialize once to prevent infinite loops
+    const currentTitle = initialAlbum.title;
+    if (lastInitialAlbumTitleRef.current === null) {
+      // First time initialization
+      lastInitialAlbumTitleRef.current = currentTitle;
       setAlbum(initialAlbum);
       setIsLoading(false);
 
@@ -445,10 +454,18 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
         cleanup3();
       };
     }
-  }, [albumTitle, initialAlbum]);
+    // Don't update on subsequent renders - the album state is already set
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount to prevent infinite loops
 
   // Load album to get video URLs (non-blocking, uses refresh=1 to fetch from RSS if missing from cache)
   const loadAlbumWithRefresh = useCallback(async () => {
+    // Prevent multiple simultaneous calls
+    if (loadAlbumWithRefreshCalledRef.current) {
+      return;
+    }
+    loadAlbumWithRefreshCalledRef.current = true;
+    
     try {
       // Use the actual URL parameter (albumId) if available, otherwise derive from title
       // Fallback to deriving from title if params not available (e.g., during SSR)
@@ -467,6 +484,7 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
       
       if (!response.ok) {
         console.error(`Failed to load album with videos: ${response.status} ${response.statusText}`);
+        loadAlbumWithRefreshCalledRef.current = false; // Reset on error
         return;
       }
 
@@ -475,27 +493,28 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
       if (data.album) {
         // Check if we got video URLs
         const hasNewVideoUrls = data.album.tracks?.some((track: Track) => track.videoUrl);
-        const currentHasVideoUrls = album?.tracks?.some((track: Track) => track.videoUrl);
         
-        // Always update the album if we got new data (even if no video URLs, in case other data changed)
-        // But prioritize updates when we got video URLs that were missing
-        if (hasNewVideoUrls && !currentHasVideoUrls) {
-          setAlbum(data.album);
-          setError(null);
-        } else if (!currentHasVideoUrls && data.album.tracks?.length > 0) {
-          // If we still don't have video URLs but got album data, update anyway
-          // This ensures we have the latest data even if videos aren't found
-          setAlbum(data.album);
-        }
+        // Use functional update to access current album state without dependency
+        setAlbum(currentAlbum => {
+          const currentHasVideoUrls = currentAlbum?.tracks?.some((track: Track) => track.videoUrl);
+          
+          // Only update if we got video URLs that were missing (prevents unnecessary updates)
+          if (hasNewVideoUrls && !currentHasVideoUrls) {
+            setError(null);
+            return data.album;
+          }
+          return currentAlbum; // No change needed
+        });
       }
     } catch (err) {
       console.error('Error loading album with videos:', err);
+      loadAlbumWithRefreshCalledRef.current = false; // Reset on error
     }
-  }, [albumTitle, albumId, album]);
+  }, [albumTitle, albumId]); // Removed album to prevent infinite loop - we check current state inside the function
 
   // Separate useEffect for loading videos when missing from static cache
   useEffect(() => {
-    if (!initialAlbum) return;
+    if (!initialAlbum || videoLoadAttemptedRef.current) return;
     
     // Check if album should have video URLs but doesn't (static cache might be missing them)
     const albumsWithVideo = [
@@ -529,6 +548,7 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
     
     // If album should have videos but doesn't, load them in background (non-blocking)
     if (shouldHaveVideo && !hasVideoUrls) {
+      videoLoadAttemptedRef.current = true;
       // Load videos in background after page is fully rendered
       // Use longer delay to ensure page is interactive before making API call
       const loadVideos = () => {
@@ -545,7 +565,8 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
         return () => clearTimeout(timeoutId);
       }
     }
-  }, [initialAlbum, albumTitle, albumId, loadAlbumWithRefresh]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount to prevent infinite loops
 
   // Separate useEffect for background image preloading to avoid re-running API calls
   useEffect(() => {

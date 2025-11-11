@@ -56,9 +56,13 @@ export default function VideoPlayer({
     }
   }, [detectedConnectionQuality]);
 
-  // Check if URL needs to be proxied (Cloudflare Stream)
+  // Check if URL needs to be proxied (Cloudflare Stream or SplitKit)
   const getProxiedUrl = (url: string): string => {
     if (url.includes('cloudflarestream.com')) {
+      return `/api/proxy-video?url=${encodeURIComponent(url)}`;
+    }
+    // SplitKit URLs also need to be proxied due to CORS
+    if (url.includes('thesplitkit.com')) {
       return `/api/proxy-video?url=${encodeURIComponent(url)}`;
     }
     return url;
@@ -71,7 +75,8 @@ export default function VideoPlayer({
     }
 
     const proxiedUrl = getProxiedUrl(videoUrl);
-    const isHLS = videoUrl.includes('.m3u8') || videoUrl.includes('mpegURL') || videoUrl.includes('mpegurl');
+    // SplitKit URLs will be converted to HLS streams by the proxy
+    const isHLS = videoUrl.includes('.m3u8') || videoUrl.includes('mpegURL') || videoUrl.includes('mpegurl') || videoUrl.includes('thesplitkit.com');
 
     // Clean up previous HLS instance
     if (hlsRef.current) {
@@ -104,6 +109,7 @@ export default function VideoPlayer({
             xhr.open('GET', proxiedUrl, true);
             return;
           }
+          // SplitKit URLs should work directly (they have CORS enabled)
           // Otherwise, use the original URL
           xhr.open('GET', url, true);
         }
@@ -111,7 +117,12 @@ export default function VideoPlayer({
 
       hlsRef.current = hls;
 
-      hls.loadSource(proxiedUrl);
+      // For SplitKit URLs, try different possible HLS manifest paths
+      // SplitKit might use different URL formats, so we'll try the base URL first
+      // If that fails, HLS.js will handle the error
+      const hlsUrl = proxiedUrl;
+      
+      hls.loadSource(hlsUrl);
       hls.attachMedia(video);
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
