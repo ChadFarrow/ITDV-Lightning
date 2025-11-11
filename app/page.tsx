@@ -1728,13 +1728,16 @@ export default function HomePage() {
                   
                   const totalSplit = recipients.reduce((sum: number, r: any) => sum + (r.split || 0), 0);
                   
+                  // Sort recipients by split (largest to smallest)
+                  const sortedRecipients = [...recipients].sort((a: any, b: any) => (b.split || 0) - (a.split || 0));
+                  
                   return (
                     <div className="mt-3 p-4 bg-gray-800/30 rounded-lg border border-gray-700">
                       <div className="text-sm font-medium text-gray-300 mb-3">
                         Payment will be split among {recipients.length} recipient{recipients.length !== 1 ? 's' : ''}:
                       </div>
                       <div className="space-y-2 max-h-48 overflow-y-auto">
-                        {recipients.map((recipient: any, index: number) => {
+                        {sortedRecipients.map((recipient: any, index: number) => {
                           const percentage = totalSplit > 0 ? ((recipient.split / totalSplit) * 100).toFixed(1) : '0';
                           const amount = Math.floor((boostAmount * recipient.split) / totalSplit);
                           return (
@@ -2182,13 +2185,16 @@ export default function HomePage() {
                   
                   const totalSplit = recipients.reduce((sum: number, r: any) => sum + (r.split || 0), 0);
                   
+                  // Sort recipients by split (largest to smallest)
+                  const sortedRecipients = [...recipients].sort((a: any, b: any) => (b.split || 0) - (a.split || 0));
+                  
                   return (
                     <div className="mt-3 p-4 bg-gray-800/30 rounded-lg border border-gray-700">
                       <div className="text-sm font-medium text-gray-300 mb-3">
                         Payment will be split among {recipients.length} recipient{recipients.length !== 1 ? 's' : ''}:
                       </div>
                       <div className="space-y-2 max-h-48 overflow-y-auto">
-                        {recipients.map((recipient: any, index: number) => {
+                        {sortedRecipients.map((recipient: any, index: number) => {
                           const percentage = totalSplit > 0 ? ((recipient.split / totalSplit) * 100).toFixed(1) : '0';
                           const amount = Math.floor((videoBoostAmount * recipient.split) / totalSplit);
                           return (
