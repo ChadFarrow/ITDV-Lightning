@@ -170,16 +170,52 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setPlaylist([track]);
     setCurrentTrackIndex(0);
     
-    audioRef.current.src = getProxiedAudioUrl(track.url);
-    audioRef.current.load();
-    audioRef.current.play().catch(error => {
-      if (error.name === 'AbortError' || error.message.includes('aborted')) {
-        console.log('Audio loading was cancelled (expected behavior)');
-      } else {
-        console.warn('Audio playback error:', error);
-      }
-    });
-    setIsPlaying(true);
+    const audio = audioRef.current;
+    audio.src = getProxiedAudioUrl(track.url);
+    audio.load();
+    
+    // For iOS, wait for 'canplay' event before playing
+    const handleCanPlay = () => {
+      const playPromise = audio.play();
+      playPromise.then(() => {
+        setIsPlaying(true);
+      }).catch(error => {
+        if (error.name === 'NotAllowedError') {
+          // iOS autoplay restriction - user needs to interact
+          console.log('Autoplay blocked - user interaction required');
+          setIsPlaying(false);
+        } else if (error.name === 'AbortError' || error.message.includes('aborted')) {
+          console.log('Audio loading was cancelled (expected behavior)');
+          setIsPlaying(false);
+        } else {
+          console.warn('Audio playback error:', error);
+          setIsPlaying(false);
+        }
+      });
+      audio.removeEventListener('canplay', handleCanPlay);
+    };
+    
+    // Check if already ready to play
+    if (audio.readyState >= 3) { // HAVE_FUTURE_DATA or higher
+      const playPromise = audio.play();
+      playPromise.then(() => {
+        setIsPlaying(true);
+      }).catch(error => {
+        if (error.name === 'NotAllowedError') {
+          console.log('Autoplay blocked - user interaction required');
+          setIsPlaying(false);
+        } else if (error.name === 'AbortError' || error.message.includes('aborted')) {
+          console.log('Audio loading was cancelled (expected behavior)');
+          setIsPlaying(false);
+        } else {
+          console.warn('Audio playback error:', error);
+          setIsPlaying(false);
+        }
+      });
+    } else {
+      // Wait for canplay event (especially important for iOS)
+      audio.addEventListener('canplay', handleCanPlay, { once: true });
+    }
 
     // Update Media Session API
     if ('mediaSession' in navigator) {
@@ -203,16 +239,52 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setPlaylist(tracks);
     setCurrentTrackIndex(startIndex);
     
-    audioRef.current.src = getProxiedAudioUrl(track.url);
-    audioRef.current.load();
-    audioRef.current.play().catch(error => {
-      if (error.name === 'AbortError' || error.message.includes('aborted')) {
-        console.log('Audio loading was cancelled (expected behavior)');
-      } else {
-        console.warn('Audio playback error:', error);
-      }
-    });
-    setIsPlaying(true);
+    const audio = audioRef.current;
+    audio.src = getProxiedAudioUrl(track.url);
+    audio.load();
+    
+    // For iOS, wait for 'canplay' event before playing
+    const handleCanPlay = () => {
+      const playPromise = audio.play();
+      playPromise.then(() => {
+        setIsPlaying(true);
+      }).catch(error => {
+        if (error.name === 'NotAllowedError') {
+          // iOS autoplay restriction - user needs to interact
+          console.log('Autoplay blocked - user interaction required');
+          setIsPlaying(false);
+        } else if (error.name === 'AbortError' || error.message.includes('aborted')) {
+          console.log('Audio loading was cancelled (expected behavior)');
+          setIsPlaying(false);
+        } else {
+          console.warn('Audio playback error:', error);
+          setIsPlaying(false);
+        }
+      });
+      audio.removeEventListener('canplay', handleCanPlay);
+    };
+    
+    // Check if already ready to play
+    if (audio.readyState >= 3) { // HAVE_FUTURE_DATA or higher
+      const playPromise = audio.play();
+      playPromise.then(() => {
+        setIsPlaying(true);
+      }).catch(error => {
+        if (error.name === 'NotAllowedError') {
+          console.log('Autoplay blocked - user interaction required');
+          setIsPlaying(false);
+        } else if (error.name === 'AbortError' || error.message.includes('aborted')) {
+          console.log('Audio loading was cancelled (expected behavior)');
+          setIsPlaying(false);
+        } else {
+          console.warn('Audio playback error:', error);
+          setIsPlaying(false);
+        }
+      });
+    } else {
+      // Wait for canplay event (especially important for iOS)
+      audio.addEventListener('canplay', handleCanPlay, { once: true });
+    }
 
     // Update Media Session API
     if ('mediaSession' in navigator) {
@@ -249,14 +321,21 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const resume = useCallback(() => {
     if (audioRef.current) {
-      audioRef.current.play().catch(error => {
-        if (error.name === 'AbortError' || error.message.includes('aborted')) {
+      const playPromise = audioRef.current.play();
+      playPromise.then(() => {
+        setIsPlaying(true);
+      }).catch(error => {
+        if (error.name === 'NotAllowedError') {
+          console.log('Playback blocked - user interaction required');
+          setIsPlaying(false);
+        } else if (error.name === 'AbortError' || error.message.includes('aborted')) {
           console.log('Audio loading was cancelled (expected behavior)');
+          setIsPlaying(false);
         } else {
           console.warn('Audio playback error:', error);
+          setIsPlaying(false);
         }
       });
-      setIsPlaying(true);
     }
   }, []);
 
@@ -291,27 +370,50 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setCurrentTrackIndex(nextIndex);
     
     if (audioRef.current) {
-      audioRef.current.src = getProxiedAudioUrl(nextTrack.url);
-      audioRef.current.load();
+      const audio = audioRef.current;
+      audio.src = getProxiedAudioUrl(nextTrack.url);
+      audio.load();
       // Always try to play if forcePlay is true (from ended handler) or if currently playing
       if (forcePlay || isPlaying) {
-        // Use a small delay to ensure the audio element is ready, especially on iOS
-        const playPromise = audioRef.current.play().catch(error => {
-          // Silently handle expected audio loading errors (user navigation, network issues, etc.)
-          if (error.name === 'AbortError' || error.message.includes('aborted')) {
-            console.log('Audio loading was cancelled (expected behavior)');
-          } else {
-            console.warn('Audio playback error:', error);
-          }
-        });
-        
-        // Update playing state after play promise resolves
-        if (forcePlay || isPlaying) {
+        const handleCanPlay = () => {
+          const playPromise = audio.play();
           playPromise.then(() => {
             setIsPlaying(true);
-          }).catch(() => {
-            // If play fails, don't update state
+          }).catch(error => {
+            if (error.name === 'NotAllowedError') {
+              console.log('Playback blocked - user interaction required');
+              setIsPlaying(false);
+            } else if (error.name === 'AbortError' || error.message.includes('aborted')) {
+              console.log('Audio loading was cancelled (expected behavior)');
+              setIsPlaying(false);
+            } else {
+              console.warn('Audio playback error:', error);
+              setIsPlaying(false);
+            }
           });
+          audio.removeEventListener('canplay', handleCanPlay);
+        };
+        
+        // Check if already ready to play
+        if (audio.readyState >= 3) { // HAVE_FUTURE_DATA or higher
+          const playPromise = audio.play();
+          playPromise.then(() => {
+            setIsPlaying(true);
+          }).catch(error => {
+            if (error.name === 'NotAllowedError') {
+              console.log('Playback blocked - user interaction required');
+              setIsPlaying(false);
+            } else if (error.name === 'AbortError' || error.message.includes('aborted')) {
+              console.log('Audio loading was cancelled (expected behavior)');
+              setIsPlaying(false);
+            } else {
+              console.warn('Audio playback error:', error);
+              setIsPlaying(false);
+            }
+          });
+        } else {
+          // Wait for canplay event (especially important for iOS)
+          audio.addEventListener('canplay', handleCanPlay, { once: true });
         }
       }
     }
@@ -347,16 +449,48 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setCurrentTrackIndex(prevIndex);
     
     if (audioRef.current) {
-      audioRef.current.src = getProxiedAudioUrl(prevTrack.url);
-      audioRef.current.load();
+      const audio = audioRef.current;
+      audio.src = getProxiedAudioUrl(prevTrack.url);
+      audio.load();
       if (isPlaying) {
-        audioRef.current.play().catch(error => {
-          if (error.name === 'AbortError' || error.message.includes('aborted')) {
-            console.log('Audio loading was cancelled (expected behavior)');
-          } else {
-            console.warn('Audio playback error:', error);
-          }
-        });
+        const handleCanPlay = () => {
+          const playPromise = audio.play();
+          playPromise.then(() => {
+            setIsPlaying(true);
+          }).catch(error => {
+            if (error.name === 'NotAllowedError') {
+              console.log('Playback blocked - user interaction required');
+              setIsPlaying(false);
+            } else if (error.name === 'AbortError' || error.message.includes('aborted')) {
+              console.log('Audio loading was cancelled (expected behavior)');
+              setIsPlaying(false);
+            } else {
+              console.warn('Audio playback error:', error);
+              setIsPlaying(false);
+            }
+          });
+          audio.removeEventListener('canplay', handleCanPlay);
+        };
+        
+        if (audio.readyState >= 3) {
+          const playPromise = audio.play();
+          playPromise.then(() => {
+            setIsPlaying(true);
+          }).catch(error => {
+            if (error.name === 'NotAllowedError') {
+              console.log('Playback blocked - user interaction required');
+              setIsPlaying(false);
+            } else if (error.name === 'AbortError' || error.message.includes('aborted')) {
+              console.log('Audio loading was cancelled (expected behavior)');
+              setIsPlaying(false);
+            } else {
+              console.warn('Audio playback error:', error);
+              setIsPlaying(false);
+            }
+          });
+        } else {
+          audio.addEventListener('canplay', handleCanPlay, { once: true });
+        }
       }
     }
 

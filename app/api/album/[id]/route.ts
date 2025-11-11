@@ -50,8 +50,18 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     try {
       const fs = await import('fs/promises');
       const path = await import('path');
-      const staticAlbumsPath = path.join(process.cwd(), 'public', 'albums-static-cached.json');
-      const staticAlbumsData = await fs.readFile(staticAlbumsPath, 'utf8');
+      // Try albums-static-cached.json first, fallback to static-albums.json
+      let staticAlbumsPath = path.join(process.cwd(), 'public', 'albums-static-cached.json');
+      let staticAlbumsData: string;
+      
+      try {
+        staticAlbumsData = await fs.readFile(staticAlbumsPath, 'utf8');
+      } catch (error) {
+        // Fallback to static-albums.json if albums-static-cached.json doesn't exist
+        staticAlbumsPath = path.join(process.cwd(), 'public', 'static-albums.json');
+        staticAlbumsData = await fs.readFile(staticAlbumsPath, 'utf8');
+      }
+      
       const staticAlbumsJson = JSON.parse(staticAlbumsData);
       const staticAlbums = staticAlbumsJson.albums || [];
 
