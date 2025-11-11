@@ -855,7 +855,7 @@ const NowPlayingScreen: React.FC<NowPlayingScreenProps> = ({ isOpen, onClose }) 
                   album: currentAlbum || 'Unknown Album',
                   episode: currentTrack?.title,
                   url: currentAlbum ? `https://itdv.podtards.com/album/${encodeURIComponent(currentAlbum)}#${encodeURIComponent(currentTrack?.title || '')}` : 'https://itdv.podtards.com',
-                  appName: 'ITDV Lightning',
+                  appName: 'ITDV App',
                   timestamp: Math.floor(currentTime),
                   senderName: senderName?.trim() || undefined,
                   message: boostMessage?.trim() || undefined,

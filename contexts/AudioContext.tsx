@@ -421,7 +421,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         album: track.album || (currentAlbum !== 'Shuffle All' ? currentAlbum : undefined) || undefined, // Use track's actual album, avoid 'Shuffle All'
         episode: track.title,
         url: track.album ? `https://itdv.podtards.com/album/${encodeURIComponent(track.album)}#${encodeURIComponent(track.title || '')}` : 'https://itdv.podtards.com',
-        appName: 'ITDV Lightning',
+        appName: 'ITDV App',
         timestamp: Math.floor(currentTime),
         senderName: 'Auto Boost', // Identify as auto boost
         // No message for auto boosts to keep TLVs clean

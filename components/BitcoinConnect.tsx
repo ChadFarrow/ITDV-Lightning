@@ -233,7 +233,7 @@ export function BitcoinConnectPayment({
         podcast: boostMetadata.artist || 'Unknown Artist',
         episode: boostMetadata.title || 'Unknown Title',
         action: 'boost',
-        app_name: boostMetadata.appName || 'ITDV Lightning',
+        app_name: boostMetadata.appName || 'ITDV App',
         // Use actual feed URL from metadata for proper Helipad recognition
         feed: boostMetadata.feedUrl || 'https://www.doerfelverse.com/feeds/intothedoerfelverse.xml',
         url: boostMetadata.feedUrl || 'https://www.doerfelverse.com/feeds/intothedoerfelverse.xml',
@@ -251,7 +251,7 @@ export function BitcoinConnectPayment({
         uuid: `boost-${Date.now()}-${Math.floor(Math.random() * 1000)}`, // Unique identifier
         app_version: '1.0.0', // App version
         value_msat: recipients ? Math.floor((amount * 1000) / recipients.length) : amount * 1000, // Individual payment amount
-        name: recipientName || 'ITDV Lightning' // Recipient name for split payments, app name for single payments
+        name: recipientName || 'ITDV App' // Recipient name for split payments, app name for single payments
       };
       
       // Log the exact TLV data for debugging (matching payment-utils.ts)
@@ -276,7 +276,7 @@ export function BitcoinConnectPayment({
         podcast: boostMetadata.artist || 'Unknown Artist',
         episode: boostMetadata.title || 'Unknown Title', 
         action: 'boost',
-        app: boostMetadata.appName || 'ITDV Lightning',
+        app: boostMetadata.appName || 'ITDV App',
         message: boostMetadata.message || '',
         amount: amount,
         sender: boostMetadata.senderName || 'Anonymous',

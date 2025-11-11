@@ -1757,7 +1757,7 @@ export default function HomePage() {
                   artist: selectedAlbum.artist,
                   album: selectedAlbum.title,
                   url: `https://itdv.podtards.com/album/${encodeURIComponent(selectedAlbum.feedId || selectedAlbum.title)}`,
-                  appName: 'ITDV Lightning',
+                  appName: 'ITDV App',
                   senderName: senderName?.trim() || 'Super Fan',
                   message: boostMessage?.trim() || undefined,
                   itemGuid: selectedAlbum.tracks?.[0]?.guid,
@@ -2037,7 +2037,7 @@ export default function HomePage() {
                     const trackTitle = video?.title || selectedVideoTrack?.title;
                     return albumTitle ? `https://itdv.podtards.com/album/${encodeURIComponent(albumTitle)}#${encodeURIComponent(trackTitle || '')}` : 'https://itdv.podtards.com';
                   })(),
-                  appName: 'ITDV Lightning',
+                  appName: 'ITDV App',
                   timestamp: Math.floor(Date.now() / 1000),
                   senderName: senderName?.trim() || undefined,
                   message: videoBoostMessage?.trim() || undefined,
