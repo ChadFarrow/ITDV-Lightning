@@ -967,73 +967,83 @@ export default function HomePage() {
         </header>
         
         {/* Sidebar */}
-        <div className={`fixed top-0 left-0 h-full w-80 bg-gray-900/95 backdrop-blur-sm transform transition-transform duration-300 z-50 border-r border-gray-700 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className={`fixed top-0 left-0 h-full w-80 bg-gray-900/95 backdrop-blur-sm transform transition-transform duration-300 z-50 border-r border-gray-700 pointer-events-auto ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
           <div className="p-4 pt-16 flex flex-col h-full">
             <h2 className="text-lg font-bold mb-4">Menu</h2>
             
             <div className="mb-4 space-y-1">
-              <Link
+              <a
                 href="/lightning-guide"
-                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer relative z-10"
+                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer relative z-10 pointer-events-auto"
                 onClick={(e) => {
+                  e.preventDefault();
                   e.stopPropagation();
                   setIsSidebarOpen(false);
+                  window.location.href = '/lightning-guide';
                 }}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
                 <span className="text-sm">Lightning Payments</span>
-              </Link>
+              </a>
               
-              <Link
+              <a
                 href="/music-guide"
-                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer relative z-10"
+                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer relative z-10 pointer-events-auto"
                 onClick={(e) => {
+                  e.preventDefault();
                   e.stopPropagation();
                   setIsSidebarOpen(false);
+                  window.location.href = '/music-guide';
                 }}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
                 </svg>
                 <span className="text-sm">Music Streaming</span>
-              </Link>
+              </a>
               
-              <Link
+              <a
                 href="/rss-guide"
-                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer relative z-10"
+                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer relative z-10 pointer-events-auto"
                 onClick={(e) => {
+                  e.preventDefault();
                   e.stopPropagation();
                   setIsSidebarOpen(false);
+                  window.location.href = '/rss-guide';
                 }}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
                 </svg>
                 <span className="text-sm">RSS & Podcasting 2.0</span>
-              </Link>
+              </a>
               
-              <Link
+              <a
                 href="/about"
-                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer relative z-10"
+                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer relative z-10 pointer-events-auto"
                 onClick={(e) => {
+                  e.preventDefault();
                   e.stopPropagation();
                   setIsSidebarOpen(false);
+                  window.location.href = '/about';
                 }}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <span className="text-sm">About & Support</span>
-              </Link>
+              </a>
               
-              <Link
+              <a
                 href="/admin/feeds"
-                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer relative z-10"
+                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer relative z-10 pointer-events-auto"
                 onClick={(e) => {
+                  e.preventDefault();
                   e.stopPropagation();
                   setIsSidebarOpen(false);
+                  window.location.href = '/admin/feeds';
                 }}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1041,35 +1051,39 @@ export default function HomePage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
                 <span className="text-sm">Admin Panel</span>
-              </Link>
+              </a>
               
-              <Link
+              <a
                 href="/album/lnurl-testing-podcast"
-                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer relative z-10"
+                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer relative z-10 pointer-events-auto"
                 onClick={(e) => {
+                  e.preventDefault();
                   e.stopPropagation();
                   setIsSidebarOpen(false);
+                  window.location.href = '/album/lnurl-testing-podcast';
                 }}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
                 <span className="text-sm">LNURL Testing Podcast</span>
-              </Link>
+              </a>
 
-              <Link
+              <a
                 href="/boosts"
-                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer relative z-10"
+                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer relative z-10 pointer-events-auto"
                 onClick={(e) => {
+                  e.preventDefault();
                   e.stopPropagation();
                   setIsSidebarOpen(false);
+                  window.location.href = '/boosts';
                 }}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
                 <span className="text-sm">⚡ Boosts</span>
-              </Link>
+              </a>
             </div>
             
             {/* Lightning Toggle - moved up to avoid being hidden by now playing bar */}
