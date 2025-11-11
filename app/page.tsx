@@ -967,7 +967,7 @@ export default function HomePage() {
         </header>
         
         {/* Sidebar */}
-        <div className={`fixed top-0 left-0 h-full w-80 bg-gray-900/95 backdrop-blur-sm transform transition-transform duration-300 z-30 border-r border-gray-700 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`} onClick={(e) => e.stopPropagation()}>
+        <div className={`fixed top-0 left-0 h-full w-80 bg-gray-900/95 backdrop-blur-sm transform transition-transform duration-300 z-30 border-r border-gray-700 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
           <div className="p-4 pt-16 flex flex-col h-full">
             <h2 className="text-lg font-bold mb-4">Menu</h2>
             
@@ -976,10 +976,12 @@ export default function HomePage() {
                 href="/lightning-guide"
                 className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer"
                 onClick={(e) => {
-                  e.preventDefault();
                   e.stopPropagation();
                   setIsSidebarOpen(false);
-                  router.push('/lightning-guide');
+                  // Use setTimeout to ensure sidebar closes before navigation
+                  setTimeout(() => {
+                    router.push('/lightning-guide');
+                  }, 100);
                 }}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -992,10 +994,11 @@ export default function HomePage() {
                 href="/music-guide"
                 className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer"
                 onClick={(e) => {
-                  e.preventDefault();
                   e.stopPropagation();
                   setIsSidebarOpen(false);
-                  router.push('/music-guide');
+                  setTimeout(() => {
+                    router.push('/music-guide');
+                  }, 100);
                 }}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1008,10 +1011,11 @@ export default function HomePage() {
                 href="/rss-guide"
                 className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer"
                 onClick={(e) => {
-                  e.preventDefault();
                   e.stopPropagation();
                   setIsSidebarOpen(false);
-                  router.push('/rss-guide');
+                  setTimeout(() => {
+                    router.push('/rss-guide');
+                  }, 100);
                 }}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1024,10 +1028,11 @@ export default function HomePage() {
                 href="/about"
                 className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer"
                 onClick={(e) => {
-                  e.preventDefault();
                   e.stopPropagation();
                   setIsSidebarOpen(false);
-                  router.push('/about');
+                  setTimeout(() => {
+                    router.push('/about');
+                  }, 100);
                 }}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1040,10 +1045,11 @@ export default function HomePage() {
                 href="/admin/feeds"
                 className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer"
                 onClick={(e) => {
-                  e.preventDefault();
                   e.stopPropagation();
                   setIsSidebarOpen(false);
-                  router.push('/admin/feeds');
+                  setTimeout(() => {
+                    router.push('/admin/feeds');
+                  }, 100);
                 }}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1057,10 +1063,11 @@ export default function HomePage() {
                 href="/album/lnurl-testing-podcast"
                 className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer"
                 onClick={(e) => {
-                  e.preventDefault();
                   e.stopPropagation();
                   setIsSidebarOpen(false);
-                  router.push('/album/lnurl-testing-podcast');
+                  setTimeout(() => {
+                    router.push('/album/lnurl-testing-podcast');
+                  }, 100);
                 }}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1073,10 +1080,11 @@ export default function HomePage() {
                 href="/boosts"
                 className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer"
                 onClick={(e) => {
-                  e.preventDefault();
                   e.stopPropagation();
                   setIsSidebarOpen(false);
-                  router.push('/boosts');
+                  setTimeout(() => {
+                    router.push('/boosts');
+                  }, 100);
                 }}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
