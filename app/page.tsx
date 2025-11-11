@@ -11,7 +11,7 @@ import { useLightning } from '@/contexts/LightningContext';
 import { toast } from '@/components/Toast';
 import { preloadCriticalColors } from '@/lib/performance-utils';
 import dynamic from 'next/dynamic';
-import { Zap, Video, Play } from 'lucide-react';
+import { Zap, Video, Play, Info } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { isLightningEnabled } from '@/lib/feature-flags';
 import VideoPlayer from '@/components/VideoPlayer';
@@ -125,12 +125,14 @@ export default function HomePage() {
   const [boostAmount, setBoostAmount] = useState(50);
   const [senderName, setSenderName] = useState('');
   const [boostMessage, setBoostMessage] = useState('');
+  const [showSplits, setShowSplits] = useState(false);
   
   // Video boost modal state
   const [showVideoBoostModal, setShowVideoBoostModal] = useState(false);
   const [selectedVideoTrack, setSelectedVideoTrack] = useState<(Track & { album: Album }) | null>(null);
   const [videoBoostAmount, setVideoBoostAmount] = useState(50);
   const [videoBoostMessage, setVideoBoostMessage] = useState('');
+  const [showVideoSplits, setShowVideoSplits] = useState(false);
   
   // Global audio and video context
   const { playAlbumAndOpenNowPlaying: globalPlayAlbum, toggleShuffle, pause: globalPause, isPlaying: globalIsPlaying } = useAudio();
@@ -1732,6 +1734,101 @@ export default function HomePage() {
                   maxLength={250}
                   rows={3}
                 />
+              </div>
+
+              {/* Show Splits Button */}
+              <div className="mt-4">
+                <button
+                  onClick={() => setShowVideoSplits(!showVideoSplits)}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700 text-gray-300 rounded-xl text-sm font-medium transition-colors"
+                >
+                  <Info className="w-4 h-4" />
+                  <span>{showVideoSplits ? 'Hide' : 'Show'} Payment Splits</span>
+                </button>
+                
+                {showVideoSplits && (() => {
+                  const recipients = (() => {
+                    const video = currentVideo || selectedVideoTrack;
+                    // Use video's value recipients if available
+                    if (video?.value && video.value.type === 'lightning' && video.value.method === 'keysend') {
+                      return video.value.recipients
+                        .filter((r: any) => r.type === 'node')
+                        .map((r: any) => ({
+                          address: r.address,
+                          split: r.split,
+                          name: r.name,
+                          fee: r.fee,
+                          type: 'node'
+                        }));
+                    }
+                    // Try track's paymentRecipients
+                    if (selectedVideoTrack?.paymentRecipients && selectedVideoTrack.paymentRecipients.length > 0) {
+                      return selectedVideoTrack.paymentRecipients;
+                    }
+                    // Try track's value.recipients
+                    if (selectedVideoTrack?.value && selectedVideoTrack.value.type === 'lightning' && selectedVideoTrack.value.method === 'keysend') {
+                      return selectedVideoTrack.value.recipients
+                        .filter((r: any) => r.type === 'node')
+                        .map((r: any) => ({
+                          address: r.address,
+                          split: r.split,
+                          name: r.name,
+                          fee: r.fee,
+                          type: 'node'
+                        }));
+                    }
+                    return [];
+                  })();
+                  
+                  if (recipients.length === 0) {
+                    return (
+                      <div className="mt-3 p-3 bg-gray-800/30 rounded-lg text-sm text-gray-400">
+                        No payment splits configured
+                      </div>
+                    );
+                  }
+                  
+                  const totalSplit = recipients.reduce((sum, r) => sum + (r.split || 0), 0);
+                  
+                  return (
+                    <div className="mt-3 p-4 bg-gray-800/30 rounded-lg border border-gray-700">
+                      <div className="text-sm font-medium text-gray-300 mb-3">
+                        Payment will be split among {recipients.length} recipient{recipients.length !== 1 ? 's' : ''}:
+                      </div>
+                      <div className="space-y-2 max-h-48 overflow-y-auto">
+                        {recipients.map((recipient: any, index: number) => {
+                          const percentage = totalSplit > 0 ? ((recipient.split / totalSplit) * 100).toFixed(1) : '0';
+                          const amount = Math.floor((videoBoostAmount * recipient.split) / totalSplit);
+                          return (
+                            <div key={index} className="flex items-center justify-between p-2 bg-gray-900/50 rounded">
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm text-white font-medium truncate">
+                                  {recipient.name || `Recipient ${index + 1}`}
+                                </div>
+                                <div className="text-xs text-gray-400 truncate font-mono">
+                                  {recipient.address.substring(0, 20)}...
+                                </div>
+                              </div>
+                              <div className="text-right ml-4">
+                                <div className="text-sm text-white font-medium">
+                                  {percentage}%
+                                </div>
+                                <div className="text-xs text-gray-400">
+                                  {amount} sats
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {totalSplit !== 100 && totalSplit > 0 && (
+                        <div className="mt-2 text-xs text-yellow-400">
+                          Note: Total split is {totalSplit}% (not 100%)
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Boost Button */}
