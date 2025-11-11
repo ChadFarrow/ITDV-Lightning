@@ -1178,13 +1178,30 @@ export default function HomePage() {
 
                         <div className="flex items-center gap-4 text-sm text-gray-400">
                           <span className="font-mono">{formatDuration(track.duration)}</span>
-                          <Link
-                            href={`/album/${encodeURIComponent(track.album.title.toLowerCase().replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, ''))}`}
-                            onClick={(e) => e.stopPropagation()}
-                            className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
-                          >
-                            View Album
-                          </Link>
+                          <div className="flex items-center gap-2">
+                            {/* Boost Button */}
+                            {isLightningEnabled && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedVideoTrack(track);
+                                  setShowVideoBoostModal(true);
+                                }}
+                                className="inline-flex items-center gap-1 bg-gradient-to-r from-yellow-500 to-orange-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 hover:from-yellow-400 hover:to-orange-500 hover:shadow-lg transform hover:scale-105 active:scale-95"
+                                title="Boost this video"
+                              >
+                                <Zap className="w-4 h-4" />
+                                <span>Boost</span>
+                              </button>
+                            )}
+                            <Link
+                              href={`/album/${encodeURIComponent(track.album.title.toLowerCase().replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, ''))}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                            >
+                              View Album
+                            </Link>
+                          </div>
                         </div>
                       </div>
                     ))}
