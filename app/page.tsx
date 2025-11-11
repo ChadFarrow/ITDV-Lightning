@@ -967,7 +967,7 @@ export default function HomePage() {
         </header>
         
         {/* Sidebar */}
-        <div className={`fixed top-0 left-0 h-full w-80 bg-gray-900/95 backdrop-blur-sm transform transition-transform duration-300 z-30 border-r border-gray-700 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className={`fixed top-0 left-0 h-full w-80 bg-gray-900/95 backdrop-blur-sm transform transition-transform duration-300 z-50 border-r border-gray-700 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
           <div className="p-4 pt-16 flex flex-col h-full">
             <h2 className="text-lg font-bold mb-4">Menu</h2>
             
@@ -1082,12 +1082,10 @@ export default function HomePage() {
         {/* Overlay */}
         {isSidebarOpen && (
           <div 
-            className="fixed inset-0 bg-black/50 z-20" 
-            onClick={(e) => {
-              // Only close if clicking directly on the overlay, not on sidebar content
-              if (e.target === e.currentTarget) {
-                setIsSidebarOpen(false);
-              }
+            className="fixed inset-0 bg-black/50 z-40 pointer-events-auto" 
+            style={{ left: '320px' }}
+            onClick={() => {
+              setIsSidebarOpen(false);
             }}
           />
         )}
