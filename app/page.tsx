@@ -1399,7 +1399,7 @@ export default function HomePage() {
 
               {/* Video Player (when video is playing) - at bottom */}
               {currentVideo && currentVideo.videoUrl && (
-                <div ref={videoPlayerRef} className="mt-8 max-w-4xl mx-auto">
+                <div ref={videoPlayerRef} className="mt-8 mb-16 max-w-4xl mx-auto">
                   <div className="bg-black/70 backdrop-blur-sm rounded-xl border border-white/20 overflow-hidden">
                     <div className="p-4 sm:p-6 border-b border-white/10 flex items-center justify-between">
                       <div className="flex-1 min-w-0">
