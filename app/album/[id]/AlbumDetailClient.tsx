@@ -284,6 +284,48 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
       ];
     }
     
+    // Special case: The Satellite Spotlight uses specific recipients for all boosts
+    if (album && album.title && album.title.toLowerCase().includes('satellite spotlight')) {
+      return [
+        {
+          address: '031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5',
+          split: 95,
+          name: 'DoerfelVerse_Node',
+          type: 'node'
+        },
+        {
+          address: '02c7bb6f29f09d92d40d62d64443b688891259dea324406b4678df6235794f24bf',
+          split: 1,
+          name: 'Ericpp',
+          type: 'node'
+        },
+        {
+          address: '035ad2c954e264004986da2d9499e1732e5175e1dcef2453c921c6cdcc3536e9d8',
+          split: 1,
+          name: 'steven@getalby.com',
+          type: 'node'
+        },
+        {
+          address: '03589f3ddb81f3802f3fc9aaa359b684ed19840b55db88f7c9c2cc671e74ac93e2',
+          split: 1,
+          name: 'ThunderRoad',
+          type: 'node'
+        },
+        {
+          address: '03b6f613e88bd874177c28c6ad83b3baba43c4c656f56be1f8df84669556054b79',
+          split: 1,
+          name: 'boostbot@fountain.fm',
+          type: 'node'
+        },
+        {
+          address: '03ae9f91a0cb8ff43840e3c322c4c61f019d8c1c3cea15a25cfc425ac605e61a4a',
+          split: 1,
+          name: 'Podcastindex.org',
+          type: 'node'
+        }
+      ];
+    }
+    
     // First, try to find the track in the album to get the most up-to-date properties
     // This ensures we have the correct videoUrl and paymentRecipients
     if (album && album.tracks) {
@@ -1824,6 +1866,48 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
                           address: '031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5',
                           split: 95,
                           name: 'DoerfelVerse_Node',
+                          type: 'node'
+                        }
+                      ];
+                    }
+                    
+                    // Special case: The Satellite Spotlight uses specific recipients for all boosts (audio and video)
+                    if (album.title?.toLowerCase().includes('satellite spotlight')) {
+                      return [
+                        {
+                          address: '031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5',
+                          split: 95,
+                          name: 'DoerfelVerse_Node',
+                          type: 'node'
+                        },
+                        {
+                          address: '02c7bb6f29f09d92d40d62d64443b688891259dea324406b4678df6235794f24bf',
+                          split: 1,
+                          name: 'Ericpp',
+                          type: 'node'
+                        },
+                        {
+                          address: '035ad2c954e264004986da2d9499e1732e5175e1dcef2453c921c6cdcc3536e9d8',
+                          split: 1,
+                          name: 'steven@getalby.com',
+                          type: 'node'
+                        },
+                        {
+                          address: '03589f3ddb81f3802f3fc9aaa359b684ed19840b55db88f7c9c2cc671e74ac93e2',
+                          split: 1,
+                          name: 'ThunderRoad',
+                          type: 'node'
+                        },
+                        {
+                          address: '03b6f613e88bd874177c28c6ad83b3baba43c4c656f56be1f8df84669556054b79',
+                          split: 1,
+                          name: 'boostbot@fountain.fm',
+                          type: 'node'
+                        },
+                        {
+                          address: '03ae9f91a0cb8ff43840e3c322c4c61f019d8c1c3cea15a25cfc425ac605e61a4a',
+                          split: 1,
+                          name: 'Podcastindex.org',
                           type: 'node'
                         }
                       ];
