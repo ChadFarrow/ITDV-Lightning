@@ -137,6 +137,7 @@ export default function HomePage() {
   const videoContext = useVideo();
   const { playVideo: globalPlayVideo, currentVideo, isPlaying: isVideoPlaying, pause: pauseVideo, resume: resumeVideo, updateCurrentTime, updateDuration, seekRequest, stop: stopVideo } = videoContext;
   const hasLoadedRef = useRef(false);
+  const videoPlayerRef = useRef<HTMLDivElement>(null);
   
   // Handle boost button click from album card
   const handleBoostClick = (album: Album) => {
