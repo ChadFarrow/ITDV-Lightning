@@ -296,10 +296,10 @@ function convertMsatsToSats(msats: number | undefined | null): string {
 
 // Helper function to detect if action is stream or boost
 // Based on Helipad documentation: action values indicate the type
-// Common values: 1 = boost, 2 = stream (may vary - adjust as needed)
+// Common values: 1 = boost, 2 = stream
 function isStreamAction(action: number | undefined | null): boolean {
   if (action === undefined || action === null) return false;
-  // Assuming action === 2 indicates stream (adjust based on actual Helipad values)
+  // Only action === 2 indicates stream, everything else (including 1) is boost
   return action === 2;
 }
 
@@ -1407,18 +1407,15 @@ export default function BoostsPage() {
                 📱 {boost.app === 'ITDV Lightning' ? 'ITDV App' : boost.app}
               </span>
             )}
-            {boost.action !== undefined && boost.action !== null && (
-              <>
-                {isStreamAction(boost.action) ? (
-                  <span className="bg-purple-500/20 text-purple-400 px-2 py-1 rounded text-xs font-medium">
-                    🌊 Stream
-                  </span>
-                ) : (
-                  <span className="bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded text-xs font-medium">
-                    ⚡ Boost
-                  </span>
-                )}
-              </>
+            {/* Always show Boost/Stream badge for Helipad boosts - default to Boost if action is undefined or not 2 */}
+            {isStreamAction(boost.action) ? (
+              <span className="bg-purple-500/20 text-purple-400 px-2 py-1 rounded text-xs font-medium">
+                🌊 Stream
+              </span>
+            ) : (
+              <span className="bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded text-xs font-medium">
+                ⚡ Boost
+              </span>
             )}
           </>
         )}
