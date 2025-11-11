@@ -971,11 +971,12 @@ export default function HomePage() {
           <div className="p-4 pt-16 flex flex-col h-full">
             <h2 className="text-lg font-bold mb-4">Menu</h2>
             
-            <div className="mb-4 space-y-1" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-4 space-y-1">
               <Link
                 href="/lightning-guide"
-                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer"
-                onClick={() => {
+                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer relative z-10"
+                onClick={(e) => {
+                  e.stopPropagation();
                   setIsSidebarOpen(false);
                 }}
               >
@@ -987,8 +988,9 @@ export default function HomePage() {
               
               <Link
                 href="/music-guide"
-                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer"
-                onClick={() => {
+                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer relative z-10"
+                onClick={(e) => {
+                  e.stopPropagation();
                   setIsSidebarOpen(false);
                 }}
               >
@@ -1000,8 +1002,9 @@ export default function HomePage() {
               
               <Link
                 href="/rss-guide"
-                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer"
-                onClick={() => {
+                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer relative z-10"
+                onClick={(e) => {
+                  e.stopPropagation();
                   setIsSidebarOpen(false);
                 }}
               >
@@ -1013,8 +1016,9 @@ export default function HomePage() {
               
               <Link
                 href="/about"
-                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer"
-                onClick={() => {
+                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer relative z-10"
+                onClick={(e) => {
+                  e.stopPropagation();
                   setIsSidebarOpen(false);
                 }}
               >
@@ -1026,8 +1030,9 @@ export default function HomePage() {
               
               <Link
                 href="/admin/feeds"
-                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer"
-                onClick={() => {
+                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer relative z-10"
+                onClick={(e) => {
+                  e.stopPropagation();
                   setIsSidebarOpen(false);
                 }}
               >
@@ -1040,8 +1045,9 @@ export default function HomePage() {
               
               <Link
                 href="/album/lnurl-testing-podcast"
-                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer"
-                onClick={() => {
+                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer relative z-10"
+                onClick={(e) => {
+                  e.stopPropagation();
                   setIsSidebarOpen(false);
                 }}
               >
@@ -1053,8 +1059,9 @@ export default function HomePage() {
 
               <Link
                 href="/boosts"
-                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer"
-                onClick={() => {
+                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer relative z-10"
+                onClick={(e) => {
+                  e.stopPropagation();
                   setIsSidebarOpen(false);
                 }}
               >
@@ -1082,7 +1089,7 @@ export default function HomePage() {
         {/* Overlay */}
         {isSidebarOpen && (
           <div 
-            className="fixed inset-0 bg-black/50 z-40 pointer-events-auto" 
+            className="fixed top-0 right-0 bottom-0 bg-black/50 z-40 pointer-events-auto" 
             style={{ left: '320px' }}
             onClick={() => {
               setIsSidebarOpen(false);
