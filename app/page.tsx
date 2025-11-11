@@ -1882,7 +1882,16 @@ export default function HomePage() {
                 {showVideoSplits && (() => {
                   const recipients = (() => {
                     const video = currentVideo || selectedVideoTrack;
-                    // Use video's value recipients if available
+                    // Prioritize paymentRecipients (site-specific, ~5 splits) over value.recipients (main feed)
+                    // Try track's paymentRecipients first (site-specific)
+                    if (selectedVideoTrack?.paymentRecipients && selectedVideoTrack.paymentRecipients.length > 0) {
+                      return selectedVideoTrack.paymentRecipients;
+                    }
+                    // Try video's paymentRecipients if available
+                    if (video?.paymentRecipients && video.paymentRecipients.length > 0) {
+                      return video.paymentRecipients;
+                    }
+                    // Fallback to value.recipients only if paymentRecipients not available
                     if (video?.value && video.value.type === 'lightning' && video.value.method === 'keysend') {
                       return video.value.recipients
                         .filter((r: any) => r.type === 'node')
@@ -1894,11 +1903,7 @@ export default function HomePage() {
                           type: 'node'
                         }));
                     }
-                    // Try track's paymentRecipients
-                    if (selectedVideoTrack?.paymentRecipients && selectedVideoTrack.paymentRecipients.length > 0) {
-                      return selectedVideoTrack.paymentRecipients;
-                    }
-                    // Try track's value.recipients
+                    // Try track's value.recipients as last resort
                     if (selectedVideoTrack?.value && selectedVideoTrack.value.type === 'lightning' && selectedVideoTrack.value.method === 'keysend') {
                       return selectedVideoTrack.value.recipients
                         .filter((r: any) => r.type === 'node')
@@ -1980,7 +1985,16 @@ export default function HomePage() {
                 className="w-full !mt-6"
                 recipients={(() => {
                   const video = currentVideo || selectedVideoTrack;
-                  // Use video's value recipients if available
+                  // Prioritize paymentRecipients (site-specific, ~5 splits) over value.recipients (main feed)
+                  // Try track's paymentRecipients first (site-specific)
+                  if (selectedVideoTrack?.paymentRecipients && selectedVideoTrack.paymentRecipients.length > 0) {
+                    return selectedVideoTrack.paymentRecipients;
+                  }
+                  // Try video's paymentRecipients if available
+                  if (video?.paymentRecipients && video.paymentRecipients.length > 0) {
+                    return video.paymentRecipients;
+                  }
+                  // Fallback to value.recipients only if paymentRecipients not available
                   if (video?.value && video.value.type === 'lightning' && video.value.method === 'keysend') {
                     return video.value.recipients
                       .filter((r: any) => r.type === 'node')
@@ -1992,11 +2006,7 @@ export default function HomePage() {
                         type: 'node'
                       }));
                   }
-                  // Try track's paymentRecipients
-                  if (selectedVideoTrack?.paymentRecipients && selectedVideoTrack.paymentRecipients.length > 0) {
-                    return selectedVideoTrack.paymentRecipients;
-                  }
-                  // Try track's value.recipients
+                  // Try track's value.recipients as last resort
                   if (selectedVideoTrack?.value && selectedVideoTrack.value.type === 'lightning' && selectedVideoTrack.value.method === 'keysend') {
                     return selectedVideoTrack.value.recipients
                       .filter((r: any) => r.type === 'node')
