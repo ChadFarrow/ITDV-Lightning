@@ -1401,7 +1401,7 @@ export default function HomePage() {
               {currentVideo && currentVideo.videoUrl && (
                 <div ref={videoPlayerRef} className="mt-8 mb-16 max-w-4xl mx-auto">
                   <div className="bg-black/70 backdrop-blur-sm rounded-xl border border-white/20 overflow-hidden">
-                    <div className="p-4 sm:p-6 border-b border-white/10 flex items-center justify-between">
+                    <div className="p-4 sm:p-6 border-b border-white/10 flex items-center justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <h2 className="text-lg sm:text-2xl font-bold text-white">Video Player</h2>
                         <p className="text-sm text-gray-300 mt-1 truncate">{currentVideo.title}</p>
@@ -1413,10 +1413,10 @@ export default function HomePage() {
                             onClick={() => {
                               setShowVideoBoostModal(true);
                             }}
-                            className="inline-flex items-center gap-1 sm:gap-2 bg-gradient-to-r from-yellow-500 to-orange-600 text-white px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 hover:from-yellow-400 hover:to-orange-500 hover:shadow-lg transform hover:scale-105 active:scale-95 touch-manipulation min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0"
+                            className="inline-flex items-center justify-center gap-1 sm:gap-2 bg-gradient-to-r from-yellow-500 to-orange-600 text-white px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 hover:from-yellow-400 hover:to-orange-500 hover:shadow-lg transform hover:scale-105 active:scale-95 touch-manipulation min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 relative z-10"
                             title="Boost this video"
                           >
-                            <Zap className="w-4 h-4" />
+                            <Zap className="w-4 h-4 flex-shrink-0" />
                             <span className="hidden sm:inline">Boost</span>
                           </button>
                         )}
@@ -1424,9 +1424,12 @@ export default function HomePage() {
                           onClick={() => {
                             stopVideo();
                           }}
-                          className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                          className="px-3 sm:px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors touch-manipulation min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center relative z-10"
                         >
-                          Close
+                          <span className="hidden sm:inline">Close</span>
+                          <svg className="w-5 h-5 sm:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
                         </button>
                       </div>
                     </div>
