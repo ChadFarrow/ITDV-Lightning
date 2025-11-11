@@ -625,6 +625,50 @@ export default function BoostsPage() {
   const [lastCacheTime, setLastCacheTime] = useState<number | null>(null);
   const [isHelipadPolling, setIsHelipadPolling] = useState(false);
 
+  // Handle media resource abort errors (expected when navigation happens or components unmount)
+  useEffect(() => {
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      // Suppress expected media abort errors
+      const reason = event.reason;
+      if (reason instanceof DOMException) {
+        const message = reason.message || '';
+        if (message.includes('fetching process for the media resource was aborted') ||
+            message.includes('The operation was aborted') ||
+            message.includes('aborted by the user agent')) {
+          event.preventDefault();
+          // Silently ignore - this is expected behavior when links are clicked or components unmount
+          return;
+        }
+      }
+      // Also check if it's a string error message
+      if (typeof reason === 'string' && reason.includes('media resource was aborted')) {
+        event.preventDefault();
+        return;
+      }
+    };
+
+    const handleError = (event: ErrorEvent) => {
+      // Suppress expected media abort errors from error events too
+      if (event.error instanceof DOMException) {
+        const message = event.error.message || '';
+        if (message.includes('fetching process for the media resource was aborted') ||
+            message.includes('The operation was aborted') ||
+            message.includes('aborted by the user agent')) {
+          event.preventDefault();
+          return;
+        }
+      }
+    };
+
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+    window.addEventListener('error', handleError);
+
+    return () => {
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+      window.removeEventListener('error', handleError);
+    };
+  }, []);
+
   const loadBoosts = async (forceRefresh = false) => {
     try {
       setLoading(true);
