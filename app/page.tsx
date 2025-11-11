@@ -1788,7 +1788,7 @@ export default function HomePage() {
                     );
                   }
                   
-                  const totalSplit = recipients.reduce((sum, r) => sum + (r.split || 0), 0);
+                  const totalSplit = recipients.reduce((sum: number, r: any) => sum + (r.split || 0), 0);
                   
                   return (
                     <div className="mt-3 p-4 bg-gray-800/30 rounded-lg border border-gray-700">
