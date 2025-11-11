@@ -566,7 +566,7 @@ export default function HomePage() {
     }
   };
 
-  // Helper function to get all video tracks
+  // Helper function to get all video tracks (filtered to only show 'doerfels' and 'citybeach' videos)
   const getAllVideoTracks = useCallback(() => {
     const videoTracks: Array<Track & { album: Album }> = [];
     
@@ -575,10 +575,28 @@ export default function HomePage() {
       
       album.tracks.forEach(track => {
         if (track.videoUrl) {
-          videoTracks.push({
-            ...track,
-            album: album
-          });
+          // Filter to only include 'doerfels' and 'citybeach' videos
+          const trackTitleLower = track.title?.toLowerCase() || '';
+          const albumTitleLower = album.title?.toLowerCase() || '';
+          const artistLower = album.artist?.toLowerCase() || '';
+          
+          const isDoerfels = trackTitleLower.includes('doerfel') || 
+                           albumTitleLower.includes('doerfel') || 
+                           artistLower.includes('doerfel');
+          
+          const isCityBeach = trackTitleLower.includes('citybeach') || 
+                             trackTitleLower.includes('city beach') ||
+                             albumTitleLower.includes('citybeach') || 
+                             albumTitleLower.includes('city beach') ||
+                             artistLower.includes('citybeach') ||
+                             artistLower.includes('city beach');
+          
+          if (isDoerfels || isCityBeach) {
+            videoTracks.push({
+              ...track,
+              album: album
+            });
+          }
         }
       });
     });
