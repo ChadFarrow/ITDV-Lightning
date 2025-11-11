@@ -128,6 +128,7 @@ export default function HomePage() {
   
   // Video boost modal state
   const [showVideoBoostModal, setShowVideoBoostModal] = useState(false);
+  const [selectedVideoTrack, setSelectedVideoTrack] = useState<(Track & { album: Album }) | null>(null);
   const [videoBoostAmount, setVideoBoostAmount] = useState(50);
   const [videoBoostMessage, setVideoBoostMessage] = useState('');
   
@@ -1112,15 +1113,32 @@ export default function HomePage() {
                           </h3>
                           <p className="text-xs sm:text-sm text-gray-400 truncate">{track.album.artist}</p>
                           <p className="text-xs text-gray-500 truncate mt-1">{track.album.title}</p>
-                          <div className="flex items-center justify-between mt-2">
+                          <div className="flex items-center justify-between mt-2 gap-2">
                             <span className="text-xs text-gray-400 font-mono">{formatDuration(track.duration)}</span>
-                            <Link
-                              href={`/album/${encodeURIComponent(track.album.title.toLowerCase().replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, ''))}`}
-                              onClick={(e) => e.stopPropagation()}
-                              className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
-                            >
-                              View Album
-                            </Link>
+                            <div className="flex items-center gap-2">
+                              {/* Boost Button */}
+                              {isLightningEnabled && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedVideoTrack(track);
+                                    setShowVideoBoostModal(true);
+                                  }}
+                                  className="inline-flex items-center gap-1 bg-gradient-to-r from-yellow-500 to-orange-600 text-white px-2 py-1 rounded text-xs font-medium transition-all duration-200 hover:from-yellow-400 hover:to-orange-500 hover:shadow-lg transform hover:scale-105 active:scale-95"
+                                  title="Boost this video"
+                                >
+                                  <Zap className="w-3 h-3" />
+                                  <span className="hidden sm:inline">Boost</span>
+                                </button>
+                              )}
+                              <Link
+                                href={`/album/${encodeURIComponent(track.album.title.toLowerCase().replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, ''))}`}
+                                onClick={(e) => e.stopPropagation()}
+                                className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                              >
+                                View Album
+                              </Link>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -1591,24 +1609,28 @@ export default function HomePage() {
       )}
 
       {/* Video Boost Modal */}
-      {isLightningEnabled && showVideoBoostModal && currentVideo && (
+      {isLightningEnabled && showVideoBoostModal && (currentVideo || selectedVideoTrack) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="relative bg-gradient-to-b from-gray-900 to-black rounded-2xl shadow-2xl w-full sm:max-w-md max-h-[85vh] sm:max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-300">
             {/* Header with Video Art */}
             <div className="relative h-48 sm:h-64 bg-gradient-to-b from-gray-800 to-black">
-              {currentVideo.image && (
-                <Image
-                  src={currentVideo.image}
-                  alt={currentVideo.title}
-                  fill
-                  className="object-cover opacity-50"
-                  sizes="(max-width: 640px) 100vw, 400px"
-                />
-              )}
+              {(() => {
+                const video = currentVideo || selectedVideoTrack;
+                return video?.image || (selectedVideoTrack?.album?.coverArt) ? (
+                  <Image
+                    src={video?.image || selectedVideoTrack?.album?.coverArt || ''}
+                    alt={video?.title || selectedVideoTrack?.title || ''}
+                    fill
+                    className="object-cover opacity-50"
+                    sizes="(max-width: 640px) 100vw, 400px"
+                  />
+                ) : null;
+              })()}
               <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
               <button
                 onClick={() => {
                   setShowVideoBoostModal(false);
+                  setSelectedVideoTrack(null);
                 }}
                 className="absolute top-4 right-4 z-20 p-2 bg-black/50 hover:bg-black/70 rounded-full transition-colors backdrop-blur-sm"
               >
@@ -1617,8 +1639,15 @@ export default function HomePage() {
                 </svg>
               </button>
               <div className="absolute bottom-4 left-4 right-4 z-10">
-                <h2 className="text-xl sm:text-2xl font-bold text-white mb-1">{currentVideo.title}</h2>
-                <p className="text-gray-300 text-sm">{currentVideo.artist || currentVideo.album}</p>
+                {(() => {
+                  const video = currentVideo || selectedVideoTrack;
+                  return (
+                    <>
+                      <h2 className="text-xl sm:text-2xl font-bold text-white mb-1">{video?.title || selectedVideoTrack?.title}</h2>
+                      <p className="text-gray-300 text-sm">{(video && 'artist' in video ? video.artist : undefined) || (typeof video?.album === 'string' ? video.album : undefined) || selectedVideoTrack?.album?.artist}</p>
+                    </>
+                  );
+                })()}
               </div>
             </div>
 
@@ -1677,14 +1706,38 @@ export default function HomePage() {
               {/* Boost Button */}
               <BitcoinConnectPayment
                 amount={videoBoostAmount}
-                description={`Boost for ${currentVideo.title}${currentVideo.artist ? ` by ${currentVideo.artist}` : ''}`}
+                description={`Boost for ${(() => {
+                  const video = currentVideo || selectedVideoTrack;
+                  return video?.title || selectedVideoTrack?.title || '';
+                })()}${(() => {
+                  const video = currentVideo || selectedVideoTrack;
+                  const artist = (video && 'artist' in video ? video.artist : undefined) || (typeof video?.album === 'string' ? undefined : selectedVideoTrack?.album?.artist);
+                  return artist ? ` by ${artist}` : '';
+                })()}`}
                 onSuccess={handleVideoBoostSuccess}
                 onError={handleVideoBoostError}
                 className="w-full !mt-6"
                 recipients={(() => {
+                  const video = currentVideo || selectedVideoTrack;
                   // Use video's value recipients if available
-                  if (currentVideo.value && currentVideo.value.type === 'lightning' && currentVideo.value.method === 'keysend') {
-                    return currentVideo.value.recipients
+                  if (video?.value && video.value.type === 'lightning' && video.value.method === 'keysend') {
+                    return video.value.recipients
+                      .filter((r: any) => r.type === 'node')
+                      .map((r: any) => ({
+                        address: r.address,
+                        split: r.split,
+                        name: r.name,
+                        fee: r.fee,
+                        type: 'node'
+                      }));
+                  }
+                  // Try track's paymentRecipients
+                  if (selectedVideoTrack?.paymentRecipients && selectedVideoTrack.paymentRecipients.length > 0) {
+                    return selectedVideoTrack.paymentRecipients;
+                  }
+                  // Try track's value.recipients
+                  if (selectedVideoTrack?.value && selectedVideoTrack.value.type === 'lightning' && selectedVideoTrack.value.method === 'keysend') {
+                    return selectedVideoTrack.value.recipients
                       .filter((r: any) => r.type === 'node')
                       .map((r: any) => ({
                         address: r.address,
@@ -1699,22 +1752,62 @@ export default function HomePage() {
                 recipient="03740ea02585ed87b83b2f76317a4562b616bd7b8ec3f925be6596932b2003fc9e"
                 enableBoosts={true}
                 boostMetadata={{
-                  title: currentVideo.title,
-                  artist: currentVideo.artist || currentVideo.album || '',
-                  album: currentVideo.album || '',
-                  episode: currentVideo.title,
-                  url: currentVideo.album ? `https://itdv.podtards.com/album/${encodeURIComponent(currentVideo.album)}#${encodeURIComponent(currentVideo.title || '')}` : 'https://itdv.podtards.com',
+                  title: (() => {
+                    const video = currentVideo || selectedVideoTrack;
+                    return video?.title || selectedVideoTrack?.title || '';
+                  })(),
+                  artist: (() => {
+                    const video = currentVideo || selectedVideoTrack;
+                    return (video && 'artist' in video ? video.artist : undefined) || (typeof video?.album === 'string' ? undefined : selectedVideoTrack?.album?.artist) || '';
+                  })(),
+                  album: (() => {
+                    const video = currentVideo || selectedVideoTrack;
+                    const album = video?.album;
+                    return typeof album === 'string' ? album : (selectedVideoTrack?.album?.title || '');
+                  })(),
+                  episode: (() => {
+                    const video = currentVideo || selectedVideoTrack;
+                    return video?.title || selectedVideoTrack?.title || '';
+                  })(),
+                  url: (() => {
+                    const video = currentVideo || selectedVideoTrack;
+                    const album = video?.album;
+                    const albumTitle = typeof album === 'string' ? album : (selectedVideoTrack?.album?.title || '');
+                    const trackTitle = video?.title || selectedVideoTrack?.title;
+                    return albumTitle ? `https://itdv.podtards.com/album/${encodeURIComponent(albumTitle)}#${encodeURIComponent(trackTitle || '')}` : 'https://itdv.podtards.com';
+                  })(),
                   appName: 'ITDV Lightning',
                   timestamp: Math.floor(Date.now() / 1000),
                   senderName: senderName?.trim() || undefined,
                   message: videoBoostMessage?.trim() || undefined,
-                  itemGuid: currentVideo.guid,
-                  podcastGuid: currentVideo.podcastGuid,
-                  podcastFeedGuid: currentVideo.feedGuid,
-                  feedUrl: currentVideo.feedUrl,
-                  publisherGuid: currentVideo.publisherGuid,
-                  publisherUrl: currentVideo.publisherUrl,
-                  imageUrl: currentVideo.imageUrl
+                  itemGuid: (() => {
+                    const video = currentVideo || selectedVideoTrack;
+                    return video?.guid || selectedVideoTrack?.guid;
+                  })(),
+                  podcastGuid: (() => {
+                    const video = currentVideo || selectedVideoTrack;
+                    return video?.podcastGuid || selectedVideoTrack?.podcastGuid;
+                  })(),
+                  podcastFeedGuid: (() => {
+                    const video = currentVideo || selectedVideoTrack;
+                    return video?.feedGuid || selectedVideoTrack?.album?.feedGuid;
+                  })(),
+                  feedUrl: (() => {
+                    const video = currentVideo || selectedVideoTrack;
+                    return video?.feedUrl || selectedVideoTrack?.album?.feedUrl;
+                  })(),
+                  publisherGuid: (() => {
+                    const video = currentVideo || selectedVideoTrack;
+                    return video?.publisherGuid || selectedVideoTrack?.album?.publisherGuid;
+                  })(),
+                  publisherUrl: (() => {
+                    const video = currentVideo || selectedVideoTrack;
+                    return video?.publisherUrl || selectedVideoTrack?.album?.publisherUrl;
+                  })(),
+                  imageUrl: (() => {
+                    const video = currentVideo || selectedVideoTrack;
+                    return video?.imageUrl || selectedVideoTrack?.imageUrl || selectedVideoTrack?.album?.coverArt;
+                  })()
                 }}
               />
             </div>
