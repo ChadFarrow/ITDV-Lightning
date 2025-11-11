@@ -1585,7 +1585,19 @@ export default function HomePage() {
                       );
                       
                       // Use CityBeach track if found, otherwise use first track
-                      const trackToUse = cityBeachTrack || selectedAlbum.tracks[0];
+                      let trackToUse = cityBeachTrack || selectedAlbum.tracks[0];
+                      
+                      // For Disco Swag album, ensure we use track-level recipients (95/5) instead of channel-level (90/10)
+                      // Try to find any track with track-level value/paymentRecipients
+                      if (selectedAlbum.title?.toLowerCase().includes('disco swag')) {
+                        const trackWithValue = selectedAlbum.tracks.find((t: any) => 
+                          (t.paymentRecipients && t.paymentRecipients.length > 0) ||
+                          (t.value && t.value.type === 'lightning' && t.value.method === 'keysend' && t.value.recipients && t.value.recipients.length > 0)
+                        );
+                        if (trackWithValue) {
+                          trackToUse = trackWithValue;
+                        }
+                      }
                       
                       // Check if track has paymentRecipients (pre-processed)
                       if (trackToUse.paymentRecipients && trackToUse.paymentRecipients.length > 0) {
@@ -1690,7 +1702,19 @@ export default function HomePage() {
                     );
                     
                     // Use CityBeach track if found, otherwise use first track
-                    const trackToUse = cityBeachTrack || selectedAlbum.tracks[0];
+                    let trackToUse = cityBeachTrack || selectedAlbum.tracks[0];
+                    
+                    // For Disco Swag album, ensure we use track-level recipients (95/5) instead of channel-level (90/10)
+                    // Try to find any track with track-level value/paymentRecipients
+                    if (selectedAlbum.title?.toLowerCase().includes('disco swag')) {
+                      const trackWithValue = selectedAlbum.tracks.find((t: any) => 
+                        (t.paymentRecipients && t.paymentRecipients.length > 0) ||
+                        (t.value && t.value.type === 'lightning' && t.value.method === 'keysend' && t.value.recipients && t.value.recipients.length > 0)
+                      );
+                      if (trackWithValue) {
+                        trackToUse = trackWithValue;
+                      }
+                    }
                     
                     // Check if track has paymentRecipients (pre-processed)
                     if (trackToUse.paymentRecipients && trackToUse.paymentRecipients.length > 0) {

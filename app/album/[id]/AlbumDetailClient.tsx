@@ -1751,7 +1751,20 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
                       );
                       
                       // Use CityBeach track if found, otherwise use first track
-                      const trackToUse = cityBeachTrack || album.tracks[0];
+                      let trackToUse = cityBeachTrack || album.tracks[0];
+                      
+                      // For Disco Swag album, ensure we use track-level recipients (95/5) instead of channel-level (90/10)
+                      // Try to find any track with track-level value/paymentRecipients
+                      if (album.title?.toLowerCase().includes('disco swag')) {
+                        const trackWithValue = album.tracks.find((t: Track) => {
+                          const recipients = getTrackPaymentRecipients(t);
+                          return recipients && recipients.length > 0;
+                        });
+                        if (trackWithValue) {
+                          trackToUse = trackWithValue;
+                        }
+                      }
+                      
                       const trackRecipients = getTrackPaymentRecipients(trackToUse);
                       
                       if (trackRecipients && trackRecipients.length > 0) {
