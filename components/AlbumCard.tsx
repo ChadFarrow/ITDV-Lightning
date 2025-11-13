@@ -80,7 +80,10 @@ function AlbumCard({ album, isPlaying = false, onPlay, onBoostClick, className =
   };
 
   const onTouchEnd = (e: React.TouchEvent) => {
-    if (!touchStart || !touchEnd) return;
+    if (!touchStart || !touchEnd) {
+      // If no swipe detected, allow default navigation
+      return;
+    }
     
     const distance = touchStart - touchEnd;
     const isLeftSwipe = distance > minSwipeDistance;
@@ -89,9 +92,12 @@ function AlbumCard({ album, isPlaying = false, onPlay, onBoostClick, className =
     // Only handle swipes, remove tap-to-play to prevent accidental plays
     if (isLeftSwipe) {
       // Left swipe - play next track (future enhancement)
+      e.preventDefault(); // Prevent navigation on swipe
     } else if (isRightSwipe) {
       // Right swipe - play previous track (future enhancement)
+      e.preventDefault(); // Prevent navigation on swipe
     }
+    // If it's a tap (not a swipe), don't prevent default - allow Link navigation
   };
 
   const handleImageLoad = () => {
@@ -123,13 +129,11 @@ function AlbumCard({ album, isPlaying = false, onPlay, onBoostClick, className =
   // Removed console.log for production performance
 
   return (
-    <div className={`group relative bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden transition-all duration-300 hover:bg-white/10 hover:border-white/20 hover:scale-[1.02] active:scale-[0.98] block ${className}`}>
-      
-      <Link 
-        href={albumUrl}
-        aria-label={`View album details for ${album.title} by ${album.artist}`}
-        className="block"
-      >
+    <Link 
+      href={albumUrl}
+      aria-label={`View album details for ${album.title} by ${album.artist}`}
+      className={`group relative bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden transition-all duration-300 hover:bg-white/10 hover:border-white/20 hover:scale-[1.02] active:scale-[0.98] block ${className}`}
+    >
       {/* Album Artwork */}
       <div 
         className="relative aspect-square overflow-hidden"
@@ -147,12 +151,6 @@ function AlbumCard({ album, isPlaying = false, onPlay, onBoostClick, className =
         onTouchEnd={(e) => {
           if (!(e.target as HTMLElement).closest('button')) {
             onTouchEnd(e);
-          }
-        }}
-        onClick={(e) => {
-          // Prevent navigation when clicking on the artwork area (play button handles its own clicks)
-          if (!(e.target as HTMLElement).closest('button')) {
-            // Let the Link handle the navigation
           }
         }}
       >
@@ -305,8 +303,7 @@ function AlbumCard({ album, isPlaying = false, onPlay, onBoostClick, className =
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute inset-0 bg-white/5 opacity-0 group-active:opacity-100 transition-opacity duration-150" />
       </div>
-      </Link>
-    </div>
+    </Link>
   );
 }
 
