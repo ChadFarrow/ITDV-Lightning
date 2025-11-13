@@ -94,7 +94,7 @@ export default function CDNImage({
       setShowGif(true);
       
       // Also create an img element to start loading immediately
-      const img = new Image();
+      const img = document.createElement('img');
       img.src = src;
       img.loading = 'eager';
       if ('fetchPriority' in img) {
