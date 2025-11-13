@@ -59,6 +59,24 @@ export default function CDNImage({
                       (currentSrc && typeof currentSrc === 'string' && currentSrc.toLowerCase().includes('.gif')));
     setIsGif(isGifImage);
   }, [src, currentSrc]);
+
+  // Check if image should bypass Next.js optimization (for problematic PNGs)
+  const shouldBypassOptimization = useCallback(() => {
+    const url = currentSrc || src;
+    if (!url || typeof url !== 'string') return false;
+    
+    // Bypass optimization for doerfelverse.com PNGs (they get corrupted by Next.js optimization)
+    if (url.includes('doerfelverse.com') && url.toLowerCase().includes('.png')) {
+      return true;
+    }
+    
+    // Bypass for GIFs and already optimized images
+    if (isGif || url.includes('/api/optimized-images/')) {
+      return true;
+    }
+    
+    return false;
+  }, [currentSrc, src, isGif]);
   
   useEffect(() => {
     setIsClient(true);
@@ -330,16 +348,28 @@ export default function CDNImage({
     onLoad?.();
   };
 
+  // Use ref to track the last processed src to prevent infinite loops
+  const lastProcessedSrcRef = useRef<string>('');
+  
   // Reset state when src changes
   useEffect(() => {
     if (!src) return;
     
+    // Skip if we've already processed this exact src
+    if (lastProcessedSrcRef.current === src) {
+      return;
+    }
+    
     const dims = getImageDimensions();
     let imageSrc = src;
     
+    // Check if it's a GIF by looking at the src directly (more reliable than state)
+    const isGifFile = src && typeof src === 'string' && src.toLowerCase().includes('.gif');
+    
     // Mobile-first approach: bypass optimization, go straight to proxy if external
-    if (isClient && isMobile) {
-      // For mobile, if it's an external URL, use proxy immediately
+    // BUT: For GIFs, always use the original URL directly (don't proxy) to avoid issues with large files
+    if (isClient && isMobile && !isGifFile) {
+      // For mobile, if it's an external URL, use proxy immediately (but not for GIFs)
       if (src && !src.includes('re.podtards.com') && !src.includes('/api/')) {
         imageSrc = `/api/proxy-image?url=${encodeURIComponent(src)}`;
       } else {
@@ -347,10 +377,21 @@ export default function CDNImage({
         imageSrc = getOptimizedUrl(src, dims.width, dims.height);
       }
     } else {
-      imageSrc = getOptimizedUrl(src, dims.width, dims.height);
+      // For desktop or GIFs, use original URL directly (bypass proxy for GIFs)
+      if (isGifFile) {
+        // For GIFs, always use the original URL directly to avoid proxy issues with large files
+        imageSrc = src;
+      } else {
+        imageSrc = getOptimizedUrl(src, dims.width, dims.height);
+      }
     }
     
-    setCurrentSrc(imageSrc);
+    // Mark this src as processed and update state
+    lastProcessedSrcRef.current = src;
+    setCurrentSrc((prevSrc) => {
+      // Only update if different to prevent unnecessary re-renders
+      return prevSrc !== imageSrc ? imageSrc : prevSrc;
+    });
     setIsLoading(true);
     setHasError(false);
     setRetryCount(0);
@@ -361,7 +402,8 @@ export default function CDNImage({
       clearTimeout(timeoutId);
       setTimeoutId(null);
     }
-  }, [src, width, height, isClient, isMobile, getImageDimensions, getOptimizedUrl, timeoutId]); // Only run when src prop changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [src, width, height, isClient, isMobile]); // Don't include currentSrc to prevent loops
 
   // Separate effect for handling timeouts to prevent recursion
   useEffect(() => {
@@ -374,19 +416,20 @@ export default function CDNImage({
     }
     
     // Set timeout based on retry count and whether it's a GIF
+    // Large GIFs (like Autumn Rust at 39MB) need longer timeouts
     let timeout: NodeJS.Timeout;
     if (retryCount === 0) {
-      // Initial load timeout
-      timeout = setTimeout(() => handleError(), isGif ? 12000 : 15000);
+      // Initial load timeout - longer for GIFs to handle large files
+      timeout = setTimeout(() => handleError(), isGif ? 30000 : 15000);
     } else if (retryCount === 1) {
       // Fallback/proxy timeout
-      timeout = setTimeout(() => handleError(), isGif ? 8000 : 10000);
+      timeout = setTimeout(() => handleError(), isGif ? 20000 : 10000);
     } else if (retryCount === 2) {
       // Proxy timeout
-      timeout = setTimeout(() => handleError(), isGif ? 10000 : 12000);
+      timeout = setTimeout(() => handleError(), isGif ? 25000 : 12000);
     } else if (retryCount === 3) {
       // Original URL timeout
-      timeout = setTimeout(() => handleError(), isGif ? 12000 : 15000);
+      timeout = setTimeout(() => handleError(), isGif ? 30000 : 15000);
     } else {
       // No more retries
       return;
@@ -397,7 +440,8 @@ export default function CDNImage({
     return () => {
       if (timeout) clearTimeout(timeout);
     };
-  }, [currentSrc, retryCount, isLoading, hasError, isGif, handleError, timeoutId]); // Run when retry state changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentSrc, retryCount, isLoading, hasError, isGif]); // Removed handleError and timeoutId from deps to prevent loops
 
   const dims = getImageDimensions();
 
@@ -422,45 +466,52 @@ export default function CDNImage({
       
       {isClient && isMobile ? (
         // Enhanced mobile image handling
-        <Image
-          src={showGif ? currentSrc : ''}
-          alt={alt}
-          width={dims.width}
-          height={dims.height}
-          className={`${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300 ${className || ''}`}
-          onError={handleError}
-          onLoad={handleLoad}
-          loading={priority ? 'eager' : 'lazy'}
-          priority={priority} // Priority set for above-the-fold images
-          referrerPolicy="no-referrer"
-          crossOrigin="anonymous"
-          style={{ 
-            objectFit: 'cover',
-            width: '100%',
-            height: '100%',
-            display: 'block',
-            ...style
-          }}
-          {...props}
-        />
+        // Only render Image if we have a valid src (for GIFs, only when showGif is true)
+        (isGif ? showGif : true) && currentSrc ? (
+          <Image
+            src={currentSrc}
+            alt={alt}
+            width={dims.width}
+            height={dims.height}
+            className={`${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300 ${className || ''}`}
+            onError={handleError}
+            onLoad={handleLoad}
+            loading={priority ? 'eager' : 'lazy'}
+            priority={priority} // Priority set for above-the-fold images
+            unoptimized={shouldBypassOptimization()} // Don't optimize GIFs, problematic PNGs, or already optimized images
+            referrerPolicy="no-referrer"
+            crossOrigin="anonymous"
+            style={{ 
+              objectFit: 'cover',
+              width: '100%',
+              height: '100%',
+              display: 'block',
+              ...style
+            }}
+            {...props}
+          />
+        ) : null
       ) : (
         // Use Next.js Image for desktop with full optimization
-        <Image
-          src={showGif ? currentSrc : ''}
-          alt={alt}
-          width={dims.width}
-          height={dims.height}
-          className={`${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
-          priority={priority} // Priority set for above-the-fold images
-          quality={quality}
-          sizes={getResponsiveSizes()}
-          onError={handleError}
-          onLoad={handleLoad}
-          placeholder={placeholder}
-          unoptimized={isGif || currentSrc.includes('/api/optimized-images/')} // Don't optimize GIFs, they're already optimized
-          style={style}
-          {...props}
-        />
+        // Only render Image if we have a valid src (for GIFs, only when showGif is true)
+        (isGif ? showGif : true) && currentSrc ? (
+          <Image
+            src={currentSrc}
+            alt={alt}
+            width={dims.width}
+            height={dims.height}
+            className={`${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
+            priority={priority} // Priority set for above-the-fold images
+            quality={quality}
+            sizes={getResponsiveSizes()}
+            onError={handleError}
+            onLoad={handleLoad}
+            placeholder={placeholder}
+            unoptimized={shouldBypassOptimization()} // Don't optimize GIFs, problematic PNGs, or already optimized images
+            style={style}
+            {...props}
+          />
+        ) : null
       )}
       
       {/* Debug info removed for performance */}

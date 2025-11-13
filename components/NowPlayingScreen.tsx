@@ -33,6 +33,8 @@ const NowPlayingScreen: React.FC<NowPlayingScreenProps> = ({ isOpen, onClose }) 
   const [albumData, setAlbumData] = useState<any>(null);
   const colorCache = useRef<Map<string, ExtractedColors>>(globalColorCache);
   
+  // Use BitcoinConnect hook - it's safe to call even when lightning is disabled
+  // The provider is always available, it just won't do anything when disabled
   const { checkConnection } = useBitcoinConnect();
 
   const {

@@ -137,6 +137,13 @@ function AlbumCard({ album, isPlaying = false, onPlay, onBoostClick, className =
       {/* Album Artwork */}
       <div 
         className="relative aspect-square overflow-hidden"
+        onClick={(e) => {
+          // Allow Link navigation - don't prevent default
+          // Only prevent if clicking on a button
+          if ((e.target as HTMLElement).closest('button')) {
+            e.stopPropagation();
+          }
+        }}
         onTouchStart={(e) => {
           // Only handle touch events on the artwork area, not on the play button
           if (!(e.target as HTMLElement).closest('button')) {
@@ -156,7 +163,7 @@ function AlbumCard({ album, isPlaying = false, onPlay, onBoostClick, className =
       >
         {album.coverArt.toLowerCase().includes('.gif') ? (
           // Use CDNImage for GIFs with optimized loading
-          <div className="absolute inset-0">
+          <div className="absolute inset-0 pointer-events-none">
             <CDNImage
               src={album.coverArt}
               alt={`${album.title} by ${album.artist}`}
@@ -178,7 +185,7 @@ function AlbumCard({ album, isPlaying = false, onPlay, onBoostClick, className =
             src={album.coverArt}
             alt={`${album.title} by ${album.artist}`}
             fill
-            className={`object-cover transition-opacity duration-300 ${
+            className={`object-cover transition-opacity duration-300 pointer-events-none ${
               imageLoaded ? 'opacity-100' : 'opacity-0'
             }`}
             onLoad={handleImageLoad}
@@ -186,19 +193,20 @@ function AlbumCard({ album, isPlaying = false, onPlay, onBoostClick, className =
             priority={priority}
             quality={85}
             sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 20vw"
+            unoptimized={album.coverArt.includes('doerfelverse.com') && album.coverArt.toLowerCase().includes('.png')}
           />
         )}
         
         {/* Loading placeholder */}
         {!imageLoaded && !imageError && (
-          <div className="absolute inset-0 bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center">
+          <div className="absolute inset-0 bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center pointer-events-none">
             <Music className="w-8 h-8 text-gray-400 animate-pulse" />
           </div>
         )}
         
         {/* Error placeholder */}
         {imageError && (
-          <div className="absolute inset-0 bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center">
+          <div className="absolute inset-0 bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center pointer-events-none">
             <Music className="w-8 h-8 text-gray-400" />
           </div>
         )}
@@ -269,7 +277,7 @@ function AlbumCard({ album, isPlaying = false, onPlay, onBoostClick, className =
         
         {/* Track count badge - kept on the right */}
         {album.tracks.length > 0 && (
-          <div className="absolute top-1 right-1 sm:top-2 sm:right-2 bg-black/50 backdrop-blur-sm rounded-full px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs text-white flex items-center gap-1">
+          <div className="absolute top-1 right-1 sm:top-2 sm:right-2 bg-black/50 backdrop-blur-sm rounded-full px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs text-white flex items-center gap-1 pointer-events-none">
             <span>{album.tracks.length} {album.tracks.length !== 1 ? 'tracks' : 'track'}</span>
             {album.tracks.some(track => track.videoUrl) && (
               <span className="inline-flex items-center" title="Contains video tracks" aria-label="Contains video tracks">

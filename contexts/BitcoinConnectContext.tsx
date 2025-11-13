@@ -346,7 +346,13 @@ export function BitcoinConnectProvider({ children }: { children: ReactNode }) {
 export function useBitcoinConnect() {
   const context = useContext(BitcoinConnectContext);
   if (context === undefined) {
-    throw new Error('useBitcoinConnect must be used within a BitcoinConnectProvider');
+    // Return a safe default instead of throwing when provider is not available
+    // This can happen during SSR or when lightning is disabled
+    return {
+      isConnected: false,
+      setIsConnected: () => {},
+      checkConnection: async () => false
+    };
   }
   return context;
 }
