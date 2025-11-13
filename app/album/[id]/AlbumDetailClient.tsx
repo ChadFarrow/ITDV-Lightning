@@ -699,16 +699,32 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
     }
     
     try {
-      // Set background immediately for faster perceived loading
+      // Add preload link to head for faster loading (browser will start downloading immediately)
+      const preloadLink = document.createElement('link');
+      preloadLink.rel = 'preload';
+      preloadLink.as = 'image';
+      preloadLink.href = albumData.coverArt;
+      if ('fetchPriority' in preloadLink) {
+        (preloadLink as any).fetchPriority = 'high';
+      }
+      document.head.appendChild(preloadLink);
+      
+      // Set background image URL immediately so it can start loading
       setBackgroundImage(albumData.coverArt);
       setBackgroundLoaded(true);
       
-      // Preload in background for better caching, but don't block rendering
-      const img = new window.Image();
+      // Also preload in an img element for better browser caching
+      // This happens in parallel and doesn't block rendering
+      const img = document.createElement('img');
       img.decoding = 'async';
+      if ('fetchPriority' in img) {
+        (img as any).fetchPriority = 'high';
+      }
       img.src = albumData.coverArt;
+      // Don't wait for this - let it load in the background
     } catch (error) {
-      setBackgroundImage(null);
+      // On error, still try to show the image
+      setBackgroundImage(albumData.coverArt);
       setBackgroundLoaded(true);
     }
   };
@@ -1211,6 +1227,9 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
             fill
             className="object-cover w-full h-full"
             priority
+            unoptimized={backgroundImage.includes('doerfelverse.com') && backgroundImage.toLowerCase().includes('.png')}
+            quality={90}
+            sizes="100vw"
           />
         ) : (
           /* Fallback to default background */
