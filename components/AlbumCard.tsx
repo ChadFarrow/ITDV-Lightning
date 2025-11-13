@@ -169,7 +169,7 @@ function AlbumCard({ album, isPlaying = false, onPlay, onBoostClick, className =
               }`}
               onLoad={handleImageLoad}
               onError={handleImageError}
-              priority={priority}
+              priority={priority} // Priority is already set for above-the-fold images
               quality={85}
               sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 20vw"
             />

@@ -78,7 +78,7 @@ export default function CDNImage({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Preload priority GIFs immediately
+  // Preload priority GIFs immediately with fetchpriority hint
   useEffect(() => {
     if (isGif && priority && isClient) {
       // Preload priority GIFs immediately - use src directly for preload
@@ -86,41 +86,59 @@ export default function CDNImage({
       preloadLink.rel = 'preload';
       preloadLink.as = 'image';
       preloadLink.href = src;
+      // Add fetchpriority for better browser prioritization
+      if ('fetchPriority' in preloadLink) {
+        (preloadLink as any).fetchPriority = 'high';
+      }
       document.head.appendChild(preloadLink);
       setShowGif(true);
+      
+      // Also create an img element to start loading immediately
+      const img = new Image();
+      img.src = src;
+      img.loading = 'eager';
+      if ('fetchPriority' in img) {
+        (img as any).fetchPriority = 'high';
+      }
+      
       return () => {
-        // Only remove if it still exists
-        const existingLink = document.head.querySelector(`link[href="${src}"]`);
-        if (existingLink) {
-          document.head.removeChild(existingLink);
-        }
+        // Cleanup is optional - browser will handle it
       };
     }
   }, [isGif, priority, isClient, src]);
 
-  // Intersection Observer for GIF lazy loading
+  // Intersection Observer for GIF lazy loading with aggressive preloading
   useEffect(() => {
-    if (!isGif || !isClient || priority) {
-      if (!priority) {
-        // For non-priority GIFs, still use lazy loading
-      } else {
-        // Priority GIFs are handled by preload effect above
-        return;
-      }
+    if (!isGif || !isClient) {
+      return;
     }
 
+    // Priority GIFs should load immediately
+    if (priority) {
+      setShowGif(true);
+      return;
+    }
+
+    // For non-priority GIFs, use intersection observer with larger rootMargin
+    // to start loading well before they come into view
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             setShowGif(true);
+            // Preload the GIF immediately when it's about to be visible
+            const link = document.createElement('link');
+            link.rel = 'preload';
+            link.as = 'image';
+            link.href = src;
+            document.head.appendChild(link);
             observer.disconnect();
           }
         });
       },
       {
-        rootMargin: priority ? '200px' : '100px', // Start loading earlier for priority images (above the fold)
-        threshold: 0.1
+        rootMargin: '300px', // Start loading 300px before entering viewport (much earlier)
+        threshold: 0.01 // Trigger as soon as any part is visible
       }
     );
 
@@ -129,7 +147,7 @@ export default function CDNImage({
     }
 
     return () => observer.disconnect();
-  }, [isGif, isClient, priority]);
+  }, [isGif, isClient, priority, src]);
 
   // Generate optimized image URL
   const getOptimizedUrl = useCallback((originalUrl: string, targetWidth?: number, targetHeight?: number) => {
@@ -413,6 +431,7 @@ export default function CDNImage({
           onError={handleError}
           onLoad={handleLoad}
           loading={priority ? 'eager' : 'lazy'}
+          priority={priority} // Priority set for above-the-fold images
           referrerPolicy="no-referrer"
           crossOrigin="anonymous"
           style={{ 
@@ -432,13 +451,13 @@ export default function CDNImage({
           width={dims.width}
           height={dims.height}
           className={`${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
-          priority={priority}
+          priority={priority} // Priority set for above-the-fold images
           quality={quality}
           sizes={getResponsiveSizes()}
           onError={handleError}
           onLoad={handleLoad}
           placeholder={placeholder}
-          unoptimized={currentSrc.includes('/api/optimized-images/')} // Don't double-optimize
+          unoptimized={isGif || currentSrc.includes('/api/optimized-images/')} // Don't optimize GIFs, they're already optimized
           style={style}
           {...props}
         />
