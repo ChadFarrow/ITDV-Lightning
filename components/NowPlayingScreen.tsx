@@ -573,6 +573,7 @@ const NowPlayingScreen: React.FC<NowPlayingScreenProps> = ({ isOpen, onClose }) 
               className="object-cover rounded-lg shadow-2xl"
               sizes="(max-width: 768px) 90vw, 400px"
               priority
+              unoptimized={currentTrack.image.toLowerCase().includes('.gif')}
             />
           ) : (
             <div className="w-full h-full bg-gray-800 rounded-lg flex items-center justify-center">

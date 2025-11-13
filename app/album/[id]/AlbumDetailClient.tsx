@@ -699,6 +699,8 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
     }
     
     try {
+      const isGif = albumData.coverArt.toLowerCase().includes('.gif');
+      
       // Add preload link to head for faster loading (browser will start downloading immediately)
       const preloadLink = document.createElement('link');
       preloadLink.rel = 'preload';
@@ -714,9 +716,10 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
       setBackgroundLoaded(true);
       
       // Also preload in an img element for better browser caching
-      // This happens in parallel and doesn't block rendering
+      // For GIFs, use eager loading and high priority
       const img = document.createElement('img');
       img.decoding = 'async';
+      img.loading = isGif ? 'eager' : 'lazy';
       if ('fetchPriority' in img) {
         (img as any).fetchPriority = 'high';
       }
@@ -1227,7 +1230,11 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
             fill
             className="object-cover w-full h-full"
             priority
-            unoptimized={backgroundImage.includes('doerfelverse.com') && backgroundImage.toLowerCase().includes('.png')}
+            unoptimized={
+              // Bypass optimization for GIFs and problematic PNGs from doerfelverse.com
+              backgroundImage.toLowerCase().includes('.gif') ||
+              (backgroundImage.includes('doerfelverse.com') && backgroundImage.toLowerCase().includes('.png'))
+            }
             quality={90}
             sizes="100vw"
           />
@@ -1287,7 +1294,11 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
                     className="object-cover"
                     priority
                     sizes="(min-width: 1024px) 320px, 256px"
-                    unoptimized={album.coverArt.includes('doerfelverse.com') && album.coverArt.toLowerCase().includes('.png')}
+                    unoptimized={
+                      // Bypass optimization for GIFs and problematic PNGs from doerfelverse.com
+                      album.coverArt.toLowerCase().includes('.gif') ||
+                      (album.coverArt.includes('doerfelverse.com') && album.coverArt.toLowerCase().includes('.png'))
+                    }
                   />
                   
                   {/* Play Button Overlay */}
@@ -1494,7 +1505,11 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
                           fill
                           className="object-cover"
                           sizes="48px"
-                          unoptimized={(track.image || album.coverArt).includes('doerfelverse.com') && (track.image || album.coverArt).toLowerCase().includes('.png')}
+                          unoptimized={
+                            // Bypass optimization for GIFs and problematic PNGs from doerfelverse.com
+                            (track.image || album.coverArt).toLowerCase().includes('.gif') ||
+                            ((track.image || album.coverArt).includes('doerfelverse.com') && (track.image || album.coverArt).toLowerCase().includes('.png'))
+                          }
                         />
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                           <Play className="w-4 h-4 text-white" />
