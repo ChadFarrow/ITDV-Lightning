@@ -24,51 +24,61 @@ async function getAlbumData(albumId: string) {
     // Normalize the album ID to match URL format
     const normalizedId = albumId.toLowerCase();
 
-    // Albums that should have video URLs
-    const albumsWithVideo = [
-      'the-satellite-spotlight',
-      'satellite-spotlight',
-      'satellite-spotlight-sprouting-symphonies-citybeach-tracks',
-      'autumn-rust',
-      'autumn rust',
-      'satellite-spotlight-autumn-rust-the-doerfels-tracks'
-    ];
-
-    // Try both static cache files (prioritize cached version)
     const fs = require('fs');
     const path = require('path');
     
-    const staticFiles = [
-      path.join(process.cwd(), 'public', 'albums-static-cached.json'),
-      path.join(process.cwd(), 'public', 'static-albums.json')
-    ];
-
-    for (const staticPath of staticFiles) {
-      if (fs.existsSync(staticPath)) {
-        const data = JSON.parse(fs.readFileSync(staticPath, 'utf-8'));
-        const albums = data.albums || [];
-
-        // Find album using flexible matching (same as API route)
-        const album = albums.find((a: any) => {
-          if (!a.title) return false;
+    // Use index file for fast lookup (58KB vs 1.2MB)
+    const indexPath = path.join(process.cwd(), 'public', 'album-index.json');
+    const staticAlbumsPath = path.join(process.cwd(), 'public', 'static-albums.json');
+    
+    // Try index-based lookup first (much faster)
+    if (fs.existsSync(indexPath) && fs.existsSync(staticAlbumsPath)) {
+      try {
+        const indexData = JSON.parse(fs.readFileSync(indexPath, 'utf-8'));
+        const index = indexData.index || {};
+        
+        // Try multiple lookup keys
+        const indexEntry = index[normalizedId] || 
+                          index[createSlug(albumId)] ||
+                          index[albumId.toLowerCase().replace(/\s+/g, '-')];
+        
+        if (indexEntry && indexEntry.index !== undefined) {
+          // Load static albums and access by index (O(1) lookup)
+          const staticData = JSON.parse(fs.readFileSync(staticAlbumsPath, 'utf-8'));
+          const albums = staticData.albums || [];
           
-          const titleMatch = a.title.toLowerCase() === normalizedId;
-          const slugMatch = createSlug(a.title) === normalizedId;
-          const compatMatch = a.title.toLowerCase().replace(/\s+/g, '-') === normalizedId;
-          
-          // Flexible matching: check if the album title starts with the decoded ID
-          const baseTitle = a.title.toLowerCase().split(/\s*[-–]\s*/)[0] || '';
-          const baseTitleSlug = createSlug(baseTitle);
-          const flexibleMatch = baseTitleSlug === normalizedId;
-
-          return titleMatch || slugMatch || compatMatch || flexibleMatch;
-        });
-
-        if (album) {
-          // Return album immediately - don't block SSR on video fetch
-          // Videos will be loaded client-side if missing (handled in AlbumDetailClient)
-          return album;
+          if (albums[indexEntry.index]) {
+            return albums[indexEntry.index];
+          }
         }
+      } catch (error) {
+        // Fall through to full search if index lookup fails
+      }
+    }
+    
+    // Fallback: full file search (slower but more reliable)
+    if (fs.existsSync(staticAlbumsPath)) {
+      const data = JSON.parse(fs.readFileSync(staticAlbumsPath, 'utf-8'));
+      const albums = data.albums || [];
+
+      // Find album using flexible matching (same as API route)
+      const album = albums.find((a: any) => {
+        if (!a.title) return false;
+        
+        const titleMatch = a.title.toLowerCase() === normalizedId;
+        const slugMatch = createSlug(a.title) === normalizedId;
+        const compatMatch = a.title.toLowerCase().replace(/\s+/g, '-') === normalizedId;
+        
+        // Flexible matching: check if the album title starts with the decoded ID
+        const baseTitle = a.title.toLowerCase().split(/\s*[-–]\s*/)[0] || '';
+        const baseTitleSlug = createSlug(baseTitle);
+        const flexibleMatch = baseTitleSlug === normalizedId;
+
+        return titleMatch || slugMatch || compatMatch || flexibleMatch;
+      });
+
+      if (album) {
+        return album;
       }
     }
 

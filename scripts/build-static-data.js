@@ -88,6 +88,16 @@ async function buildStaticData() {
     
     console.log(`✅ Built static album data: ${data.albums?.length || 0} albums`);
     console.log(`📁 Saved to: ${outputPath}`);
+    
+    // Also regenerate the album index for fast lookups
+    try {
+      const { buildIndex } = require('./build-album-index');
+      buildIndex();
+    } catch (indexError) {
+      console.warn('⚠️  Failed to build album index:', indexError.message);
+      console.log('💡 Run "node scripts/build-album-index.js" manually to generate index');
+    }
+    
     console.log(`⚡ Site will now load instantly!`);
     
   } catch (error) {

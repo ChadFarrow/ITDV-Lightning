@@ -6,6 +6,11 @@ import { RSSParser } from '@/lib/rss-parser';
 let albumCache: Map<string, { data: any; timestamp: number }> = new Map();
 const ALBUM_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
+// In-memory cache for static albums data (1.2MB, but faster than reading from disk every time)
+let staticAlbumsCache: { albums: any[]; timestamp: number } | null = null;
+let albumIndexCache: { index: Record<string, any>; timestamp: number } | null = null;
+const STATIC_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
@@ -43,41 +48,72 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         .replace(/^-+|-+$/g, '');       // Remove leading/trailing dashes
 
     // PRIORITY 1: Check static albums data first (fastest, no RSS parsing needed)
-    // Always check static cache to get feedId, even when bypassing (for faster RSS parsing)
+    // Use index file for fast lookups instead of reading entire 1.2MB file
     let matchingStaticAlbum = null;
     let feedIdFromCache = null;
     
     try {
       const fs = await import('fs/promises');
       const path = await import('path');
-      // Try albums-static-cached.json first, fallback to static-albums.json
-      let staticAlbumsPath = path.join(process.cwd(), 'public', 'albums-static-cached.json');
-      let staticAlbumsData: string;
+      const now = Date.now();
       
-      try {
-        staticAlbumsData = await fs.readFile(staticAlbumsPath, 'utf8');
-      } catch (error) {
-        // Fallback to static-albums.json if albums-static-cached.json doesn't exist
-        staticAlbumsPath = path.join(process.cwd(), 'public', 'static-albums.json');
-        staticAlbumsData = await fs.readFile(staticAlbumsPath, 'utf8');
+      // Load index cache (58KB, much faster than 1.2MB)
+      if (!albumIndexCache || (now - albumIndexCache.timestamp) > STATIC_CACHE_TTL) {
+        const indexPath = path.join(process.cwd(), 'public', 'album-index.json');
+        try {
+          const indexData = await fs.readFile(indexPath, 'utf8');
+          const indexJson = JSON.parse(indexData);
+          albumIndexCache = { index: indexJson.index || {}, timestamp: now };
+        } catch (error) {
+          // Index file doesn't exist, will fall back to full file search
+          albumIndexCache = { index: {}, timestamp: now };
+        }
       }
       
-      const staticAlbumsJson = JSON.parse(staticAlbumsData);
-      const staticAlbums = staticAlbumsJson.albums || [];
+      // Try to find album using index (fast lookup)
+      const normalizedId = albumId.toLowerCase();
+      const indexEntry = albumIndexCache.index[normalizedId] || 
+                        albumIndexCache.index[createSlug(albumId)] ||
+                        albumIndexCache.index[albumId.toLowerCase().replace(/\s+/g, '-')];
+      
+      if (indexEntry && indexEntry.index !== undefined) {
+        // Load static albums cache if needed
+        if (!staticAlbumsCache || (now - staticAlbumsCache.timestamp) > STATIC_CACHE_TTL) {
+          const staticAlbumsPath = path.join(process.cwd(), 'public', 'static-albums.json');
+          const staticAlbumsData = await fs.readFile(staticAlbumsPath, 'utf8');
+          const staticAlbumsJson = JSON.parse(staticAlbumsData);
+          staticAlbumsCache = { albums: staticAlbumsJson.albums || [], timestamp: now };
+        }
+        
+        // Directly access album by index (O(1) instead of O(n) search)
+        if (staticAlbumsCache.albums[indexEntry.index]) {
+          matchingStaticAlbum = staticAlbumsCache.albums[indexEntry.index];
+        }
+      } else {
+        // Fallback: search through albums if index lookup failed
+        if (!staticAlbumsCache || (now - staticAlbumsCache.timestamp) > STATIC_CACHE_TTL) {
+          const staticAlbumsPath = path.join(process.cwd(), 'public', 'static-albums.json');
+          const staticAlbumsData = await fs.readFile(staticAlbumsPath, 'utf8');
+          const staticAlbumsJson = JSON.parse(staticAlbumsData);
+          staticAlbumsCache = { albums: staticAlbumsJson.albums || [], timestamp: now };
+        }
+        
+        const staticAlbums = staticAlbumsCache.albums;
+        
+        // Search static albums for matching ID (fallback)
+        matchingStaticAlbum = staticAlbums.find((album: any) => {
+          const titleMatch = album.title?.toLowerCase() === albumId.toLowerCase();
+          const slugMatch = createSlug(album.title || '') === albumId.toLowerCase();
+          const compatMatch = album.title?.toLowerCase().replace(/\s+/g, '-') === albumId.toLowerCase();
 
-      // Search static albums for matching ID
-      matchingStaticAlbum = staticAlbums.find((album: any) => {
-        const titleMatch = album.title?.toLowerCase() === albumId.toLowerCase();
-        const slugMatch = createSlug(album.title || '') === albumId.toLowerCase();
-        const compatMatch = album.title?.toLowerCase().replace(/\s+/g, '-') === albumId.toLowerCase();
+          // Flexible matching: check if the album title starts with the decoded ID
+          const baseTitle = album.title?.toLowerCase().split(/\s*[-–]\s*/)[0] || '';
+          const baseTitleSlug = createSlug(baseTitle);
+          const flexibleMatch = baseTitleSlug === albumId.toLowerCase();
 
-        // Flexible matching: check if the album title starts with the decoded ID
-        const baseTitle = album.title?.toLowerCase().split(/\s*[-–]\s*/)[0] || '';
-        const baseTitleSlug = createSlug(baseTitle);
-        const flexibleMatch = baseTitleSlug === albumId.toLowerCase();
-
-        return titleMatch || slugMatch || compatMatch || flexibleMatch;
-      });
+          return titleMatch || slugMatch || compatMatch || flexibleMatch;
+        });
+      }
 
       if (matchingStaticAlbum) {
         // Get feedId from static cache for faster RSS parsing when refresh=1

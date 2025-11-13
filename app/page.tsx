@@ -460,26 +460,35 @@ export default function HomePage() {
       setError(null);
       setLoadingProgress(0);
       
-      // Load all albums directly
+      // Load albums and update state immediately when ready
       const allAlbums = await loadAlbumsData();
-      setAlbums(allAlbums);
       
-      // Preload colors for first albums for instant Now Playing screen
+      // Update albums state immediately for faster rendering
+      setAlbums(allAlbums);
+      setLoadingProgress(90);
+      
+      // Preload colors for first albums for instant Now Playing screen (non-blocking)
       const firstAlbumTitles = allAlbums.slice(0, 10).map((album: any) => album.title);
       preloadCriticalColors(firstAlbumTitles).catch(() => {
         // Silently handle errors
       });
       
-      // Load static publisher data
-      try {
-        const publisherResponse = await fetch('/publishers.json');
-        if (publisherResponse.ok) {
-          const staticPublishers = await publisherResponse.json();
-          setPublishers(staticPublishers);
-        }
-      } catch (error) {
-        // Silently handle errors
-      }
+      // Load static publisher data in parallel (non-blocking)
+      fetch('/publishers.json')
+        .then(publisherResponse => {
+          if (publisherResponse.ok) {
+            return publisherResponse.json();
+          }
+          return null;
+        })
+        .then(staticPublishers => {
+          if (staticPublishers) {
+            setPublishers(staticPublishers);
+          }
+        })
+        .catch(() => {
+          // Silently handle errors
+        });
       
       setLoadingProgress(100);
       setIsLoading(false);
@@ -517,12 +526,13 @@ export default function HomePage() {
         }
       }
 
-      // Use static cached data for fast loading (with 2s timeout - reduced from 3s)
+      // Use static cached data for fast loading (optimized timeouts)
       let response;
       let data;
 
       try {
-        response = await fetchWithTimeout('/api/albums-static-cached', 2000);
+        // Try the fastest endpoint first (in-memory cached)
+        response = await fetchWithTimeout('/api/albums-static-cached', 1500);
         if (response?.ok) {
           data = await response.json();
         }
@@ -530,10 +540,10 @@ export default function HomePage() {
         // Silently handle errors - will try fallback
       }
 
-      // Only try fallback if static cache failed
+      // Only try fallback if static cache failed (with longer timeout for RSS parsing)
       if (!data) {
         try {
-          response = await fetchWithTimeout('/api/albums-static', 3000);
+          response = await fetchWithTimeout('/api/albums-static', 5000);
           if (response?.ok) {
             data = await response.json();
           }
