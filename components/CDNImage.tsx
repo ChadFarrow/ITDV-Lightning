@@ -137,14 +137,14 @@ export default function CDNImage({
       return;
     }
 
-    // For non-priority GIFs, use intersection observer with larger rootMargin
-    // to start loading well before they come into view
+    // For non-priority GIFs, use intersection observer with smaller rootMargin
+    // Large GIFs (5MB+) should only load when actually needed to avoid blocking
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             setShowGif(true);
-            // Preload the GIF immediately when it's about to be visible
+            // Preload the GIF when it's about to be visible
             const link = document.createElement('link');
             link.rel = 'preload';
             link.as = 'image';
@@ -155,7 +155,7 @@ export default function CDNImage({
         });
       },
       {
-        rootMargin: '300px', // Start loading 300px before entering viewport (much earlier)
+        rootMargin: '100px', // Reduced from 300px - only load when closer to viewport for large GIFs
         threshold: 0.01 // Trigger as soon as any part is visible
       }
     );

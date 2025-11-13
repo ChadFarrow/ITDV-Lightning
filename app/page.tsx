@@ -1339,15 +1339,21 @@ export default function HomePage() {
                         <h2 className="text-2xl font-bold mb-6">Albums</h2>
                         {viewType === 'grid' ? (
                           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
-                            {albumsWithMultipleTracks.map((album, index) => (
-                              <AlbumCard
-                                key={`album-${index}`}
-                                album={album}
-                                onPlay={playAlbum}
-                                onBoostClick={handleBoostClick}
-                                priority={index < 8} // Prioritize first 8 images (above the fold)
-                              />
-                            ))}
+                            {albumsWithMultipleTracks.map((album, index) => {
+                              // For GIFs, only prioritize first 4 to avoid loading too many large files at once
+                              const isGif = album.coverArt.toLowerCase().includes('.gif');
+                              const shouldPrioritize = isGif ? index < 4 : index < 8;
+                              
+                              return (
+                                <AlbumCard
+                                  key={`album-${index}`}
+                                  album={album}
+                                  onPlay={playAlbum}
+                                  onBoostClick={handleBoostClick}
+                                  priority={shouldPrioritize}
+                                />
+                              );
+                            })}
                           </div>
                         ) : (
                           <div className="space-y-2">
