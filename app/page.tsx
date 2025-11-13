@@ -416,30 +416,40 @@ export default function HomePage() {
     
     hasLoadedRef.current = true;
     
-    // Check for cached data first to speed up initial load
+    // Check for cached data first - show immediately even if stale (stale-while-revalidate pattern)
     const cachedAlbums = localStorage.getItem('cachedAlbums');
     const cacheTime = localStorage.getItem('albumsCacheTimestamp');
     
     if (cachedAlbums && cacheTime) {
       const cacheAge = Date.now() - parseInt(cacheTime);
-      // Use cache if less than 10 minutes old
+      const albums = JSON.parse(cachedAlbums);
+      
+      // Show cached data immediately (even if stale) for instant page load
+      setAlbums(albums);
+      setIsLoading(false);
+      
+      // If cache is fresh (< 10 min), delay background refresh
+      // If cache is stale, refresh immediately in background
       if (cacheAge < 10 * 60 * 1000) {
-        const albums = JSON.parse(cachedAlbums);
-        setAlbums(albums);
-        setIsLoading(false);
-        
-        // Still fetch fresh data in background (non-blocking)
-        // Use requestIdleCallback for better performance
+        // Fresh cache - refresh in background after a delay
         if ('requestIdleCallback' in window) {
-          requestIdleCallback(() => loadCriticalAlbums(), { timeout: 2000 });
+          requestIdleCallback(() => loadCriticalAlbums(), { timeout: 3000 });
         } else {
-          setTimeout(() => loadCriticalAlbums(), 100);
+          setTimeout(() => loadCriticalAlbums(), 500);
         }
-        return;
+      } else {
+        // Stale cache - refresh immediately but don't block UI
+        // Use setTimeout to allow UI to render first
+        setTimeout(() => {
+          loadCriticalAlbums().catch(() => {
+            // Silently handle errors - we already have cached data
+          });
+        }, 0);
       }
+      return;
     }
     
-    // Progressive loading: Load critical data first, then enhance
+    // No cache - load fresh data (but show loading state immediately)
     loadCriticalAlbums();
   }, []); // Run only once on mount
 
@@ -456,15 +466,21 @@ export default function HomePage() {
   // Load all albums and publishers
   const loadCriticalAlbums = useCallback(async () => {
     try {
-      setIsLoading(true);
+      // Only show loading if we don't already have albums (from cache)
+      if (albums.length === 0) {
+        setIsLoading(true);
+        setLoadingProgress(0);
+      }
       setError(null);
-      setLoadingProgress(0);
       
       // Load albums and update state immediately when ready
       const allAlbums = await loadAlbumsData();
       
-      // Update albums state immediately for faster rendering
-      setAlbums(allAlbums);
+      // Only update if we got new data (avoid unnecessary re-renders)
+      if (allAlbums && allAlbums.length > 0) {
+        setAlbums(allAlbums);
+      }
+      
       setLoadingProgress(90);
       
       // Preload colors for first albums for instant Now Playing screen (non-blocking)
@@ -494,10 +510,14 @@ export default function HomePage() {
       setIsLoading(false);
       
     } catch (error) {
-      setError('Failed to load albums');
-      setIsLoading(false);
+      // Only show error if we don't have cached data
+      if (albums.length === 0) {
+        setError('Failed to load albums');
+        setIsLoading(false);
+      }
+      // If we have cached data, silently fail - user already sees content
     }
-  }, []);
+  }, [albums.length]);
 
   // Helper function to fetch with timeout
   const fetchWithTimeout = async (url: string, timeoutMs: number = 5000) => {
@@ -516,12 +536,13 @@ export default function HomePage() {
 
   const loadAlbumsData = async () => {
     try {
-      // Check for cached albums first - extend cache time for better performance
+      // Check for cached albums first - use longer cache time for better performance
       if (typeof window !== 'undefined') {
         const cached = localStorage.getItem('cachedAlbums');
         const cacheTime = localStorage.getItem('albumsCacheTimestamp');
 
-        if (cached && cacheTime && (Date.now() - parseInt(cacheTime)) < 10 * 60 * 1000) {
+        // Use cache if less than 30 minutes old (extended from 10 minutes)
+        if (cached && cacheTime && (Date.now() - parseInt(cacheTime)) < 30 * 60 * 1000) {
           return JSON.parse(cached);
         }
       }
@@ -531,8 +552,8 @@ export default function HomePage() {
       let data;
 
       try {
-        // Try the fastest endpoint first (in-memory cached)
-        response = await fetchWithTimeout('/api/albums-static-cached', 1500);
+        // Try the fastest endpoint first (in-memory cached) with shorter timeout
+        response = await fetchWithTimeout('/api/albums-static-cached', 1000);
         if (response?.ok) {
           data = await response.json();
         }
@@ -543,7 +564,7 @@ export default function HomePage() {
       // Only try fallback if static cache failed (with longer timeout for RSS parsing)
       if (!data) {
         try {
-          response = await fetchWithTimeout('/api/albums-static', 5000);
+          response = await fetchWithTimeout('/api/albums-static', 3000);
           if (response?.ok) {
             data = await response.json();
           }
