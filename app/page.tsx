@@ -1340,9 +1340,10 @@ export default function HomePage() {
                         {viewType === 'grid' ? (
                           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
                             {albumsWithMultipleTracks.map((album, index) => {
-                              // For GIFs, only prioritize first 4 to avoid loading too many large files at once
+                              // For GIFs, prioritize first 8 (increased from 4) to improve above-fold loading
+                              // Non-GIFs can prioritize more since they're smaller
                               const isGif = album.coverArt.toLowerCase().includes('.gif');
-                              const shouldPrioritize = isGif ? index < 4 : index < 8;
+                              const shouldPrioritize = isGif ? index < 8 : index < 12;
                               
                               return (
                                 <AlbumCard

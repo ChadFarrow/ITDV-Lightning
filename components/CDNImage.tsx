@@ -155,7 +155,7 @@ export default function CDNImage({
         });
       },
       {
-        rootMargin: '100px', // Reduced from 300px - only load when closer to viewport for large GIFs
+        rootMargin: '300px', // Increased from 100px - start loading GIFs earlier for better perceived performance
         threshold: 0.01 // Trigger as soon as any part is visible
       }
     );
@@ -174,48 +174,56 @@ export default function CDNImage({
       return originalUrl;
     }
     
-    // For large images, use optimized endpoint
-    const largeImages = [
-      'you-are-my-world.gif',
-      'HowBoutYou.gif', 
-      'autumn.gif',
-      'WIldandfreecover-copy-2.png',
-      'alandace.gif',
-      'doerfel-verse-idea-9.png',
-      'SatoshiStreamer-track-1-album-art.png',
-      'dvep15-art.png',
-      'disco-swag.png',
-      'first-christmas-art.jpg',
-      'let-go-art.png'
-    ];
+    // Map of original URLs/filenames to optimized filenames
+    // This ensures exact matching and handles URL variations
+    const optimizedImageMap: Record<string, string> = {
+      // GIFs with optimized versions
+      'you-are-my-world.gif': 'you-are-my-world.gif',
+      'HowBoutYou.gif': 'HowBoutYou.gif',
+      'autumn.gif': 'autumn.gif',
+      'alandace.gif': 'alandace.gif',
+      // PNGs with optimized versions
+      'WIldandfreecover-copy-2.png': 'WIldandfreecover-copy-2.png',
+      'doerfel-verse-idea-9.png': 'doerfel-verse-idea-9.png',
+      'SatoshiStreamer-track-1-album-art.png': 'SatoshiStreamer-track-1-album-art.png',
+      'dvep15-art.png': 'dvep15-art.png',
+      'disco-swag.png': 'disco-swag.png',
+      'let-go-art.png': 'let-go-art.png',
+      // JPGs with optimized versions
+      'first-christmas-art.jpg': 'first-christmas-art.jpg',
+    };
     
-    const filename = originalUrl.split('/').pop();
-    if (filename && largeImages.some(img => filename.includes(img.replace(/\.(png|jpg|gif)$/, '')))) {
-      const optimizedFilename = largeImages.find(img => filename.includes(img.replace(/\.(png|jpg|gif)$/, '')));
-      if (optimizedFilename) {
-        let optimizedUrl = `https://re.podtards.com/api/optimized-images/${optimizedFilename}`;
+    // Extract filename from URL (handle query params and fragments)
+    const urlWithoutParams = originalUrl.split('?')[0].split('#')[0];
+    const filename = urlWithoutParams.split('/').pop() || '';
+    
+    // Check if we have an optimized version for this filename
+    if (filename && optimizedImageMap[filename]) {
+      const optimizedFilename = optimizedImageMap[filename];
+      let optimizedUrl = `https://re.podtards.com/api/optimized-images/${optimizedFilename}`;
+      
+      // For non-GIF images, add size parameters for responsive loading
+      // GIFs should be served as-is to preserve animation
+      const isGifFile = filename.toLowerCase().endsWith('.gif');
+      if (!isGifFile && (targetWidth || targetHeight)) {
+        const params = new URLSearchParams();
+        if (targetWidth) params.set('w', targetWidth.toString());
+        if (targetHeight) params.set('h', targetHeight.toString());
+        params.set('q', quality.toString());
         
-        // Add size parameters for responsive loading
-        if (targetWidth || targetHeight) {
-          const params = new URLSearchParams();
-          if (targetWidth) params.set('w', targetWidth.toString());
-          if (targetHeight) params.set('h', targetHeight.toString());
-          params.set('q', quality.toString());
-          
-          // Use WebP for better compression if supported (but not for GIFs)
-          if (typeof window !== 'undefined' && window.navigator.userAgent.includes('Chrome') && !isGif) {
-            params.set('f', 'webp');
-          }
-          
-          optimizedUrl += `?${params.toString()}`;
+        // Use WebP for better compression if supported (but not for GIFs)
+        if (typeof window !== 'undefined' && window.navigator.userAgent.includes('Chrome')) {
+          params.set('f', 'webp');
         }
         
-        return optimizedUrl;
+        optimizedUrl += `?${params.toString()}`;
       }
+      
+      return optimizedUrl;
     }
     
     return originalUrl;
-  }, [width, height]);
+  }, [quality]);
 
   const getResponsiveSizes = useCallback(() => {
     if (sizes) return sizes;
@@ -366,23 +374,33 @@ export default function CDNImage({
     // Check if it's a GIF by looking at the src directly (more reliable than state)
     const isGifFile = src && typeof src === 'string' && src.toLowerCase().includes('.gif');
     
-    // Mobile-first approach: bypass optimization, go straight to proxy if external
-    // BUT: For GIFs, always use the original URL directly (don't proxy) to avoid issues with large files
+    // Try to get optimized URL first (this will check if optimized version exists)
+    const optimizedUrl = getOptimizedUrl(src, dims.width, dims.height);
+    const hasOptimizedVersion = optimizedUrl !== src;
+    
+    // Mobile-first approach: use proxy for external non-optimized images
+    // For GIFs with optimized versions, use the optimized version (faster, better caching)
+    // For GIFs without optimized versions, use original URL directly (don't proxy large files)
     if (isClient && isMobile && !isGifFile) {
-      // For mobile, if it's an external URL, use proxy immediately (but not for GIFs)
-      if (src && !src.includes('re.podtards.com') && !src.includes('/api/')) {
+      // For mobile, if it's an external URL and not optimized, use proxy
+      if (src && !src.includes('re.podtards.com') && !src.includes('/api/') && !hasOptimizedVersion) {
         imageSrc = `/api/proxy-image?url=${encodeURIComponent(src)}`;
       } else {
-        // For internal URLs, use as-is or with light optimization
-        imageSrc = getOptimizedUrl(src, dims.width, dims.height);
+        // Use optimized version if available, otherwise use original
+        imageSrc = optimizedUrl;
       }
     } else {
-      // For desktop or GIFs, use original URL directly (bypass proxy for GIFs)
-      if (isGifFile) {
-        // For GIFs, always use the original URL directly to avoid proxy issues with large files
+      // For desktop or GIFs: prefer optimized version if available
+      if (isGifFile && hasOptimizedVersion) {
+        // Use optimized GIF version (served from our CDN with better caching)
+        imageSrc = optimizedUrl;
+      } else if (isGifFile && !hasOptimizedVersion) {
+        // For GIFs without optimized versions, use original URL directly
+        // (don't proxy large GIF files to avoid timeout issues)
         imageSrc = src;
       } else {
-        imageSrc = getOptimizedUrl(src, dims.width, dims.height);
+        // For non-GIFs, use optimized version if available
+        imageSrc = optimizedUrl;
       }
     }
     
