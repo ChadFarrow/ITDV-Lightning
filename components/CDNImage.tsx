@@ -96,6 +96,90 @@ export default function CDNImage({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Generate optimized image URL
+  const getOptimizedUrl = useCallback((originalUrl: string, targetWidth?: number, targetHeight?: number) => {
+    // If it's already an optimized URL, return as is
+    if (originalUrl.includes('/api/optimized-images/')) {
+      return originalUrl;
+    }
+    
+    // Map of original URLs/filenames to optimized filenames
+    // This ensures exact matching and handles URL variations
+    const optimizedImageMap: Record<string, string> = {
+      // GIFs with optimized versions
+      'you-are-my-world.gif': 'you-are-my-world.gif',
+      'HowBoutYou.gif': 'HowBoutYou.gif',
+      'autumn.gif': 'autumn.gif',
+      'alandace.gif': 'alandace.gif',
+      // PNGs with optimized versions
+      'WIldandfreecover-copy-2.png': 'WIldandfreecover-copy-2.png',
+      'doerfel-verse-idea-9.png': 'doerfel-verse-idea-9.png',
+      'SatoshiStreamer-track-1-album-art.png': 'SatoshiStreamer-track-1-album-art.png',
+      'dvep15-art.png': 'dvep15-art.png',
+      'disco-swag.png': 'disco-swag.png',
+      'let-go-art.png': 'let-go-art.png',
+      // JPGs with optimized versions
+      'first-christmas-art.jpg': 'first-christmas-art.jpg',
+    };
+    
+    // Extract filename from URL (handle query params and fragments)
+    const urlWithoutParams = originalUrl.split('?')[0].split('#')[0];
+    const filename = urlWithoutParams.split('/').pop() || '';
+    
+    // Check if we have an optimized version for this filename
+    if (filename && optimizedImageMap[filename]) {
+      const optimizedFilename = optimizedImageMap[filename];
+      let optimizedUrl = `https://re.podtards.com/api/optimized-images/${optimizedFilename}`;
+      
+      // For non-GIF images, add size parameters for responsive loading
+      // GIFs should be served as-is to preserve animation
+      const isGifFile = filename.toLowerCase().endsWith('.gif');
+      if (!isGifFile && (targetWidth || targetHeight)) {
+        const params = new URLSearchParams();
+        if (targetWidth) params.set('w', targetWidth.toString());
+        if (targetHeight) params.set('h', targetHeight.toString());
+        params.set('q', quality.toString());
+        
+        // Use WebP for better compression if supported (but not for GIFs)
+        if (typeof window !== 'undefined' && window.navigator.userAgent.includes('Chrome')) {
+          params.set('f', 'webp');
+        }
+        
+        optimizedUrl += `?${params.toString()}`;
+      }
+      
+      return optimizedUrl;
+    }
+    
+    return originalUrl;
+  }, [quality]);
+
+  const getImageDimensions = useCallback(() => {
+    if (width && height) {
+      return { width, height };
+    }
+    
+    // For GIFs, use smaller dimensions to improve performance
+    if (isGif) {
+      if (isMobile) {
+        return { width: 200, height: 200 };
+      } else if (isTablet) {
+        return { width: 300, height: 300 };
+      } else {
+        return { width: 400, height: 400 };
+      }
+    }
+    
+    // Default dimensions for mobile optimization
+    if (isMobile) {
+      return { width: 300, height: 300 };
+    } else if (isTablet) {
+      return { width: 400, height: 400 };
+    } else {
+      return { width: 500, height: 500 };
+    }
+  }, [width, height, isGif, isMobile, isTablet]);
+
   // Preload priority GIFs immediately with fetchpriority hint
   useEffect(() => {
     if (isGif && priority && isClient) {
@@ -178,64 +262,6 @@ export default function CDNImage({
     return () => observer.disconnect();
   }, [isGif, isClient, priority, src, getOptimizedUrl, getImageDimensions]);
 
-  // Generate optimized image URL
-  const getOptimizedUrl = useCallback((originalUrl: string, targetWidth?: number, targetHeight?: number) => {
-    // If it's already an optimized URL, return as is
-    if (originalUrl.includes('/api/optimized-images/')) {
-      return originalUrl;
-    }
-    
-    // Map of original URLs/filenames to optimized filenames
-    // This ensures exact matching and handles URL variations
-    const optimizedImageMap: Record<string, string> = {
-      // GIFs with optimized versions
-      'you-are-my-world.gif': 'you-are-my-world.gif',
-      'HowBoutYou.gif': 'HowBoutYou.gif',
-      'autumn.gif': 'autumn.gif',
-      'alandace.gif': 'alandace.gif',
-      // PNGs with optimized versions
-      'WIldandfreecover-copy-2.png': 'WIldandfreecover-copy-2.png',
-      'doerfel-verse-idea-9.png': 'doerfel-verse-idea-9.png',
-      'SatoshiStreamer-track-1-album-art.png': 'SatoshiStreamer-track-1-album-art.png',
-      'dvep15-art.png': 'dvep15-art.png',
-      'disco-swag.png': 'disco-swag.png',
-      'let-go-art.png': 'let-go-art.png',
-      // JPGs with optimized versions
-      'first-christmas-art.jpg': 'first-christmas-art.jpg',
-    };
-    
-    // Extract filename from URL (handle query params and fragments)
-    const urlWithoutParams = originalUrl.split('?')[0].split('#')[0];
-    const filename = urlWithoutParams.split('/').pop() || '';
-    
-    // Check if we have an optimized version for this filename
-    if (filename && optimizedImageMap[filename]) {
-      const optimizedFilename = optimizedImageMap[filename];
-      let optimizedUrl = `https://re.podtards.com/api/optimized-images/${optimizedFilename}`;
-      
-      // For non-GIF images, add size parameters for responsive loading
-      // GIFs should be served as-is to preserve animation
-      const isGifFile = filename.toLowerCase().endsWith('.gif');
-      if (!isGifFile && (targetWidth || targetHeight)) {
-        const params = new URLSearchParams();
-        if (targetWidth) params.set('w', targetWidth.toString());
-        if (targetHeight) params.set('h', targetHeight.toString());
-        params.set('q', quality.toString());
-        
-        // Use WebP for better compression if supported (but not for GIFs)
-        if (typeof window !== 'undefined' && window.navigator.userAgent.includes('Chrome')) {
-          params.set('f', 'webp');
-        }
-        
-        optimizedUrl += `?${params.toString()}`;
-      }
-      
-      return optimizedUrl;
-    }
-    
-    return originalUrl;
-  }, [quality]);
-
   const getResponsiveSizes = useCallback(() => {
     if (sizes) return sizes;
     
@@ -258,33 +284,6 @@ export default function CDNImage({
       return '(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw';
     }
   }, [sizes, isGif, isMobile, isTablet]);
-
-  const getImageDimensions = useCallback(() => {
-    if (width && height) {
-      return { width, height };
-    }
-    
-    // For GIFs, use smaller dimensions to improve performance
-    if (isGif) {
-      if (isMobile) {
-        return { width: 200, height: 200 };
-      } else if (isTablet) {
-        return { width: 300, height: 300 };
-      } else {
-        return { width: 400, height: 400 };
-      }
-    }
-    
-    // Default dimensions for mobile optimization
-    if (isMobile) {
-      return { width: 300, height: 300 };
-    } else if (isTablet) {
-      return { width: 400, height: 400 };
-    } else {
-      return { width: 500, height: 500 };
-    }
-  }, [width, height, isGif]);
-
 
   const getOriginalUrl = useCallback((imageUrl: string) => {
     if (imageUrl.includes('/api/optimized-images/')) {
