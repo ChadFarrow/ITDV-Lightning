@@ -99,11 +99,16 @@ export default function CDNImage({
   // Preload priority GIFs immediately with fetchpriority hint
   useEffect(() => {
     if (isGif && priority && isClient) {
-      // Preload priority GIFs immediately - use src directly for preload
+      // Get optimized URL for preload (use optimized version if available)
+      const dims = getImageDimensions();
+      const optimizedUrl = getOptimizedUrl(src, dims.width, dims.height);
+      const preloadUrl = optimizedUrl; // Use optimized URL for better performance
+      
+      // Preload priority GIFs immediately - use optimized URL for preload
       const preloadLink = document.createElement('link');
       preloadLink.rel = 'preload';
       preloadLink.as = 'image';
-      preloadLink.href = src;
+      preloadLink.href = preloadUrl;
       // Add fetchpriority for better browser prioritization
       if ('fetchPriority' in preloadLink) {
         (preloadLink as any).fetchPriority = 'high';
@@ -111,9 +116,9 @@ export default function CDNImage({
       document.head.appendChild(preloadLink);
       setShowGif(true);
       
-      // Also create an img element to start loading immediately
+      // Also create an img element to start loading immediately with optimized URL
       const img = document.createElement('img');
-      img.src = src;
+      img.src = preloadUrl;
       img.loading = 'eager';
       if ('fetchPriority' in img) {
         (img as any).fetchPriority = 'high';
@@ -123,7 +128,7 @@ export default function CDNImage({
         // Cleanup is optional - browser will handle it
       };
     }
-  }, [isGif, priority, isClient, src]);
+  }, [isGif, priority, isClient, src, getOptimizedUrl, getImageDimensions]);
 
   // Intersection Observer for GIF lazy loading with aggressive preloading
   useEffect(() => {
@@ -144,18 +149,24 @@ export default function CDNImage({
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             setShowGif(true);
-            // Preload the GIF when it's about to be visible
+            // Preload the GIF when it's about to be visible - use optimized URL if available
+            const dims = getImageDimensions();
+            const optimizedUrl = getOptimizedUrl(src, dims.width, dims.height);
+            const preloadUrl = optimizedUrl; // Use optimized URL for better performance
             const link = document.createElement('link');
             link.rel = 'preload';
             link.as = 'image';
-            link.href = src;
+            link.href = preloadUrl;
+            if ('fetchPriority' in link) {
+              (link as any).fetchPriority = 'high';
+            }
             document.head.appendChild(link);
             observer.disconnect();
           }
         });
       },
       {
-        rootMargin: '300px', // Increased from 100px - start loading GIFs earlier for better perceived performance
+        rootMargin: '500px', // Increased to 500px - start loading GIFs much earlier for better perceived performance
         threshold: 0.01 // Trigger as soon as any part is visible
       }
     );
@@ -165,7 +176,7 @@ export default function CDNImage({
     }
 
     return () => observer.disconnect();
-  }, [isGif, isClient, priority, src]);
+  }, [isGif, isClient, priority, src, getOptimizedUrl, getImageDimensions]);
 
   // Generate optimized image URL
   const getOptimizedUrl = useCallback((originalUrl: string, targetWidth?: number, targetHeight?: number) => {
