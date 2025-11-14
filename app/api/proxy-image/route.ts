@@ -31,6 +31,10 @@ export async function GET(request: NextRequest) {
       }, { status: 400 });
     }
 
+    // Determine timeout based on file type (GIFs may be large and need more time)
+    const isGif = imageUrl.toLowerCase().includes('.gif');
+    const timeoutMs = isGif ? 30000 : 15000; // 30 seconds for GIFs, 15 seconds for others
+
     // Fetch the image
     const response = await fetch(imageUrl, {
       headers: {
@@ -38,8 +42,8 @@ export async function GET(request: NextRequest) {
         'Accept': 'image/*',
         'Accept-Encoding': 'gzip, deflate, br',
       },
-      // Add timeout
-      signal: AbortSignal.timeout(15000), // 15 second timeout
+      // Add timeout - longer for GIFs to handle large files
+      signal: AbortSignal.timeout(timeoutMs),
     });
 
     if (!response.ok) {

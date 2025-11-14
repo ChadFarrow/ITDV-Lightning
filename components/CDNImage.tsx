@@ -186,9 +186,15 @@ export default function CDNImage({
       // Get optimized URL for preload (use optimized version if available)
       const dims = getImageDimensions();
       const optimizedUrl = getOptimizedUrl(src, dims.width, dims.height);
-      const preloadUrl = optimizedUrl; // Use optimized URL for better performance
+      const hasOptimizedVersion = optimizedUrl !== src;
       
-      // Preload priority GIFs immediately - use optimized URL for preload
+      // Determine preload URL: use optimized if available, otherwise use proxy to avoid CORS
+      let preloadUrl = optimizedUrl;
+      if (!hasOptimizedVersion && src && !src.includes('re.podtards.com') && !src.includes('/api/')) {
+        preloadUrl = `/api/proxy-image?url=${encodeURIComponent(src)}`;
+      }
+      
+      // Preload priority GIFs immediately - use optimized/proxy URL for preload
       const preloadLink = document.createElement('link');
       preloadLink.rel = 'preload';
       preloadLink.as = 'image';
@@ -200,7 +206,7 @@ export default function CDNImage({
       document.head.appendChild(preloadLink);
       setShowGif(true);
       
-      // Also create an img element to start loading immediately with optimized URL
+      // Also create an img element to start loading immediately with optimized/proxy URL
       const img = document.createElement('img');
       img.src = preloadUrl;
       img.loading = 'eager';
@@ -233,10 +239,17 @@ export default function CDNImage({
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             setShowGif(true);
-            // Preload the GIF when it's about to be visible - use optimized URL if available
+            // Preload the GIF when it's about to be visible - use optimized/proxy URL
             const dims = getImageDimensions();
             const optimizedUrl = getOptimizedUrl(src, dims.width, dims.height);
-            const preloadUrl = optimizedUrl; // Use optimized URL for better performance
+            const hasOptimizedVersion = optimizedUrl !== src;
+            
+            // Determine preload URL: use optimized if available, otherwise use proxy to avoid CORS
+            let preloadUrl = optimizedUrl;
+            if (!hasOptimizedVersion && src && !src.includes('re.podtards.com') && !src.includes('/api/')) {
+              preloadUrl = `/api/proxy-image?url=${encodeURIComponent(src)}`;
+            }
+            
             const link = document.createElement('link');
             link.rel = 'preload';
             link.as = 'image';
@@ -390,7 +403,7 @@ export default function CDNImage({
     
     // Mobile-first approach: use proxy for external non-optimized images
     // For GIFs with optimized versions, use the optimized version (faster, better caching)
-    // For GIFs without optimized versions, use original URL directly (don't proxy large files)
+    // For GIFs without optimized versions, use proxy to avoid CORS issues
     if (isClient && isMobile && !isGifFile) {
       // For mobile, if it's an external URL and not optimized, use proxy
       if (src && !src.includes('re.podtards.com') && !src.includes('/api/') && !hasOptimizedVersion) {
@@ -405,9 +418,13 @@ export default function CDNImage({
         // Use optimized GIF version (served from our CDN with better caching)
         imageSrc = optimizedUrl;
       } else if (isGifFile && !hasOptimizedVersion) {
-        // For GIFs without optimized versions, use original URL directly
-        // (don't proxy large GIF files to avoid timeout issues)
-        imageSrc = src;
+        // For GIFs without optimized versions, use proxy to avoid CORS issues
+        // The proxy handles CORS headers and has appropriate timeouts for large files
+        if (src && !src.includes('re.podtards.com') && !src.includes('/api/')) {
+          imageSrc = `/api/proxy-image?url=${encodeURIComponent(src)}`;
+        } else {
+          imageSrc = src;
+        }
       } else {
         // For non-GIFs, use optimized version if available
         imageSrc = optimizedUrl;
