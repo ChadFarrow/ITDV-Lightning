@@ -181,8 +181,10 @@ export default function CDNImage({
   }, [width, height, isGif, isMobile, isTablet]);
 
   // Preload priority GIFs immediately with fetchpriority hint
+  // Also preload Autumn Rust specifically (large 39MB GIF without optimized version)
   useEffect(() => {
-    if (isGif && priority && isClient) {
+    const isAutumnRust = src && typeof src === 'string' && src.toLowerCase().includes('autumn-rust-feed-art.gif');
+    if (isGif && (priority || isAutumnRust) && isClient) {
       // Get optimized URL for preload (use optimized version if available)
       const dims = getImageDimensions();
       const optimizedUrl = getOptimizedUrl(src, dims.width, dims.height);

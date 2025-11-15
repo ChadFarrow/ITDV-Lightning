@@ -1342,10 +1342,11 @@ export default function HomePage() {
                             {albumsWithMultipleTracks.map((album, index) => {
                               // For GIFs, prioritize first 12 (increased from 8) to improve above-fold loading
                               // Non-GIFs can prioritize more since they're smaller
-                              // Also prioritize Autumn Rust specifically (large 39MB GIF) if it's in first 20
+                              // Also prioritize Autumn Rust specifically (large 39MB GIF) - always prioritize if it's a GIF
+                              // This ensures it starts loading immediately even if it's not in the first 12
                               const isGif = album.coverArt.toLowerCase().includes('.gif');
                               const isAutumnRust = album.title?.toLowerCase().includes('autumn rust');
-                              const shouldPrioritize = isGif ? (index < 12 || (isAutumnRust && index < 20)) : index < 16;
+                              const shouldPrioritize = isGif ? (index < 12 || isAutumnRust) : index < 16;
                               
                               return (
                                 <AlbumCard

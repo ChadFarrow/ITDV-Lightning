@@ -80,6 +80,8 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://www.doerfelverse.com" />
         <link rel="preconnect" href="https://re.podtards.com" />
         <link rel="dns-prefetch" href="https://re.podtards.com" />
+        <link rel="preconnect" href="https://music.behindthesch3m3s.com" />
+        <link rel="dns-prefetch" href="https://music.behindthesch3m3s.com" />
         <link rel="prefetch" href="/api/albums-static-cached" as="fetch" crossOrigin="anonymous" />
         
         {/* Global Error Handler Script */}
