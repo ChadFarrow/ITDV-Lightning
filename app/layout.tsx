@@ -84,6 +84,14 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://music.behindthesch3m3s.com" />
         <link rel="prefetch" href="/api/albums-static-cached" as="fetch" crossOrigin="anonymous" />
         
+        {/* Preload Autumn Rust GIF immediately - large 39MB file needs early start */}
+        <link 
+          rel="preload" 
+          href="/api/proxy-image?url=https%3A%2F%2Fmusic.behindthesch3m3s.com%2Fwp-content%2Fuploads%2FSat_Skirmish%2Fautumnrust%2Fart%2FAutumn-Rust-Feed-Art.gif" 
+          as="image" 
+          fetchPriority="high"
+        />
+        
         {/* Global Error Handler Script */}
         <script
           async
