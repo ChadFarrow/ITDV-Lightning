@@ -53,21 +53,25 @@ export async function GET(request: NextRequest) {
       }, { status: response.status });
     }
 
-    // Get the image data
-    const imageBuffer = await response.arrayBuffer();
+    // Get content type and length from response
     const contentType = response.headers.get('content-type') || 'image/jpeg';
+    const contentLength = response.headers.get('content-length');
 
     // Set headers for image serving
     const headers = new Headers();
     headers.set('Content-Type', contentType);
-    headers.set('Content-Length', imageBuffer.byteLength.toString());
+    if (contentLength) {
+      headers.set('Content-Length', contentLength);
+    }
     headers.set('Cache-Control', 'public, max-age=3600, s-maxage=86400'); // 1 hour client, 24 hours CDN
     headers.set('Access-Control-Allow-Origin', '*');
     headers.set('Access-Control-Allow-Methods', 'GET, HEAD');
     headers.set('X-Image-Proxy', 're.podtards.com');
     headers.set('Vary', 'Accept-Encoding');
 
-    return new NextResponse(imageBuffer, {
+    // Stream the response instead of buffering - much faster for large files
+    // This allows the browser to start rendering the image while it's still downloading
+    return new NextResponse(response.body, {
       status: 200,
       headers
     });
