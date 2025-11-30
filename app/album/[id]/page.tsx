@@ -8,7 +8,12 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   // Fallback title if album not found
   const title = albumData?.title || decodeURIComponent(id).replace(/-/g, ' ');
   const description = `Listen to ${title} on Into the Doerfel-Verse`;
-  const imageUrl = albumData?.coverArt || 'https://itdv.podtards.com/icon-512x512.png';
+  const rawImageUrl = albumData?.coverArt || 'https://itdv.podtards.com/icon-512x512.png';
+
+  // Use og-image endpoint for GIFs to convert to static PNG for link previews
+  const imageUrl = rawImageUrl.toLowerCase().endsWith('.gif')
+    ? `https://itdv.podtards.com/api/og-image?url=${encodeURIComponent(rawImageUrl)}`
+    : rawImageUrl;
   const url = `https://itdv.podtards.com/album/${id}`;
 
   return {
