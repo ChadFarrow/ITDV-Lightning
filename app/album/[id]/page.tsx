@@ -3,11 +3,36 @@ import AlbumDetailClient from './AlbumDetailClient';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
-  const albumTitle = decodeURIComponent(id).replace(/-/g, ' ');
-  
+  const albumData = await getAlbumData(id);
+
+  // Fallback title if album not found
+  const title = albumData?.title || decodeURIComponent(id).replace(/-/g, ' ');
+  const description = `Listen to ${title} on Into the Doerfel-Verse`;
+  const imageUrl = albumData?.coverArt || 'https://itdv.podtards.com/icon-512x512.png';
+  const url = `https://itdv.podtards.com/album/${id}`;
+
   return {
-      title: `${albumTitle} | Into the Doerfel-Verse`,
-  description: `Listen to ${albumTitle} on Into the Doerfel-Verse`,
+    title: `${title} | Into the Doerfel-Verse`,
+    description,
+    openGraph: {
+      title: `${title} | Into the Doerfel-Verse`,
+      description,
+      url,
+      siteName: 'Into the Doerfel-Verse',
+      images: [
+        {
+          url: imageUrl,
+          alt: title,
+        },
+      ],
+      type: 'music.album',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${title} | Into the Doerfel-Verse`,
+      description,
+      images: [imageUrl],
+    },
   };
 }
 
