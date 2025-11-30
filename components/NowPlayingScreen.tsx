@@ -18,8 +18,20 @@ interface NowPlayingScreenProps {
 }
 
 // Global color cache to persist across component remounts
+// LRU cache with max 50 entries to prevent memory leaks
+const MAX_COLOR_CACHE_SIZE = 50;
 const globalColorCache = new Map<string, ExtractedColors>();
 let colorDataPromise: Promise<any> | null = null;
+
+// LRU cache helper - evicts oldest entries when cache is full
+function setColorCache(key: string, value: ExtractedColors) {
+  // If cache is at max size, delete the oldest entry (first in Map)
+  if (globalColorCache.size >= MAX_COLOR_CACHE_SIZE) {
+    const firstKey = globalColorCache.keys().next().value;
+    if (firstKey) globalColorCache.delete(firstKey);
+  }
+  globalColorCache.set(key, value);
+}
 
 const NowPlayingScreen: React.FC<NowPlayingScreenProps> = ({ isOpen, onClose }) => {
   const router = useRouter();
@@ -167,16 +179,8 @@ const NowPlayingScreen: React.FC<NowPlayingScreenProps> = ({ isOpen, onClose }) 
         // Transform colors to match ExtractedColors interface format
         const transformedColors = transformColors(colors);
         
-        // Cache with size limit for mobile performance
-        const mobileOpts = getMobileOptimizations();
-        if (colorCache.current.size >= mobileOpts.maxCacheSize) {
-          const firstKey = colorCache.current.keys().next().value;
-          if (firstKey) {
-            colorCache.current.delete(firstKey);
-          }
-        }
-        
-        colorCache.current.set(cacheKey, transformedColors);
+        // Cache with LRU eviction to prevent memory leaks
+        setColorCache(cacheKey, transformedColors);
         setExtractedColors(transformedColors);
         performanceMonitor.recordCacheMiss();
       } else {

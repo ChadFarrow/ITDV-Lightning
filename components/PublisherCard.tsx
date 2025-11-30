@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, memo } from 'react';
 
 interface Publisher {
   name: string;
@@ -21,7 +21,7 @@ interface PublisherCardProps {
   publisher: Publisher;
 }
 
-export default function PublisherCard({ publisher }: PublisherCardProps) {
+const PublisherCard = memo(function PublisherCard({ publisher }: PublisherCardProps) {
   const [imageError, setImageError] = useState(false);
   
   const publisherSlug = publisher.name
@@ -86,4 +86,6 @@ export default function PublisherCard({ publisher }: PublisherCardProps) {
       </div>
     </Link>
   );
-}
+});
+
+export default PublisherCard;

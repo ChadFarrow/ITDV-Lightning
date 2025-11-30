@@ -7,7 +7,7 @@ import { useVideo } from '@/contexts/VideoContext';
 import { useSwipeGestures } from '@/hooks/useSwipeGestures';
 import NowPlayingScreen from './NowPlayingScreen';
 
-const GlobalNowPlayingBar: React.FC = () => {
+const GlobalNowPlayingBar: React.FC = React.memo(function GlobalNowPlayingBar() {
   const audioContext = useAudio();
   const videoContext = useVideo();
   
@@ -550,6 +550,6 @@ const GlobalNowPlayingBar: React.FC = () => {
       </div>
     </>
   );
-};
+});
 
 export default GlobalNowPlayingBar;

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, memo } from 'react';
 import Hls from 'hls.js';
 import { useDeviceDetection } from '@/lib/hooks/useDeviceDetection';
 import { getOptimalHLSConfig, getVideoOptimizationConfig, createConnectionChangeListener, type ConnectionQuality } from '@/lib/video-utils';
@@ -18,7 +18,7 @@ interface VideoPlayerProps {
   className?: string;
 }
 
-export default function VideoPlayer({
+const VideoPlayer = memo(function VideoPlayer({
   videoUrl,
   startTime,
   endTime,
@@ -845,5 +845,7 @@ export default function VideoPlayer({
       </div>
     </div>
   );
-}
+});
+
+export default VideoPlayer;
 

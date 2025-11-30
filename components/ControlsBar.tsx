@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { Filter, Grid3X3, List, Shuffle } from 'lucide-react';
 
 export type FilterType = 'all' | 'albums' | 'eps' | 'singles' | 'publishers' | 'playlist' | 'video';
@@ -37,7 +38,7 @@ const defaultFilters: { value: FilterType; label: string }[] = [
   { value: 'video', label: 'Video' },
 ];
 
-export default function ControlsBar({
+const ControlsBar = memo(function ControlsBar({
   activeFilter,
   onFilterChange,
   showFilters = true,
@@ -235,4 +236,6 @@ export default function ControlsBar({
       </div>
     </div>
   );
-}
+});
+
+export default ControlsBar;
