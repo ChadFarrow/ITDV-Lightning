@@ -5,7 +5,6 @@ import { Zap, Wallet, Loader2 } from 'lucide-react';
 import { useBitcoinConnect } from '@/contexts/BitcoinConnectContext';
 import { useBoostToNostr } from '@/hooks/useBoostToNostr';
 import { useLightning } from '@/contexts/LightningContext';
-import AlbyGoConnect from './AlbyGoConnect';
 
 declare global {
   namespace JSX {
@@ -507,24 +506,6 @@ export function BitcoinConnectPayment({
           
           if (nwcConnectionString && !nwcService.isConnected()) {
             await nwcService.connect(nwcConnectionString);
-            
-            // Initialize keysend bridge after NWC connection
-            if (nwcService.isConnected()) {
-              try {
-                const { getKeysendBridge } = await import('../lib/nwc-keysend-bridge');
-                const bridge = getKeysendBridge();
-                await bridge.initialize({
-                  userWalletConnection: nwcConnectionString
-                });
-                
-                const capabilities = bridge.getCapabilities();
-                if (capabilities.hasBridge && !capabilities.supportsKeysend) {
-                  console.log('🌉 Keysend bridge initialized for non-keysend wallet');
-                }
-              } catch (bridgeError) {
-                console.warn('Failed to initialize keysend bridge:', bridgeError);
-              }
-            }
           }
           
           shouldUseNWC = nwcService.isConnected();
@@ -545,11 +526,6 @@ export function BitcoinConnectPayment({
       let useNWC = shouldUseNWC;
       let routingReason = 'default preference';
       
-      // Check bridge availability once for all scenarios
-      const bridgeConfigResponse = await fetch('/api/bridge-config').catch(() => null);
-      const bridgeConfig = await bridgeConfigResponse?.json().catch(() => null);
-      const bridgeAvailable = bridgeConfig?.isConfigured || false;
-      
       // 🎯 PRIORITY: WebLN for Helipad compatibility
       // Direct WebLN (browser extensions like Alby) provides the best compatibility
       // with podcast apps like Helipad that monitor specific Lightning nodes
@@ -561,12 +537,8 @@ export function BitcoinConnectPayment({
         // CASHU WALLET SCENARIOS
         if (nodeRecipients.length > 0 && lnAddressRecipients.length > 0) {
           // Mixed recipients: keysend + Lightning addresses
-          if (bridgeAvailable) {
-            console.log('🧠 Smart routing: Cashu + mixed recipients → Bridge enables full compatibility');
-            useNWC = true;
-            routingReason = 'bridge handles keysend, Cashu handles Lightning addresses';
-          } else if (weblnAvailable) {
-            console.log('🧠 Smart routing: Cashu + mixed recipients → WebLN better without bridge');
+          if (weblnAvailable) {
+            console.log('🧠 Smart routing: Cashu + mixed recipients → WebLN handles all payment types');
             useNWC = false;
             routingReason = 'WebLN handles all payment types natively';
           } else {
@@ -576,18 +548,14 @@ export function BitcoinConnectPayment({
           }
         } else if (nodeRecipients.length > 0) {
           // Only keysend recipients
-          if (bridgeAvailable) {
-            console.log('🧠 Smart routing: Cashu + keysend only → Bridge enables compatibility');
-            useNWC = true;
-            routingReason = 'bridge converts keysend to invoices';
-          } else if (weblnAvailable) {
-            console.log('🧠 Smart routing: Cashu + keysend only → WebLN better without bridge');
+          if (weblnAvailable) {
+            console.log('🧠 Smart routing: Cashu + keysend only → WebLN supports keysend');
             useNWC = false;
             routingReason = 'WebLN supports keysend natively';
           } else {
             console.log('🧠 Smart routing: Cashu + keysend only → No viable method available');
             useNWC = false;
-            routingReason = 'Cashu wallets cannot send keysend without bridge';
+            routingReason = 'Cashu wallets cannot send keysend';
           }
         } else {
           // Only Lightning addresses
@@ -623,35 +591,8 @@ export function BitcoinConnectPayment({
       // Use the smart routing decision
       if (useNWC && nwcService) {
         console.log(`⚡ Bitcoin Connect using NWC (prioritized): ${amount} sats split among recipients`);
-        
-        // Check if we need bridge mode before creating payment promises
-        let usingBridge = false;
-        let sharedBridge: any = null;
-        try {
-          const { getKeysendBridge } = await import('../lib/nwc-keysend-bridge');
-          sharedBridge = getKeysendBridge();
-          
-          // Try to initialize bridge if not already initialized
-          if (!sharedBridge.getCapabilities().walletName || sharedBridge.getCapabilities().walletName === 'Unknown') {
-            console.log('🔄 Pre-initializing bridge for all payments...');
-            await sharedBridge.initialize({
-              userWalletConnection: nwcConnectionString
-            });
-          }
-          
-          const capabilities = sharedBridge.getCapabilities();
-          usingBridge = sharedBridge.needsBridge();
-          
-          if (isCashuWallet && usingBridge) {
-            console.log(`🥜🌉 Cashu wallet will use keysend bridge for full compatibility`);
-          }
-          
-          console.log(`🔍 Bridge mode pre-check: ${usingBridge ? 'ENABLED' : 'DISABLED'} (wallet: ${capabilities.walletName}, supportsKeysend: ${capabilities.supportsKeysend}, hasBridge: ${capabilities.hasBridge})`);
-        } catch (error) {
-          console.warn('Could not pre-check bridge capabilities:', error);
-        }
-        
-        // Process payments based on bridge mode
+
+        // Process payments
         const paymentPromises = paymentsToMake.map(async (recipientData) => {
           // Calculate amount: use fixed amount if specified, otherwise proportional split
           const recipientAmount = (recipientData as any).fixedAmount || Math.floor((amount * recipientData.split) / totalSplit);
@@ -687,94 +628,14 @@ export function BitcoinConnectPayment({
               // For node public keys, use keysend with TLV records
               console.log(`⚡ NWC sending keysend to node: ${recipientData.address}`);
               const tlvRecords = await createBoostTLVRecords(recipientData.name || 'Recipient');
-              
-              // DEBUG: Log detailed keysend data and compare with working format
-              const ourTlvData = tlvRecords.map(r => {
-                try {
-                  return {
-                    type: r.type,
-                    data: JSON.parse(Buffer.from(r.value, 'hex').toString('utf8'))
-                  };
-                } catch {
-                  return {
-                    type: r.type,
-                    data: Buffer.from(r.value, 'hex').toString('utf8')
-                  };
-                }
-              });
 
-              console.log('🔍 KEYSEND DEBUG - OUR APP:', {
-                recipient: recipientData.name || 'Unknown',
-                pubkey: recipientData.address,
-                amount: recipientAmount,
-                tlvRecordCount: tlvRecords.length,
-                tlvTypes: tlvRecords.map(r => r.type),
-                ourTlvData: ourTlvData
-              });
-
-              console.log('🔍 COMPARISON - WORKING vs OUR FORMAT:');
-              console.log('✅ WORKING (Castamatic to Sovereign Feeds):');
-              console.log('  feedID: 6590182 (numeric)');
-              console.log('  episode_guid: b4578bea-855b-48a6-a747-1a09ed44a19a');
-              console.log('  url: https://www.doerfelverse.com/feeds/intothedoerfelverse.xml');
-              console.log('❓ OUR APP (ITDV Lightning):');
-              console.log(`  feedId: ${boostMetadata?.feedUrl === 'https://www.doerfelverse.com/feeds/bloodshot-lies-album.xml' ? "6590183" : "6590182"} (FIXED: using lowercase feedId for Helipad)`);
-              console.log(`  episode_guid: ${boostMetadata?.itemGuid || 'missing'}`);
-              console.log(`  url: ${boostMetadata?.feedUrl || 'RSS feed URL'}`);
-              
-              // Check if we should use the keysend bridge
-              try {
-                const { getKeysendBridge } = await import('../lib/nwc-keysend-bridge');
-                // Use the shared bridge instance that was pre-initialized
-                const bridge = sharedBridge || getKeysendBridge();
-                
-                // Bridge should already be initialized from pre-check, no need to re-initialize
-                const capabilities = bridge.getCapabilities();
-                console.log('🔍 Bridge capabilities:', capabilities);
-                
-                if (capabilities.hasBridge && !capabilities.supportsKeysend) {
-                  // Use bridge for non-keysend wallets
-                  console.log('🌉 Using keysend bridge for payment');
-                  const bridgeResult = await bridge.payKeysend({
-                    pubkey: recipientData.address,
-                    amount: recipientAmount,
-                    tlvRecords,
-                    description: `Boost to ${recipientData.name || 'recipient'}`
-                  });
-                  
-                  if (bridgeResult.success) {
-                    response = { preimage: bridgeResult.preimage };
-                  } else {
-                    response = { error: bridgeResult.error };
-                  }
-                } else {
-                  // Direct keysend payment
-                  console.log('⚡ Using direct keysend payment');
-                  response = await nwcService.payKeysend(
-                    recipientData.address,
-                    recipientAmount,
-                    tlvRecords
-                  );
-                }
-              } catch (bridgeError) {
-                console.warn('🌉 Bridge error:', bridgeError);
-                
-                // For Cashu wallets, don't fall back to direct keysend since they don't support it
-                if (isCashuWallet) {
-                  console.error('🥜 Cashu wallet keysend failed - bridge required but not available');
-                  response = { 
-                    error: 'Keysend payments require a bridge for Cashu wallets, but the bridge is not available. Please try using a different wallet or check your connection.' 
-                  };
-                } else {
-                  console.warn('🔄 Falling back to direct keysend for non-Cashu wallet');
-                  // Fallback to direct keysend payment for non-Cashu wallets
-                  response = await nwcService.payKeysend(
-                    recipientData.address,
-                    recipientAmount,
-                    tlvRecords
-                  );
-                }
-              }
+              // Direct keysend payment
+              console.log('⚡ Using direct keysend payment');
+              response = await nwcService.payKeysend(
+                recipientData.address,
+                recipientAmount,
+                tlvRecords
+              );
             }
             
             if (response.error) {
@@ -791,42 +652,32 @@ export function BitcoinConnectPayment({
         });
         
         const errors: string[] = [];
-        
+
         // Process all payments in parallel for maximum speed
-        if (usingBridge) {
-          console.log(`🌉 BRIDGE MODE: Processing ${paymentPromises.length} payments in PARALLEL via Alby Hub`);
-        } else {
-          console.log('⚡ Processing direct payments in parallel');
-        }
-        
+        console.log('⚡ Processing direct payments in parallel');
+
         const paymentResults = await Promise.allSettled(paymentPromises);
-        
+
         paymentResults.forEach((result, index) => {
           if (result.status === 'fulfilled' && result.value) {
             results.push(result.value);
-            if (usingBridge) {
-              console.log(`✅ BRIDGE [${index + 1}/${paymentPromises.length}]: ${result.value.recipient} payment completed`);
-            }
           } else if (result.status === 'rejected') {
             const errorMsg = result.reason.message || String(result.reason);
             errors.push(errorMsg);
-            if (usingBridge) {
-              console.error(`❌ BRIDGE [${index + 1}/${paymentPromises.length}]: ${errorMsg}`);
-            }
           }
         });
-        
+
         if (errors.length > 0) {
-          console.error(usingBridge ? '❌ Bridge parallel payments had errors:' : '❌ Direct payments had errors:', errors);
+          console.error('❌ Direct payments had errors:', errors);
         }
-        
+
         // Report NWC results
         if (results.length > 0) {
           console.log(`✅ Bitcoin Connect NWC payments - ${results.length}/${paymentsToMake.length} successful:`, results);
           if (errors.length > 0) {
             console.warn(`⚠️ Some NWC payments failed:`, errors);
           }
-          
+
           // Create Nostr boost note if boosts are enabled and we have successful payments
           if (enableBoosts && boostMetadata && results.length > 0) {
             try {
@@ -835,28 +686,11 @@ export function BitcoinConnectPayment({
               console.warn('⚠️ Boost creation failed but payments succeeded:', boostError);
             }
           }
-          
+
           onSuccess?.(results);
         } else if (errors.length > 0) {
-          // Check if errors are due to bridge or keysend issues for Cashu wallets
-          const bridgeErrors = errors.filter(error => 
-            error.includes('bridge not configured') || 
-            error.includes('Bridge payment succeeded but keysend forward failed') ||
-            error.includes('Failed to create bridge invoice') ||
-            error.includes('Failed to get wallet info after') ||
-            error.includes('bridge is not available') ||
-            error.includes('No response from wallet')
-          );
-          
-          if (isCashuWallet && bridgeErrors.length > 0) {
-            console.warn('⚠️ Cashu wallet keysend failed - bridge unavailable or wallet connection issues');
-            const hasWebLN = weblnAvailable;
-            const webLNSuggestion = hasWebLN ? ' You can try switching to your browser wallet using the wallet selector above.' : '';
-            throw new Error(`Cashu wallet keysend payments require a bridge service, but there are connection issues. ${errors.length} keysend recipient(s) could not be paid.${webLNSuggestion} Lightning address payments will work normally with Cashu wallets.`);
-          } else {
-            console.error('❌ All NWC payments failed:', errors);
-            throw new Error(`All NWC payments failed: ${errors.join(', ')}`);
-          }
+          console.error('❌ All NWC payments failed:', errors);
+          throw new Error(`All NWC payments failed: ${errors.join(', ')}`);
         }
         
       } else if (weblnAvailable && webln.keysend) {
@@ -1027,56 +861,14 @@ export function BitcoinConnectPayment({
                   // For node public keys, use keysend with TLV records
                   console.log(`⚡ NWC fallback sending keysend to node: ${recipientData.address}`);
                   const tlvRecords = await createBoostTLVRecords(recipientData.name || 'Recipient');
-                  
-                  // Check if we should use the keysend bridge
-                  try {
-                    const { getKeysendBridge } = await import('../lib/nwc-keysend-bridge');
-                    const bridge = getKeysendBridge();
-                    
-                    // Try to initialize bridge if not already initialized
-                    if (!bridge.getCapabilities().walletName || bridge.getCapabilities().walletName === 'Unknown') {
-                      console.log('🔄 Initializing keysend bridge for fallback...');
-                      await bridge.initialize({
-                        userWalletConnection: nwcConnectionString
-                      });
-                    }
-                    
-                    const capabilities = bridge.getCapabilities();
-                    console.log('🔍 Bridge capabilities (fallback):', capabilities);
-                    
-                    if (capabilities.hasBridge && !capabilities.supportsKeysend) {
-                      // Use bridge for non-keysend wallets
-                      console.log('🌉 Using keysend bridge for fallback payment');
-                      const bridgeResult = await bridge.payKeysend({
-                        pubkey: recipientData.address,
-                        amount: recipientAmount,
-                        tlvRecords,
-                        description: `Boost to ${recipientData.name || 'recipient'}`
-                      });
-                      
-                      if (bridgeResult.success) {
-                        response = { preimage: bridgeResult.preimage };
-                      } else {
-                        response = { error: bridgeResult.error };
-                      }
-                    } else {
-                      // Direct keysend payment
-                      console.log('⚡ Using direct keysend payment (fallback)');
-                      response = await nwcService.payKeysend(
-                        recipientData.address,
-                        recipientAmount,
-                        tlvRecords
-                      );
-                    }
-                  } catch (bridgeError) {
-                    console.warn('🌉 Bridge error in fallback, using direct keysend:', bridgeError);
-                    // Fallback to direct keysend payment
-                    response = await nwcService.payKeysend(
-                      recipientData.address,
-                      recipientAmount,
-                      tlvRecords
-                    );
-                  }
+
+                  // Direct keysend payment
+                  console.log('⚡ Using direct keysend payment (fallback)');
+                  response = await nwcService.payKeysend(
+                    recipientData.address,
+                    recipientAmount,
+                    tlvRecords
+                  );
                 }
                 
                 if (response.error) {

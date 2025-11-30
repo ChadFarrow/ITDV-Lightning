@@ -32,7 +32,6 @@ interface BoostMetadata {
 
 /**
  * Create TLV records for Lightning boost payments (matching manual boost format)
- * Returns array format compatible with NWC bridge system
  */
 function createBoostTLVRecords(metadata: BoostMetadata, recipientName?: string, amount?: number) {
   const tlvRecords = [];
@@ -124,8 +123,7 @@ function createSimpleWebLNTLVRecords(metadata: BoostMetadata, recipientName?: st
 }
 
 /**
- * Make a Lightning payment using available payment methods (WebLN, NWC bridge, etc.)
- * This function replicates the payment logic from BitcoinConnect component for auto boost
+ * Make a Lightning payment using WebLN for auto boost
  */
 export async function makeAutoBoostPayment({
   amount,
@@ -141,70 +139,21 @@ export async function makeAutoBoostPayment({
   boostMetadata?: BoostMetadata;
 }): Promise<{ success: boolean; results?: any[]; error?: string }> {
   try {
-    // Import NWC services dynamically
-    const { getNWCService } = await import('@/lib/nwc-service');
-    const { getKeysendBridge } = await import('@/lib/nwc-keysend-bridge');
-    
-    // Check connection state similar to BitcoinConnect
+    // Check connection state
     const weblnExists = !!(window as any).webln;
     const weblnEnabled = weblnExists && !!(window as any).webln?.enabled;
-    
-    // Check for NWC connection (same logic as BitcoinConnect component)
-    let bcConfig = null;
-    let bcConnectorType = null;
-    let nwcConnectionString = null;
-    
-    try {
-      const bcConfigRaw = localStorage.getItem('bc:config');
-      if (bcConfigRaw) {
-        bcConfig = JSON.parse(bcConfigRaw);
-        bcConnectorType = bcConfig.connectorType;
-        nwcConnectionString = bcConfig.nwcUrl;
-      }
-    } catch (error) {
-      // Fallback to individual keys if config is corrupted
-      bcConnectorType = localStorage.getItem('bc:connectorType');
-    }
-    if (!nwcConnectionString) {
-      nwcConnectionString = localStorage.getItem('nwc_connection_string');
-    }
-    
-    const hasNWCConnection = !!nwcConnectionString;
-    // Use NWC if we have a connection string, regardless of bcConnectorType
-    // This matches how manual payments work in BitcoinConnect component
-    const shouldUseNWC = hasNWCConnection;
 
-    // CRITICAL: Auto boost should only work with user's wallet, not site wallet
-    // If no user wallet is available, fail gracefully instead of using site wallet
-    if (!weblnExists && !hasNWCConnection) {
-      return { 
-        success: false, 
-        error: 'Auto boost requires user wallet connection. Please connect your wallet to enable auto boost.' 
+    // Auto boost requires WebLN wallet connection
+    if (!weblnExists) {
+      return {
+        success: false,
+        error: 'Auto boost requires a WebLN wallet connection. Please connect your wallet to enable auto boost.'
       };
-    }
-
-    // CRITICAL: Auto boost should only work with wallets that support keysend natively
-    // Bridge mode uses site wallet as intermediary, which is not appropriate for auto boost
-    if (hasNWCConnection) {
-      try {
-        const bridge = getKeysendBridge();
-        const capabilities = bridge.getCapabilities();
-        
-        // If bridge is needed (wallet doesn't support keysend), disable auto boost
-        if (bridge.needsBridge()) {
-          return { 
-            success: false, 
-            error: 'Auto boost requires a wallet with native keysend support. Please use a wallet like Alby, Zeus, or Phoenix for auto boost.' 
-          };
-        }
-      } catch (error) {
-        // Silently handle errors
-      }
     }
 
     // Determine payments to make
     let paymentsToMake: PaymentRecipient[] = [];
-    
+
     if (recipients && recipients.length > 0) {
       paymentsToMake = recipients.filter(r => r.address && (r.split > 0 || r.fixedAmount));
     }
@@ -222,67 +171,7 @@ export async function makeAutoBoostPayment({
     const totalSplit = paymentsToMake.reduce((sum, r) => sum + r.split, 0);
     const results: any[] = [];
 
-    // Use NWC if available and preferred (same logic as BitcoinConnect)
-    if (shouldUseNWC && hasNWCConnection) {
-      try {
-        // Initialize keysend bridge (same logic as BitcoinConnect manual boost)
-        const bridge = getKeysendBridge();
-        
-        // Check if bridge needs initialization (same check as manual boost)
-        if (!bridge.getCapabilities().walletName || bridge.getCapabilities().walletName === 'Unknown') {
-          await bridge.initialize({ userWalletConnection: nwcConnectionString });
-        }
-        
-        // CRITICAL: Verify bridge is using user wallet, not site wallet
-        const capabilities = bridge.getCapabilities();
-        if (capabilities.walletName && capabilities.walletName.toLowerCase().includes('alby hub')) {
-          throw new Error('Auto boost cannot use site wallet - user wallet required');
-        }
-        
-        const paymentPromises = paymentsToMake.map(async (recipientData) => {
-          const recipientAmount = (recipientData as any).fixedAmount || Math.floor((amount * recipientData.split) / totalSplit);
-          
-          // Create TLV records for boost metadata - all keysend payments should include TLVs
-          const tlvRecords = boostMetadata ? createBoostTLVRecords(boostMetadata, recipientData.name, recipientAmount) : undefined;
-          
-          const result = await bridge.payKeysend({
-            pubkey: recipientData.address,
-            amount: recipientAmount,
-            tlvRecords,
-            description: `Auto boost to ${recipientData.name || 'recipient'}`
-          });
-          
-          if (result.success) {
-            return { recipient: recipientData.name || recipientData.address, amount: recipientAmount, preimage: result.preimage };
-          } else {
-            throw new Error(result.error || 'Payment failed');
-          }
-        });
-
-        const paymentResults = await Promise.allSettled(paymentPromises);
-        
-        paymentResults.forEach((result, index) => {
-          if (result.status === 'fulfilled') {
-            results.push(result.value);
-          } else {
-            const recipientName = paymentsToMake[index].name || paymentsToMake[index].address;
-            console.error(`❌ Auto boost payment failed to ${recipientName}:`, result.reason);
-          }
-        });
-
-        if (results.length > 0) {
-          return { success: true, results };
-        } else {
-          throw new Error('All NWC auto boost payments failed');
-        }
-        
-      } catch (nwcError) {
-        console.error('💡 AUTO BOOST: NWC auto boost failed, trying WebLN fallback:', nwcError);
-        // Fall through to WebLN
-      }
-    }
-
-    // WebLN fallback (same as original logic)
+    // Use WebLN for payments
     if (weblnExists) {
       const webln = (window as any).webln;
 

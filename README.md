@@ -36,7 +36,6 @@ A Lightning Network-powered Value4Value music platform showcasing independent ar
 - **Boostagrams**: Custom 250-character messages with Lightning boost payments
 - **Nostr Integration**: NIP-57/NIP-73 compliant boost notes with boostagrams published to Nostr relays
 - **Multi-Payment Recipients**: Automatic splitting to multiple Lightning addresses and nodes
-- **NWC Bridge System**: Seamless payments for non-keysend wallets via Alby Hub relay
 - **RSS Feed Parsing**: Dynamic parsing of 42 album feeds + 4 publisher feeds
 - **Complete Content Coverage**: All 40 unique albums displaying (100% coverage)
 - **Publisher System**: Dedicated pages for music publishers with real artwork  
