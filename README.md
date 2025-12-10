@@ -202,9 +202,8 @@ The app uses a hybrid approach:
 ## API Endpoints
 
 ### Album Data
-- `GET /api/albums-static-cached` - Cached album data (fast)
-- `GET /api/albums-no-db` - Fresh album data (dynamic parsing)
-- `GET /api/albums-static` - Static pre-generated album data
+- `GET /api/albums` - Album data with RSS parsing (has static fallback)
+- `GET /api/albums-static-cached` - Cached album data from memory (fastest)
 - `GET /api/album/[id]` - Single album endpoint with static fallback
 
 ### Feed Management

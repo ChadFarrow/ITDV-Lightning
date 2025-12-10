@@ -18,17 +18,10 @@ async function getPublisherData(publisherName: string) {
                      ? process.env.NEXT_PUBLIC_SITE_URL || 'https://itdv.podtards.com'
                      : `http://localhost:${process.env.PORT || '3000'}`);
     
-    // Use static endpoint as primary since it has all albums
-    let response = await fetch(`${baseUrl}/api/albums-static`, {
+    // Use albums endpoint
+    const response = await fetch(`${baseUrl}/api/albums`, {
       next: { revalidate: 300 }, // Cache for 5 minutes
     });
-    
-    if (!response.ok) {
-      console.log('Static endpoint failed, trying database-free...');
-      response = await fetch(`${baseUrl}/api/albums-no-db`, {
-        next: { revalidate: 60 }, // Cache for 1 minute
-      });
-    }
 
     if (!response.ok) {
       console.error('Failed to fetch albums:', response.status);

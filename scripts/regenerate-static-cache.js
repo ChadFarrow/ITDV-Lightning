@@ -5,7 +5,7 @@ async function regenerate() {
   console.log('🔄 Regenerating static cache...');
 
   try {
-    const response = await fetch('http://localhost:3000/api/albums-static?regenerate=true');
+    const response = await fetch('http://localhost:3000/api/albums');
     const data = await response.json();
 
     if (data.albums && Array.isArray(data.albums)) {

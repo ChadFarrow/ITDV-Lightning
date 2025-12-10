@@ -564,7 +564,7 @@ export default function HomePage() {
       // Only try fallback if static cache failed (with longer timeout for RSS parsing)
       if (!data) {
         try {
-          response = await fetchWithTimeout('/api/albums-static', 3000);
+          response = await fetchWithTimeout('/api/albums', 3000);
           if (response?.ok) {
             data = await response.json();
           }

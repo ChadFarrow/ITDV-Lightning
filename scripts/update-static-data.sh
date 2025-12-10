@@ -10,7 +10,7 @@ mkdir -p "public"
 
 # Fetch current album data and save as static file in the correct location
 echo "📡 Fetching current album data..."
-curl -s "http://localhost:3000/api/albums-no-db" > "public/static-albums.json"
+curl -s "http://localhost:3000/api/albums" > "public/static-albums.json"
 
 if [ $? -eq 0 ]; then
     echo "✅ Successfully updated static album data"

@@ -83,13 +83,8 @@ export default function PublisherDetailClient({ publisherName, initialPublisher 
   const loadPublisher = useCallback(async () => {
     try {
       setIsLoading(true);
-      // Try fast static endpoint first
-      let response = await fetch('/api/albums-static');
-      
-      if (!response.ok) {
-        console.log('Static endpoint failed, falling back to RSS parsing...');
-        response = await fetch('/api/albums');
-      }
+      // Use static cached endpoint for fast loading
+      const response = await fetch('/api/albums-static-cached');
       
       if (!response.ok) {
         throw new Error('Failed to load albums');

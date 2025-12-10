@@ -820,8 +820,8 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
     
     try {
       loadingAlbumsRef.current = true;
-      // Use the lightweight albums endpoint to avoid RSS parsing overhead
-      const response = await fetch('/api/albums-simple');
+      // Use the albums endpoint
+      const response = await fetch('/api/albums');
       if (response.ok) {
         const data = await response.json();
         const albums = data.albums || [];
@@ -845,10 +845,10 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
     loadingRelatedRef.current = true;
     
     try {
-      const response = await fetch('/api/albums-static');
+      const response = await fetch('/api/albums');
       if (response.ok) {
         const data = await response.json();
-        const albums = Array.isArray(data) ? data : [];
+        const albums = data.albums || [];
         
         const relatedAlbums = albums.filter((relatedAlbum: Album) => {
           // Simple related album logic - same artist or exclude current album
