@@ -859,20 +859,23 @@ export class RSSParser {
       const pubDateElement = channel.getElementsByTagName('pubDate')[0] || channel.getElementsByTagName('lastBuildDate')[0];
       const releaseDate = pubDateElement?.textContent?.trim() || new Date().toISOString();
       
-      // Extract funding information
+      // Extract funding information (deduplicated by URL)
       const funding: RSSFunding[] = [];
-      
+      const seenFundingUrls = new Set<string>();
+
       // Try both namespaced and non-namespaced versions for funding
       const fundingElements1 = Array.from(channel.getElementsByTagName('podcast:funding'));
       const fundingElements2 = Array.from(channel.getElementsByTagName('funding'));
       const allFundingElements = [...fundingElements1, ...fundingElements2];
-      
+
       allFundingElements.forEach((fundingElement: unknown) => {
         const element = fundingElement as Element;
         const url = element.getAttribute('url') || element.textContent?.trim();
         const message = element.textContent?.trim() || element.getAttribute('message');
-        
-        if (url) {
+
+        // Deduplicate by URL - only add if we haven't seen this URL before
+        if (url && !seenFundingUrls.has(url)) {
+          seenFundingUrls.add(url);
           funding.push({
             url: url,
             message: message || undefined
