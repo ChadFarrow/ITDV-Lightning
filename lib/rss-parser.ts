@@ -661,13 +661,13 @@ export class RSSParser {
         
         if (trackValue && trackValue.type === 'lightning' && trackValue.method === 'keysend' && trackValue.recipients && trackValue.recipients.length > 0) {
           trackPaymentRecipients = trackValue.recipients
-            .filter(r => r.type === 'node') // Only include node recipients
+            .filter(r => r.type === 'node' || r.type === 'lnaddress') // Include both node and lnaddress recipients
             .map(r => ({
               address: r.address,
               split: r.split,
               name: r.name,
               fee: r.fee,
-              type: 'node' // Include the type field for payment routing
+              type: r.type // Preserve the original type for payment routing
             }));
           
           if (trackPaymentRecipients.length > 0) {
@@ -1040,13 +1040,13 @@ export class RSSParser {
       
       if (value && value.type === 'lightning' && value.method === 'keysend' && value.recipients && value.recipients.length > 0) {
         paymentRecipients = value.recipients
-          .filter(r => r.type === 'node') // Only include node recipients
+          .filter(r => r.type === 'node' || r.type === 'lnaddress') // Include both node and lnaddress recipients
           .map(r => ({
             address: r.address,
             split: r.split,
             name: r.name,
             fee: r.fee,
-            type: 'node' // Include the type field for payment routing
+            type: r.type // Preserve the original type for payment routing
           }));
         
         if (paymentRecipients.length > 0) {
