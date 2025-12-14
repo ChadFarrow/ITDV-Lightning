@@ -530,8 +530,18 @@
       "status": "active",
       "addedAt": "2025-12-10T00:00:00.000Z",
       "lastUpdated": "2025-12-10T00:00:00.000Z"
+    },
+    {
+      "id": "www-doerfelverse-com-feeds-think-ep-live-xml",
+      "originalUrl": "https://www.doerfelverse.com/feeds/think-ep-live.xml",
+      "type": "album",
+      "title": "Think EP LIVE! - The Doerfels",
+      "priority": "core",
+      "status": "active",
+      "addedAt": "2025-12-14T00:00:00.000Z",
+      "lastUpdated": "2025-12-14T00:00:00.000Z"
     }
   ],
-  "lastUpdated": "2025-12-10T00:00:00.000Z",
+  "lastUpdated": "2025-12-14T00:00:00.000Z",
   "version": 2
 }
