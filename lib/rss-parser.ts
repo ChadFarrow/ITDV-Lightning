@@ -537,7 +537,7 @@ export class RSSParser {
 
           if (isVideo && enclosureUrl) {
             videoUrl = enclosureUrl;
-            verboseLog(`📺 Found video enclosure for "${trackTitle}": ${enclosureUrl} (type: ${enclosureType})`);
+            console.log(`📺 Video enclosure detected for "${trackTitle}": ${enclosureUrl} (type: ${enclosureType})`);
             // Explicitly log video tracks to ensure they're being parsed
             if (trackTitle.toLowerCase().includes('sprouting')) {
               console.log(`🎬 Parsing Sprouting Symphonies video track: ${trackTitle}, videoUrl: ${videoUrl}`);
@@ -545,9 +545,11 @@ export class RSSParser {
 
             // When main enclosure is video, look for audio in podcast:alternateEnclosure
             const alternateEnclosures = item.getElementsByTagName('podcast:alternateEnclosure');
+            console.log(`🔍 Found ${alternateEnclosures.length} alternateEnclosure elements for "${trackTitle}"`);
             for (let j = 0; j < alternateEnclosures.length; j++) {
               const altEnclosure = alternateEnclosures[j];
               const altType = altEnclosure.getAttribute('type') || '';
+              console.log(`  altEnclosure[${j}] type="${altType}"`);
               // Look for audio types (mp3, m4a, audio/*)
               if (altType.includes('mp3') || altType.includes('audio') || altType.includes('m4a')) {
                 // Get the source URL from nested podcast:source element
@@ -556,7 +558,7 @@ export class RSSParser {
                   const altUrl = sourceEl.getAttribute('uri') || sourceEl.getAttribute('url');
                   if (altUrl) {
                     url = altUrl;
-                    verboseLog(`🎵 Found audio alternate enclosure for "${trackTitle}": ${altUrl}`);
+                    console.log(`🎵 Found audio alternate enclosure for "${trackTitle}": ${altUrl}`);
                     break;
                   }
                 }
