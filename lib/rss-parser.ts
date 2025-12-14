@@ -526,20 +526,41 @@ export class RSSParser {
         if (enclosureElement) {
           const enclosureUrl = enclosureElement.getAttribute('url') || undefined;
           const enclosureType = enclosureElement.getAttribute('type') || '';
-          
+
           // Check if this is a video enclosure
           // HLS videos: application/x-mpegURL, application/vnd.apple.mpegurl
-          // Other videos: video/* types
-          const isVideo = enclosureType.includes('mpegURL') || 
-                         enclosureType.includes('mpegurl') || 
-                         enclosureType.startsWith('video/');
-          
+          // Other videos: video/* types, or .mp4/.m3u8 URL extension
+          const isVideo = enclosureType.includes('mpegURL') ||
+                         enclosureType.includes('mpegurl') ||
+                         enclosureType.startsWith('video/') ||
+                         (enclosureUrl && (enclosureUrl.endsWith('.mp4') || enclosureUrl.endsWith('.m3u8')));
+
           if (isVideo && enclosureUrl) {
             videoUrl = enclosureUrl;
             verboseLog(`📺 Found video enclosure for "${trackTitle}": ${enclosureUrl} (type: ${enclosureType})`);
             // Explicitly log video tracks to ensure they're being parsed
             if (trackTitle.toLowerCase().includes('sprouting')) {
               console.log(`🎬 Parsing Sprouting Symphonies video track: ${trackTitle}, videoUrl: ${videoUrl}`);
+            }
+
+            // When main enclosure is video, look for audio in podcast:alternateEnclosure
+            const alternateEnclosures = item.getElementsByTagName('podcast:alternateEnclosure');
+            for (let j = 0; j < alternateEnclosures.length; j++) {
+              const altEnclosure = alternateEnclosures[j];
+              const altType = altEnclosure.getAttribute('type') || '';
+              // Look for audio types (mp3, m4a, audio/*)
+              if (altType.includes('mp3') || altType.includes('audio') || altType.includes('m4a')) {
+                // Get the source URL from nested podcast:source element
+                const sourceEl = altEnclosure.getElementsByTagName('podcast:source')[0];
+                if (sourceEl) {
+                  const altUrl = sourceEl.getAttribute('uri') || sourceEl.getAttribute('url');
+                  if (altUrl) {
+                    url = altUrl;
+                    verboseLog(`🎵 Found audio alternate enclosure for "${trackTitle}": ${altUrl}`);
+                    break;
+                  }
+                }
+              }
             }
           } else if (enclosureUrl) {
             url = enclosureUrl;
