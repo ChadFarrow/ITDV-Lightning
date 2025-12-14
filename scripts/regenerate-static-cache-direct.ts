@@ -119,6 +119,11 @@ async function regenerateCache() {
     console.log('\n⚠️ Errors:');
     errors.forEach(e => console.log(`   ${e.feedId}: ${e.error}`));
   }
+
+  // Rebuild album index to match new cache order
+  console.log('\n🔄 Rebuilding album index...');
+  const { buildIndex } = require('./build-album-index.js');
+  buildIndex();
 }
 
 regenerateCache().catch(console.error);
