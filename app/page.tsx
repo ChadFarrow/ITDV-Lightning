@@ -115,6 +115,19 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [albums, setAlbums] = useState<Album[]>([]);
   const [publishers, setPublishers] = useState<any[]>([]);
+  const [pinnedAlbums, setPinnedAlbums] = useState<string[]>([
+    "Disco Swag - The Album",
+    "Bloodshot Lies - The Album",
+    "Music From The Doerfel-Verse",
+    "Autumn Rust",
+    "Ben Doerfel",
+    "Jam with Nate",
+    "Beware of Banjo"
+  ]);
+  const [pinnedEPs, setPinnedEPs] = useState<string[]>([
+    "Think EP",
+    "Think EP LIVE!"
+  ]);
   const [error, setError] = useState<string | null>(null);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [totalFeedsCount, setTotalFeedsCount] = useState(0);
@@ -505,6 +518,26 @@ export default function HomePage() {
         .catch(() => {
           // Silently handle errors
         });
+
+      // Load pinned albums and EPs order (non-blocking)
+      fetch('/api/pinned-albums')
+        .then(pinnedResponse => {
+          if (pinnedResponse.ok) {
+            return pinnedResponse.json();
+          }
+          return null;
+        })
+        .then(pinnedData => {
+          if (pinnedData?.pinnedAlbums && Array.isArray(pinnedData.pinnedAlbums)) {
+            setPinnedAlbums(pinnedData.pinnedAlbums);
+          }
+          if (pinnedData?.pinnedEPs && Array.isArray(pinnedData.pinnedEPs)) {
+            setPinnedEPs(pinnedData.pinnedEPs);
+          }
+        })
+        .catch(() => {
+          // Silently handle errors - use default pinned order
+        });
       
       setLoadingProgress(100);
       setIsLoading(false);
@@ -536,8 +569,19 @@ export default function HomePage() {
 
   const loadAlbumsData = async () => {
     try {
+      // Check for cache-busting query parameter
+      const urlParams = new URLSearchParams(window.location.search);
+      const forceRefresh = urlParams.get('refresh') === '1' || urlParams.get('nocache') === '1';
+      
+      // Clear client-side cache if force refresh requested
+      if (forceRefresh && typeof window !== 'undefined') {
+        localStorage.removeItem('cachedAlbums');
+        localStorage.removeItem('albumsCacheTimestamp');
+        console.log('🔄 Client-side cache cleared due to refresh parameter');
+      }
+      
       // Check for cached albums first - use longer cache time for better performance
-      if (typeof window !== 'undefined') {
+      if (!forceRefresh && typeof window !== 'undefined') {
         const cached = localStorage.getItem('cachedAlbums');
         const cacheTime = localStorage.getItem('albumsCacheTimestamp');
 
@@ -553,7 +597,9 @@ export default function HomePage() {
 
       try {
         // Try the fastest endpoint first (in-memory cached) with shorter timeout
-        response = await fetchWithTimeout('/api/albums-static-cached', 1000);
+        // Add refresh parameter to force server-side cache clear
+        const staticUrl = forceRefresh ? '/api/albums-static-cached?refresh=1' : '/api/albums-static-cached';
+        response = await fetchWithTimeout(staticUrl, 1000);
         if (response?.ok) {
           data = await response.json();
         }
@@ -562,9 +608,11 @@ export default function HomePage() {
       }
 
       // Only try fallback if static cache failed (with longer timeout for RSS parsing)
+      // Add refresh parameter to force server-side cache clear
       if (!data) {
         try {
-          response = await fetchWithTimeout('/api/albums', 3000);
+          const albumsUrl = forceRefresh ? '/api/albums?refresh=1' : '/api/albums';
+          response = await fetchWithTimeout(albumsUrl, 3000);
           if (response?.ok) {
             data = await response.json();
           }
@@ -737,42 +785,49 @@ export default function HomePage() {
     const albumsToUse = albums.filter(album => album.title !== 'LNURL Testing Podcast');
     
           // Universal sorting function that implements hierarchical order: Pinned → Albums → EPs → Singles
-      const sortWithHierarchy = (albums: Album[]) => {
-        return albums.sort((a, b) => {
-          // Pin specific albums to the top in order
-          const pinnedOrder = ["Disco Swag - The Album", "Bloodshot Lies - The Album", "Think EP", "Think EP LIVE!", "Music From The Doerfel-Verse", "Autumn Rust", "Ben Doerfel", "Jam with Nate", "Beware of Banjo"];
-          const aIndex = pinnedOrder.indexOf(a.title);
-          const bIndex = pinnedOrder.indexOf(b.title);
-          
-          // If both are pinned, sort by pinnedOrder
-          if (aIndex !== -1 && bIndex !== -1) {
-            return aIndex - bIndex;
-          }
-          // If only one is pinned, it goes first
-          if (aIndex !== -1) return -1;
-          if (bIndex !== -1) return 1;
-
-          // Hierarchical sorting: Albums (7+ tracks) → EPs (2-6 tracks) → Singles (1 track)
+      const sortWithHierarchy = (albumsToSort: Album[]) => {
+        return albumsToSort.sort((a, b) => {
+          // Determine types
           const aIsAlbum = a.tracks.length > 6;
           const bIsAlbum = b.tracks.length > 6;
           const aIsEP = a.tracks.length > 1 && a.tracks.length <= 6;
           const bIsEP = b.tracks.length > 1 && b.tracks.length <= 6;
           const aIsSingle = a.tracks.length === 1;
           const bIsSingle = b.tracks.length === 1;
-          
+
+          // Get pinned index based on type
+          const aIndex = aIsAlbum ? pinnedAlbums.indexOf(a.title) : aIsEP ? pinnedEPs.indexOf(a.title) : -1;
+          const bIndex = bIsAlbum ? pinnedAlbums.indexOf(b.title) : bIsEP ? pinnedEPs.indexOf(b.title) : -1;
+
           // Albums come first
           if (aIsAlbum && !bIsAlbum) return -1;
           if (!aIsAlbum && bIsAlbum) return 1;
+
+          // If both are albums, check pinned order
+          if (aIsAlbum && bIsAlbum) {
+            if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+            if (aIndex !== -1) return -1;
+            if (bIndex !== -1) return 1;
+            return a.title.localeCompare(b.title);
+          }
           
           // EPs come second (if both are not albums)
           if (aIsEP && !bIsEP) return -1;
           if (!aIsEP && bIsEP) return 1;
-          
+
+          // If both are EPs, check pinned order
+          if (aIsEP && bIsEP) {
+            if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+            if (aIndex !== -1) return -1;
+            if (bIndex !== -1) return 1;
+            return a.title.localeCompare(b.title);
+          }
+
           // Singles come last (if both are not albums or EPs)
           if (aIsSingle && !bIsSingle) return -1;
           if (!aIsSingle && bIsSingle) return 1;
-          
-          // If same type, sort by title
+
+          // If same type (singles), sort by title
           return a.title.localeCompare(b.title);
         });
       };
