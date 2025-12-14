@@ -280,12 +280,15 @@ const VideoPlayer = memo(function VideoPlayer({
         setError(null);
 
         // Get video duration when metadata is available
-        if (video.duration && !isNaN(video.duration) && isFinite(video.duration) && onDurationChange) {
-          // Calculate display duration (chapter duration if playing a chapter, otherwise full video duration)
-          const displayDur = startTime !== undefined && endTime !== undefined
-            ? endTime - startTime
-            : video.duration;
-          onDurationChange(displayDur);
+        if (video.duration && !isNaN(video.duration) && isFinite(video.duration)) {
+          setVideoDuration(video.duration);
+          if (onDurationChange) {
+            // Calculate display duration (chapter duration if playing a chapter, otherwise full video duration)
+            const displayDur = startTime !== undefined && endTime !== undefined
+              ? endTime - startTime
+              : video.duration;
+            onDurationChange(displayDur);
+          }
         }
 
         // Seek to startTime if provided
@@ -308,12 +311,15 @@ const VideoPlayer = memo(function VideoPlayer({
         setError(null);
 
         // Get video duration when metadata is available
-        if (video.duration && !isNaN(video.duration) && isFinite(video.duration) && onDurationChange) {
-          // Calculate display duration (chapter duration if playing a chapter, otherwise full video duration)
-          const displayDur = startTime !== undefined && endTime !== undefined
-            ? endTime - startTime
-            : video.duration;
-          onDurationChange(displayDur);
+        if (video.duration && !isNaN(video.duration) && isFinite(video.duration)) {
+          setVideoDuration(video.duration);
+          if (onDurationChange) {
+            // Calculate display duration (chapter duration if playing a chapter, otherwise full video duration)
+            const displayDur = startTime !== undefined && endTime !== undefined
+              ? endTime - startTime
+              : video.duration;
+            onDurationChange(displayDur);
+          }
         }
 
         // Seek to startTime if provided
@@ -333,12 +339,12 @@ const VideoPlayer = memo(function VideoPlayer({
     // Handle time updates for chapter/segment playback
     const handleTimeUpdate = () => {
       setCurrentTime(video.currentTime);
-      
+
       // Calculate display time (chapter-relative if playing a chapter, otherwise absolute)
-      const displayTime = startTime !== undefined 
+      const displayTime = startTime !== undefined
         ? Math.max(0, video.currentTime - startTime)
         : video.currentTime;
-      
+
       if (onTimeUpdate) {
         // Pass the display time (chapter-relative) so now playing bar matches video player display
         onTimeUpdate(displayTime);
@@ -356,7 +362,7 @@ const VideoPlayer = memo(function VideoPlayer({
           onEnded();
         }
       }
-      
+
       // Prevent seeking before startTime if chapter playback is active
       if (startTime !== undefined && startTime > 0 && endTime !== undefined) {
         if (video.currentTime < startTime) {
@@ -364,7 +370,20 @@ const VideoPlayer = memo(function VideoPlayer({
         }
       }
     };
-    
+
+    // Handle duration change (fallback for videos where duration isn't available in loadedmetadata)
+    const handleDurationChange = () => {
+      if (video.duration && !isNaN(video.duration) && isFinite(video.duration)) {
+        setVideoDuration(video.duration);
+        if (onDurationChange) {
+          const displayDur = startTime !== undefined && endTime !== undefined
+            ? endTime - startTime
+            : video.duration;
+          onDurationChange(displayDur);
+        }
+      }
+    };
+
     // Handle play/pause events
     const handlePlay = () => {
       setIsPlaying(true);
@@ -381,6 +400,7 @@ const VideoPlayer = memo(function VideoPlayer({
     
     video.addEventListener('play', handlePlay);
     video.addEventListener('pause', handlePause);
+    video.addEventListener('durationchange', handleDurationChange);
 
     // Handle picture-in-picture events
     const handleEnterPictureInPicture = () => {
@@ -446,6 +466,7 @@ const VideoPlayer = memo(function VideoPlayer({
       video.removeEventListener('abort', handleAbort);
       video.removeEventListener('play', handlePlay);
       video.removeEventListener('pause', handlePause);
+      video.removeEventListener('durationchange', handleDurationChange);
       video.removeEventListener('enterpictureinpicture', handleEnterPictureInPicture);
       video.removeEventListener('leavepictureinpicture', handleLeavePictureInPicture);
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
