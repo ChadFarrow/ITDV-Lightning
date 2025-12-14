@@ -10,6 +10,7 @@ interface VideoPlayerProps {
   startTime?: number; // Start time in seconds for chapter/segment playback
   endTime?: number; // End time in seconds for chapter/segment playback
   seekTime?: number; // External seek time (chapter-relative if startTime/endTime are set)
+  autoPlay?: boolean; // Auto-start playback when video loads
   onEnded?: () => void;
   onTimeUpdate?: (currentTime: number) => void;
   onDurationChange?: (duration: number) => void; // Callback when video duration is available
@@ -23,6 +24,7 @@ const VideoPlayer = memo(function VideoPlayer({
   startTime,
   endTime,
   seekTime,
+  autoPlay = false,
   onEnded,
   onTimeUpdate,
   onDurationChange,
@@ -147,6 +149,12 @@ const VideoPlayer = memo(function VideoPlayer({
               onDurationChange(displayDur);
             }
           }
+          // Auto-play if enabled
+          if (autoPlay && video.paused) {
+            video.play().catch(() => {
+              // Autoplay was prevented - user needs to interact first
+            });
+          }
         };
         video.addEventListener('loadedmetadata', handleLoadedMetadata);
         
@@ -270,7 +278,7 @@ const VideoPlayer = memo(function VideoPlayer({
       video.addEventListener('loadedmetadata', () => {
         setIsLoading(false);
         setError(null);
-        
+
         // Get video duration when metadata is available
         if (video.duration && !isNaN(video.duration) && isFinite(video.duration) && onDurationChange) {
           // Calculate display duration (chapter duration if playing a chapter, otherwise full video duration)
@@ -279,19 +287,26 @@ const VideoPlayer = memo(function VideoPlayer({
             : video.duration;
           onDurationChange(displayDur);
         }
-        
+
         // Seek to startTime if provided
         if (startTime !== undefined && startTime > 0) {
           video.currentTime = startTime;
         }
+
+        // Auto-play if enabled
+        if (autoPlay && video.paused) {
+          video.play().catch(() => {
+            // Autoplay was prevented - user needs to interact first
+          });
+        }
       });
     } else {
-      // Fallback for non-HLS videos
+      // Fallback for non-HLS videos (MP4, etc.)
       video.src = proxiedUrl;
       video.addEventListener('loadedmetadata', () => {
         setIsLoading(false);
         setError(null);
-        
+
         // Get video duration when metadata is available
         if (video.duration && !isNaN(video.duration) && isFinite(video.duration) && onDurationChange) {
           // Calculate display duration (chapter duration if playing a chapter, otherwise full video duration)
@@ -300,10 +315,17 @@ const VideoPlayer = memo(function VideoPlayer({
             : video.duration;
           onDurationChange(displayDur);
         }
-        
+
         // Seek to startTime if provided
         if (startTime !== undefined && startTime > 0) {
           video.currentTime = startTime;
+        }
+
+        // Auto-play if enabled
+        if (autoPlay && video.paused) {
+          video.play().catch(() => {
+            // Autoplay was prevented - user needs to interact first
+          });
         }
       });
     }

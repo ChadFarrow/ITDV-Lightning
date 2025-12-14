@@ -1651,6 +1651,7 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
                     startTime={playingVideoTrack.startTime} // Chapter start time in seconds
                     endTime={playingVideoTrack.endTime} // Chapter end time in seconds
                     seekTime={videoContext.seekRequest ?? undefined} // Sync seek request from context (chapter-relative)
+                    autoPlay={true} // Auto-play when video is selected
                     onEnded={() => {
                       setPlayingVideoTrack(null);
                     }}
