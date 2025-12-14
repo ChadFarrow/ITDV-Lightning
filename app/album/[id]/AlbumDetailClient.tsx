@@ -445,20 +445,14 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
     };
   };
   
-  // Helper to check if a track is a video (by videoUrl or url extension)
+  // Helper to check if a track is a video (only by explicit videoUrl field)
   const isVideoTrack = (track: Track): boolean => {
-    if (track.videoUrl) return true;
-    // Also detect video by URL extension (.mp4, .m3u8)
-    if (track.url && (track.url.endsWith('.mp4') || track.url.endsWith('.m3u8'))) return true;
-    return false;
+    return !!track.videoUrl;
   };
 
   // Helper to get video URL from a track
   const getVideoUrl = (track: Track): string | undefined => {
-    if (track.videoUrl) return track.videoUrl;
-    // If url is a video file, use it as videoUrl
-    if (track.url && (track.url.endsWith('.mp4') || track.url.endsWith('.m3u8'))) return track.url;
-    return undefined;
+    return track.videoUrl;
   };
 
   // Check if album has video tracks (check both album and initialAlbum)
