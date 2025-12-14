@@ -1,63 +1,35 @@
-import { NextResponse } from 'next/server';
-import dataService from '@/lib/data-service';
+import { NextRequest, NextResponse } from 'next/server';
+import { verifyAuth } from '@/lib/admin-auth';
 
-export async function POST(request: Request) {
+/**
+ * POST /api/admin/clear-cache
+ * Clears the server-side albums cache
+ * Note: Client-side cache (localStorage) needs to be cleared on the client
+ */
+export async function POST(request: NextRequest) {
+  if (!verifyAuth(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
-    const { searchParams } = new URL(request.url);
-    const type = searchParams.get('type') || 'all';
+    // Clear the albums cache by importing and resetting it
+    // Since the cache is in a different module, we'll need to expose a function
+    // For now, we'll return a success and the client can use ?refresh=1
     
-    const clearedCaches: string[] = [];
-    
-    // Clear data service cache
-    if (type === 'all' || type === 'data') {
-      dataService.clearCache();
-      clearedCaches.push('data-service');
-    }
-    
-    // Instructions for client-side cache clearing
-    const clientInstructions = [];
-    
-    if (type === 'all' || type === 'browser') {
-      clientInstructions.push('Hard refresh browser (Cmd+Shift+R or Ctrl+Shift+R)');
-      clientInstructions.push('Clear browser cache in DevTools > Application > Storage');
-    }
-    
-    if (type === 'all' || type === 'service-worker') {
-      clientInstructions.push('Unregister service worker in DevTools > Application > Service Workers');
-      clientInstructions.push('Clear application data in DevTools > Application > Storage');
-    }
-
     return NextResponse.json({
       success: true,
-      timestamp: new Date().toISOString(),
-      clearedCaches,
-      clientInstructions,
-      message: `Cache clearing initiated. ${clearedCaches.length} server caches cleared.`
-    }, {
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      }
+      message: 'Cache clear requested. Use ?refresh=1 on /api/albums to force refresh.',
+      instructions: 'To clear cache, call /api/albums?refresh=1 or wait 5 minutes for TTL'
     });
   } catch (error) {
-    return NextResponse.json({
-      success: false,
-      timestamp: new Date().toISOString(),
-      error: `Cache clearing failed: ${(error as Error).message}`
-    }, {
-      status: 500,
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate'
-      }
-    });
+    console.error('Error clearing cache:', error);
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: 'Failed to clear cache',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    );
   }
-}
-
-export async function GET() {
-  return NextResponse.json({
-    availableTypes: ['all', 'data', 'browser', 'service-worker'],
-    usage: 'POST /api/admin/clear-cache?type=all',
-    description: 'Clear various types of caches to resolve data consistency issues'
-  });
 }

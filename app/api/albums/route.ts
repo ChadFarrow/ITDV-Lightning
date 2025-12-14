@@ -9,11 +9,15 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    // Check if we have fresh cached data
+    // Check for cache-busting query parameter
+    const { searchParams } = new URL(request.url);
+    const forceRefresh = searchParams.get('refresh') === '1' || searchParams.get('nocache') === '1';
+    
+    // Check if we have fresh cached data (unless force refresh)
     const now = Date.now();
-    if (albumsCache && (now - cacheTimestamp) < CACHE_TTL) {
+    if (!forceRefresh && albumsCache && (now - cacheTimestamp) < CACHE_TTL) {
       console.log('📦 Serving cached albums data');
       const response = NextResponse.json({
         ...albumsCache,
@@ -24,6 +28,12 @@ export async function GET() {
       // Add HTTP cache headers for browser caching
       response.headers.set('Cache-Control', 'public, max-age=180, s-maxage=300');
       return response;
+    }
+    
+    if (forceRefresh) {
+      console.log('🔄 Force refresh requested, clearing cache...');
+      albumsCache = null;
+      cacheTimestamp = 0;
     }
 
     console.log('🔄 Cache miss or expired, fetching fresh data...');
