@@ -445,25 +445,41 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
     };
   };
   
+  // Helper to check if a track is a video (by videoUrl or url extension)
+  const isVideoTrack = (track: Track): boolean => {
+    if (track.videoUrl) return true;
+    // Also detect video by URL extension (.mp4, .m3u8)
+    if (track.url && (track.url.endsWith('.mp4') || track.url.endsWith('.m3u8'))) return true;
+    return false;
+  };
+
+  // Helper to get video URL from a track
+  const getVideoUrl = (track: Track): string | undefined => {
+    if (track.videoUrl) return track.videoUrl;
+    // If url is a video file, use it as videoUrl
+    if (track.url && (track.url.endsWith('.mp4') || track.url.endsWith('.m3u8'))) return track.url;
+    return undefined;
+  };
+
   // Check if album has video tracks (check both album and initialAlbum)
   const hasVideoTracks = useMemo(() => {
-    const albumHasVideos = album?.tracks?.some(track => track.videoUrl) || false;
-    const initialHasVideos = initialAlbum?.tracks?.some(track => track.videoUrl) || false;
+    const albumHasVideos = album?.tracks?.some(track => isVideoTrack(track)) || false;
+    const initialHasVideos = initialAlbum?.tracks?.some(track => isVideoTrack(track)) || false;
     const hasVideos = albumHasVideos || initialHasVideos;
-    
+
     return hasVideos;
   }, [album, initialAlbum]);
-  
+
   // Filter tracks based on trackView (use album tracks, fallback to initialAlbum)
   const filteredTracks = useMemo(() => {
     const tracksToUse = album?.tracks || initialAlbum?.tracks || [];
     if (tracksToUse.length === 0) return [];
-    
+
     if (trackView === 'video') {
-      return tracksToUse.filter(track => track.videoUrl);
+      return tracksToUse.filter(track => isVideoTrack(track));
     } else {
-      // 'audio' - show tracks without videoUrl
-      return tracksToUse.filter(track => !track.videoUrl);
+      // 'audio' - show tracks without video
+      return tracksToUse.filter(track => !isVideoTrack(track));
     }
   }, [album, initialAlbum, trackView]);
   
@@ -989,20 +1005,21 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
   };
 
   const handlePlayVideo = (track: Track) => {
-    if (!track.videoUrl) {
+    const videoUrl = getVideoUrl(track);
+    if (!videoUrl) {
       return;
     }
-    
+
     // Pause audio if playing
     if (globalIsPlaying) {
       globalPause();
     }
-    
+
     // Play video with chapter support (startTime/endTime)
     globalPlayVideo({
       title: track.title,
       duration: track.duration,
-      videoUrl: track.videoUrl,
+      videoUrl: videoUrl,
       trackNumber: track.trackNumber,
       image: track.image,
       artist: album?.artist,
@@ -1492,7 +1509,7 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
                         onClick={(e) => {
                           e.stopPropagation(); // Prevent track row click
                           // If track has video, play video; otherwise play audio
-                          if (track.videoUrl) {
+                          if (isVideoTrack(track)) {
                             handlePlayVideo(track);
                           } else {
                             handlePlayTrack(track, finalIndex);
@@ -1532,7 +1549,7 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
                       </div>
 
                       {/* Video Play Button */}
-                      {track.videoUrl && (
+                      {isVideoTrack(track) && (
                         <div 
                           className="flex items-center justify-center ml-2"
                           onClick={(e) => {
