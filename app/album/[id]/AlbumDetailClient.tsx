@@ -1555,8 +1555,8 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
                         {formatDuration(track.duration)}
                       </div>
 
-                      {/* Video Play Button */}
-                      {isVideoTrack(track) && (
+                      {/* Video Play Button - only show in Video tab */}
+                      {trackView === 'video' && isVideoTrack(track) && (
                         <div 
                           className="flex items-center justify-center ml-2"
                           onClick={(e) => {
