@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyAuth } from '@/lib/admin-auth';
+import { validateSession } from '@/lib/admin-auth';
 
 /**
  * POST /api/admin/clear-cache
@@ -7,7 +7,8 @@ import { verifyAuth } from '@/lib/admin-auth';
  * Note: Client-side cache (localStorage) needs to be cleared on the client
  */
 export async function POST(request: NextRequest) {
-  if (!verifyAuth(request)) {
+  const token = request.cookies.get('admin-token')?.value;
+  if (!validateSession(token)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
