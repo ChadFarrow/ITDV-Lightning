@@ -23,6 +23,7 @@ export default function AdminFeedManager() {
   const [feedUrls, setFeedUrls] = useState('');
   const [feeds, setFeeds] = useState<Feed[]>([]);
   const [adding, setAdding] = useState(false);
+  const [reparsing, setReparsing] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showAllFeeds, setShowAllFeeds] = useState(false);
 
@@ -249,6 +250,44 @@ export default function AdminFeedManager() {
     }
   };
 
+  const handleReparseFeeds = async () => {
+    setReparsing(true);
+
+    try {
+      // Split URLs by newline or comma
+      const urls = feedUrls
+        .split(/[\n,]+/)
+        .map(url => url.trim())
+        .filter(url => url);
+
+      if (urls.length === 0) {
+        showMessage('error', 'Please enter at least one feed URL');
+        setReparsing(false);
+        return;
+      }
+
+      const response = await fetch('/api/admin/manage-feeds', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ urls }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        showMessage('success', `Reparsed ${data.reparsed.length} feed(s) successfully!`);
+        setFeedUrls('');
+        loadFeeds();
+      } else {
+        const error = await response.json();
+        showMessage('error', error.error || 'Failed to reparse feeds');
+      }
+    } catch (error) {
+      showMessage('error', 'Failed to reparse feeds');
+    } finally {
+      setReparsing(false);
+    }
+  };
+
   const handleDeleteFeed = async (id: string) => {
     if (!confirm('Are you sure you want to delete this feed?')) return;
 
@@ -370,18 +409,28 @@ export default function AdminFeedManager() {
                   className="w-full px-4 py-3 bg-gray-800/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none font-mono text-sm"
                   placeholder="https://example.com/feed.xml&#10;https://example.com/another-feed.xml"
                   rows={5}
-                  required
                 />
               </div>
 
-              <button
-                type="submit"
-                disabled={adding}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
-              >
-                {adding && <Loader2 className="w-4 h-4 animate-spin" />}
-                {adding ? 'Adding Feeds...' : 'Add Feeds'}
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  disabled={adding || reparsing}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  {adding && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {adding ? 'Adding...' : 'Add Feeds'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleReparseFeeds}
+                  disabled={adding || reparsing}
+                  className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  {reparsing && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {reparsing ? 'Reparsing...' : 'Reparse Feeds'}
+                </button>
+              </div>
             </form>
 
             <p className="text-sm text-gray-400 mt-4">

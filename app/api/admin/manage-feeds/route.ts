@@ -192,6 +192,62 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// PUT - Reparse existing feed(s)
+export async function PUT(request: NextRequest) {
+  if (!verifyAuth(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  try {
+    const body = await request.json();
+    const { url, urls } = body;
+
+    // Handle single URL or multiple URLs
+    const feedUrls = urls || [url];
+    if (!feedUrls || feedUrls.length === 0) {
+      return NextResponse.json({ error: 'No URL provided' }, { status: 400 });
+    }
+
+    const reparsedFeeds = [];
+    const errors = [];
+
+    for (const feedUrl of feedUrls) {
+      try {
+        // Validate URL
+        new URL(feedUrl);
+
+        // Re-parse feed to get updated album data
+        const album = await RSSParser.parseAlbumFeed(feedUrl);
+        if (!album) {
+          throw new Error('Failed to parse feed');
+        }
+
+        // Generate ID from URL
+        const id = generateIdFromUrl(feedUrl);
+
+        // Update static files with the fresh data
+        await addAlbumToStaticFiles(album, feedUrl, id);
+
+        reparsedFeeds.push({ id, url: feedUrl, title: album.title });
+      } catch (error) {
+        errors.push({ url: feedUrl, error: String(error) });
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      reparsed: reparsedFeeds,
+      errors: errors.length > 0 ? errors : undefined,
+    });
+  } catch (error) {
+    console.error('Error reparsing feed:', error);
+    return NextResponse.json(
+      { error: 'Failed to reparse feed: ' + String(error) },
+      { status: 500 }
+    );
+  }
+}
+
 // DELETE - Remove feed
 export async function DELETE(request: NextRequest) {
   if (!verifyAuth(request)) {
