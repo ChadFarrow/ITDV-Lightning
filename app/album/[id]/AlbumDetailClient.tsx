@@ -1486,7 +1486,14 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
                       className={`flex items-center gap-4 p-4 hover:bg-white/5 transition-colors cursor-pointer group ${
                         isCurrentTrack ? 'bg-white/10' : ''
                       }`}
-                      onClick={() => handlePlayTrack(track, finalIndex)}
+                      onClick={() => {
+                        // Respect current tab: video tab plays video, tracks tab plays audio
+                        if (trackView === 'video' && isVideoTrack(track)) {
+                          handlePlayVideo(track);
+                        } else {
+                          handlePlayTrack(track, finalIndex);
+                        }
+                      }}
                     >
                       {/* Track Number / Play Icon */}
                       <div className="w-8 flex items-center justify-center">
@@ -1504,12 +1511,12 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
                       </div>
 
                       {/* Track Artwork */}
-                      <div 
+                      <div
                         className="w-12 h-12 relative flex-shrink-0 rounded overflow-hidden cursor-pointer"
                         onClick={(e) => {
                           e.stopPropagation(); // Prevent track row click
-                          // If track has video, play video; otherwise play audio
-                          if (isVideoTrack(track)) {
+                          // Respect current tab: video tab plays video, tracks tab plays audio
+                          if (trackView === 'video' && isVideoTrack(track)) {
                             handlePlayVideo(track);
                           } else {
                             handlePlayTrack(track, finalIndex);
