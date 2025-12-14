@@ -272,6 +272,10 @@ export default function HomePage() {
         }
         
         album.tracks.forEach(track => {
+          // Skip video-only tracks (no audio URL) - shuffle is audio only
+          if (!track.url) {
+            return;
+          }
           // Create track object that matches AudioContext's Track interface
           allTracks.push({
             title: track.title,
