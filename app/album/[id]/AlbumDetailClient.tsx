@@ -445,9 +445,14 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
     };
   };
   
-  // Helper to check if a track is a video (only by explicit videoUrl field)
+  // Helper to check if a track has video
   const isVideoTrack = (track: Track): boolean => {
     return !!track.videoUrl;
+  };
+
+  // Helper to check if a track has audio
+  const isAudioTrack = (track: Track): boolean => {
+    return !!track.url;
   };
 
   // Helper to get video URL from a track
@@ -470,10 +475,11 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
     if (tracksToUse.length === 0) return [];
 
     if (trackView === 'video') {
+      // Video tab: show tracks with videoUrl
       return tracksToUse.filter(track => isVideoTrack(track));
     } else {
-      // 'audio' - show tracks without video
-      return tracksToUse.filter(track => !isVideoTrack(track));
+      // Tracks tab: show tracks with audio url (may also have video)
+      return tracksToUse.filter(track => isAudioTrack(track));
     }
   }, [album, initialAlbum, trackView]);
   
