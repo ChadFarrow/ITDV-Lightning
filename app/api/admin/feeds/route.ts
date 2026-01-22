@@ -1,8 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllFeeds, addFeed, removeFeed, initializeDatabase } from '@/lib/db';
 import { discoverPodrollFeeds } from '@/lib/podroll-discovery';
+import { validateSession } from '@/lib/admin-auth';
 
-export async function GET() {
+// Helper function to verify authentication
+function verifyAuth(request: NextRequest): boolean {
+  const token = request.cookies.get('admin-token')?.value;
+  return validateSession(token);
+}
+
+export async function GET(request: NextRequest) {
+  if (!verifyAuth(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     // Initialize database schema if needed (but don't auto-seed)
     await initializeDatabase();
@@ -42,6 +53,10 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  if (!verifyAuth(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const body = await request.json();
     console.log('POST /api/admin/feeds - Request body:', JSON.stringify(body, null, 2));
@@ -153,6 +168,10 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  if (!verifyAuth(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const body = await request.json();
     const { feedId } = body;
