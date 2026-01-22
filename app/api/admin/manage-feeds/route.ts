@@ -11,6 +11,71 @@ function verifyAuth(request: NextRequest): boolean {
   return validateSession(token);
 }
 
+// Helper function to create URL slug for album index
+function createSlug(title: string): string {
+  return title.toLowerCase()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+// Helper function to rebuild album index after static-albums.json changes
+function rebuildAlbumIndex() {
+  const staticAlbumsPath = path.join(process.cwd(), 'public', 'static-albums.json');
+  const indexFilePath = path.join(process.cwd(), 'public', 'album-index.json');
+
+  try {
+    if (!fs.existsSync(staticAlbumsPath)) return;
+
+    const staticData = JSON.parse(fs.readFileSync(staticAlbumsPath, 'utf8'));
+    const albums = staticData.albums || [];
+
+    const index: Record<string, any> = {};
+
+    albums.forEach((album: any, idx: number) => {
+      if (!album.title) return;
+
+      const title = album.title;
+      const lowerTitle = title.toLowerCase();
+      const slug = createSlug(title);
+      const simpleSlug = lowerTitle.replace(/\s+/g, '-');
+      const baseTitle = lowerTitle.split(/\s*[-–]\s*/)[0];
+      const baseSlug = createSlug(baseTitle);
+
+      const indexEntry = {
+        title: album.title,
+        artist: album.artist,
+        coverArt: album.coverArt,
+        feedId: album.feedId,
+        feedUrl: album.feedUrl,
+        index: idx
+      };
+
+      index[lowerTitle] = indexEntry;
+      index[slug] = indexEntry;
+      index[simpleSlug] = indexEntry;
+      index[baseSlug] = indexEntry;
+
+      if (album.feedId) {
+        index[album.feedId.toLowerCase()] = indexEntry;
+      }
+    });
+
+    const indexData = {
+      version: '1.0',
+      totalAlbums: albums.length,
+      indexedAt: new Date().toISOString(),
+      index: index
+    };
+
+    fs.writeFileSync(indexFilePath, JSON.stringify(indexData, null, 2));
+    console.log(`✅ Rebuilt album index with ${Object.keys(index).length} entries`);
+  } catch (error) {
+    console.error('Failed to rebuild album index:', error);
+  }
+}
+
 // Helper function to update static album files with a new album
 async function addAlbumToStaticFiles(album: any, feedUrl: string, feedId: string) {
   const staticAlbumsPath = path.join(process.cwd(), 'public', 'static-albums.json');
@@ -40,6 +105,9 @@ async function addAlbumToStaticFiles(album: any, feedUrl: string, feedId: string
       staticData.timestamp = new Date().toISOString();
       fs.writeFileSync(staticAlbumsPath, JSON.stringify(staticData, null, 2));
       console.log(`✅ Updated static-albums.json with ${album.title}`);
+
+      // Rebuild album index for fast lookups
+      rebuildAlbumIndex();
     }
   } catch (error) {
     console.error('Failed to update static-albums.json:', error);
@@ -80,6 +148,9 @@ async function removeAlbumFromStaticFiles(feedId: string) {
       staticData.timestamp = new Date().toISOString();
       fs.writeFileSync(staticAlbumsPath, JSON.stringify(staticData, null, 2));
       console.log(`✅ Removed feed ${feedId} from static-albums.json`);
+
+      // Rebuild album index
+      rebuildAlbumIndex();
     }
   } catch (error) {
     console.error('Failed to update static-albums.json:', error);
