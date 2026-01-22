@@ -615,7 +615,7 @@ export default function AdminFeedManager() {
               <>
                 <div className="space-y-2">
                   {[...feeds]
-                    .sort((a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime())
+                    .sort((a, b) => new Date(b.lastUpdated || b.addedAt).getTime() - new Date(a.lastUpdated || a.addedAt).getTime())
                     .slice(0, showAllFeeds ? feeds.length : 3)
                     .map((feed) => (
                       <div

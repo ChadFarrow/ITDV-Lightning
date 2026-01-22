@@ -225,6 +225,25 @@ export async function PUT(request: NextRequest) {
         // Generate ID from URL
         const id = generateIdFromUrl(feedUrl);
 
+        // Check if feed already exists in feeds.json
+        const existingFeeds = FeedManager.loadFeeds();
+        const existingFeed = existingFeeds.feeds.find(f => f.id === id);
+
+        if (existingFeed) {
+          // Update existing feed's lastUpdated timestamp and title
+          FeedManager.updateFeed(id, { title: album.title });
+        } else {
+          // Add new feed to feeds.json so it shows in Current Feeds
+          FeedManager.addFeed({
+            id,
+            originalUrl: feedUrl,
+            type: 'album',
+            title: album.title,
+            priority: 'extended',
+            status: 'active',
+          });
+        }
+
         // Update static files with the fresh data
         await addAlbumToStaticFiles(album, feedUrl, id);
 
