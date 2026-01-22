@@ -1,32 +1,53 @@
 import crypto from 'crypto';
 
-// Simple in-memory session store (for production, use Redis or database)
-export const sessions = new Map<string, { created: number; admin: boolean }>();
+// Use a secret for signing tokens (falls back to ADMIN_PASSWORD for simplicity)
+const getSecret = () => process.env.ADMIN_PASSWORD || 'doerfel';
 
-// Clean up expired sessions every hour
-setInterval(() => {
-  const now = Date.now();
-  const DAY_IN_MS = 24 * 60 * 60 * 1000;
-  sessions.forEach((session, token) => {
-    if (now - session.created > DAY_IN_MS) {
-      sessions.delete(token);
-    }
-  });
-}, 60 * 60 * 1000);
+const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
+// Generate a signed token that contains timestamp (stateless - works in serverless)
 export function generateToken(): string {
-  return crypto.randomBytes(32).toString('hex');
+  const timestamp = Date.now().toString();
+  const signature = crypto
+    .createHmac('sha256', getSecret())
+    .update(timestamp)
+    .digest('hex');
+  return `${timestamp}.${signature}`;
 }
 
-export function createSession(token: string) {
-  sessions.set(token, { created: Date.now(), admin: true });
-}
-
+// Validate a signed token (stateless - works in serverless)
 export function validateSession(token: string | undefined): boolean {
   if (!token) return false;
-  return sessions.has(token);
+
+  const parts = token.split('.');
+  if (parts.length !== 2) return false;
+
+  const [timestamp, signature] = parts;
+  const timestampNum = parseInt(timestamp, 10);
+
+  // Check if token is expired (24 hours)
+  if (Date.now() - timestampNum > DAY_IN_MS) {
+    return false;
+  }
+
+  // Verify signature
+  const expectedSignature = crypto
+    .createHmac('sha256', getSecret())
+    .update(timestamp)
+    .digest('hex');
+
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expectedSignature)
+  );
 }
 
-export function destroySession(token: string) {
-  sessions.delete(token);
+// Legacy functions kept for API compatibility (now no-ops since auth is stateless)
+export function createSession(_token: string) {
+  // No-op - token is self-contained
+}
+
+export function destroySession(_token: string) {
+  // No-op - token expiration is time-based
+  // Client should delete the cookie
 }
