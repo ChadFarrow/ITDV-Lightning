@@ -1,7 +1,13 @@
 import crypto from 'crypto';
 
-// Use a secret for signing tokens (falls back to ADMIN_PASSWORD for simplicity)
-const getSecret = () => process.env.ADMIN_PASSWORD || 'doerfel';
+// Use ADMIN_PASSWORD for signing tokens
+const getSecret = () => {
+  const secret = process.env.ADMIN_PASSWORD;
+  if (!secret) {
+    throw new Error('ADMIN_PASSWORD environment variable not set');
+  }
+  return secret;
+};
 
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 

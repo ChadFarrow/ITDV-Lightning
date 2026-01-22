@@ -62,7 +62,12 @@ export async function POST(request: NextRequest) {
     const { password } = await request.json();
 
     // Validate password
-    const adminPassword = process.env.ADMIN_PASSWORD || 'doerfel';
+    const adminPassword = process.env.ADMIN_PASSWORD;
+
+    if (!adminPassword) {
+      console.error('ADMIN_PASSWORD environment variable not set');
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
 
     if (password !== adminPassword) {
       recordFailedAttempt(ip);
