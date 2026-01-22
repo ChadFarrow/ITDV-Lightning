@@ -1,6 +1,6 @@
 {
-  "timestamp": "2025-12-14T16:26:16.161Z",
-  "count": 50,
+  "timestamp": "2026-01-22T23:57:34.820Z",
+  "count": 49,
   "albums": [
     {
       "title": "Disco Swag - The Album",
@@ -4802,9 +4802,9 @@
       "publisherGuid": "9dd3d9f3-5371-54c5-91e6-c68e157dd1ea",
       "publisherUrl": "https://www.doerfelverse.com/feeds/citybeach-pubfeed.xml",
       "imageUrl": "https://www.doerfelverse.com/art/unsound-existence.png",
-      "feedId": "www-doerfelverse-com-feeds-unsound-existence-xml",
+      "feedId": "https-www-doerfelverse-com-feeds-unsound-existence-xml",
       "priority": "extended",
-      "lastUpdated": "2025-12-14T16:26:12.568Z"
+      "lastUpdated": "2025-12-14T16:26:15.054Z"
     },
     {
       "title": "Think Of Me In Color",
@@ -16616,7 +16616,7 @@
               {
                 "type": "node",
                 "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-                "split": 100,
+                "split": 80,
                 "name": "Sir TJ The Wrathful",
                 "fee": false
               },
@@ -16626,13 +16626,34 @@
                 "split": 5,
                 "name": "Sovereign Feeds",
                 "fee": true
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              },
+              {
+                "type": "node",
+                "address": "032870511bfa0309bab3ca1832ead69eed848a4abddbc4d50e55bb2157f9525e51",
+                "split": 10,
+                "name": "DV Music App",
+                "fee": false
+              },
+              {
+                "type": "node",
+                "address": "03460a453d13c98ff06b36b3b6a8c06a7b48328ad5f983dacc3a7b0991b841bc57",
+                "split": 5,
+                "name": "DV Tech Support",
+                "fee": false
               }
             ]
           },
           "paymentRecipients": [
             {
               "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-              "split": 100,
+              "split": 80,
               "name": "Sir TJ The Wrathful",
               "fee": false,
               "type": "node"
@@ -16642,6 +16663,27 @@
               "split": 5,
               "name": "Sovereign Feeds",
               "fee": true,
+              "type": "node"
+            },
+            {
+              "address": "steven@getalby.com",
+              "split": 5,
+              "name": "Sovereign Feeds",
+              "fee": false,
+              "type": "lnaddress"
+            },
+            {
+              "address": "032870511bfa0309bab3ca1832ead69eed848a4abddbc4d50e55bb2157f9525e51",
+              "split": 10,
+              "name": "DV Music App",
+              "fee": false,
+              "type": "node"
+            },
+            {
+              "address": "03460a453d13c98ff06b36b3b6a8c06a7b48328ad5f983dacc3a7b0991b841bc57",
+              "split": 5,
+              "name": "DV Tech Support",
+              "fee": false,
               "type": "node"
             }
           ],
@@ -16683,6 +16725,117 @@
               {
                 "type": "node",
                 "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 80,
+                "name": "Sir TJ The Wrathful",
+                "fee": false
+              },
+              {
+                "type": "node",
+                "address": "035ad2c954e264004986da2d9499e1732e5175e1dcef2453c921c6cdcc3536e9d8",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": true
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              },
+              {
+                "type": "node",
+                "address": "03460a453d13c98ff06b36b3b6a8c06a7b48328ad5f983dacc3a7b0991b841bc57",
+                "split": 5,
+                "name": "DV Tech Support",
+                "fee": false
+              },
+              {
+                "type": "node",
+                "address": "032870511bfa0309bab3ca1832ead69eed848a4abddbc4d50e55bb2157f9525e51",
+                "split": 10,
+                "name": "DV Music App",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 80,
+              "name": "Sir TJ The Wrathful",
+              "fee": false,
+              "type": "node"
+            },
+            {
+              "address": "035ad2c954e264004986da2d9499e1732e5175e1dcef2453c921c6cdcc3536e9d8",
+              "split": 5,
+              "name": "Sovereign Feeds",
+              "fee": true,
+              "type": "node"
+            },
+            {
+              "address": "steven@getalby.com",
+              "split": 5,
+              "name": "Sovereign Feeds",
+              "fee": false,
+              "type": "lnaddress"
+            },
+            {
+              "address": "03460a453d13c98ff06b36b3b6a8c06a7b48328ad5f983dacc3a7b0991b841bc57",
+              "split": 5,
+              "name": "DV Tech Support",
+              "fee": false,
+              "type": "node"
+            },
+            {
+              "address": "032870511bfa0309bab3ca1832ead69eed848a4abddbc4d50e55bb2157f9525e51",
+              "split": 10,
+              "name": "DV Music App",
+              "fee": false,
+              "type": "node"
+            }
+          ],
+          "guid": "b9c1c065-9f1b-4e24-a5cc-296cf39766e2",
+          "feedGuid": "4a483a4b-867c-50d5-a61a-e99fe03ea57e",
+          "imageUrl": "https://www.doerfelverse.com/art/the-banjo.png"
+        },
+        {
+          "title": "DOWN YONDER",
+          "duration": "2:26",
+          "url": "https://www.doerfelverse.com/tracks/down-yonder101.mp3",
+          "trackNumber": 3,
+          "subtitle": "DOWN YONDER",
+          "summary": "DOWN YONDER by TJ Doerfel",
+          "image": "https://www.doerfelverse.com/art/down-yonder.png",
+          "explicit": false,
+          "keywords": [
+            "sir",
+            "tj",
+            "the",
+            "wrathful",
+            "doerfel",
+            "doerfels",
+            "wrath",
+            "of",
+            "banjo",
+            "metal",
+            "in",
+            "banjoverse",
+            "valueverse",
+            "music",
+            "rock",
+            "down",
+            "yonder"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
                 "split": 100,
                 "name": "Sir TJ The Wrathful",
                 "fee": false
@@ -16693,6 +16846,27 @@
                 "split": 5,
                 "name": "Sovereign Feeds",
                 "fee": true
+              },
+              {
+                "type": "node",
+                "address": "032870511bfa0309bab3ca1832ead69eed848a4abddbc4d50e55bb2157f9525e51",
+                "split": 10,
+                "name": "DV Music App",
+                "fee": false
+              },
+              {
+                "type": "node",
+                "address": "03460a453d13c98ff06b36b3b6a8c06a7b48328ad5f983dacc3a7b0991b841bc57",
+                "split": 5,
+                "name": "DV Tech Support",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
               }
             ]
           },
@@ -16710,14 +16884,35 @@
               "name": "Sovereign Feeds",
               "fee": true,
               "type": "node"
+            },
+            {
+              "address": "032870511bfa0309bab3ca1832ead69eed848a4abddbc4d50e55bb2157f9525e51",
+              "split": 10,
+              "name": "DV Music App",
+              "fee": false,
+              "type": "node"
+            },
+            {
+              "address": "03460a453d13c98ff06b36b3b6a8c06a7b48328ad5f983dacc3a7b0991b841bc57",
+              "split": 5,
+              "name": "DV Tech Support",
+              "fee": false,
+              "type": "node"
+            },
+            {
+              "address": "steven@getalby.com",
+              "split": 5,
+              "name": "Sovereign Feeds",
+              "fee": false,
+              "type": "lnaddress"
             }
           ],
-          "guid": "b9c1c065-9f1b-4e24-a5cc-296cf39766e2",
+          "guid": "cf819594-4a34-43c6-9666-26e5fa764de6",
           "feedGuid": "4a483a4b-867c-50d5-a61a-e99fe03ea57e",
-          "imageUrl": "https://www.doerfelverse.com/art/the-banjo.png"
+          "imageUrl": "https://www.doerfelverse.com/art/down-yonder.png"
         }
       ],
-      "releaseDate": "Tue, 15 Apr 2025 12:13:21 +0000",
+      "releaseDate": "Thu, 22 Jan 2026 00:18:20 +0000",
       "link": "https://www.doerfelverse.com",
       "funding": [
         {
@@ -16733,7 +16928,7 @@
           {
             "type": "node",
             "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-            "split": 100,
+            "split": 80,
             "name": "Sir TJ The Wrathful",
             "fee": false
           },
@@ -16743,6 +16938,27 @@
             "split": 5,
             "name": "Sovereign Feeds",
             "fee": true
+          },
+          {
+            "type": "lnaddress",
+            "address": "steven@getalby.com",
+            "split": 5,
+            "name": "Sovereign Feeds",
+            "fee": false
+          },
+          {
+            "type": "node",
+            "address": "032870511bfa0309bab3ca1832ead69eed848a4abddbc4d50e55bb2157f9525e51",
+            "split": 10,
+            "name": "DV Music App",
+            "fee": false
+          },
+          {
+            "type": "lnaddress",
+            "address": "03460a453d13c98ff06b36b3b6a8c06a7b48328ad5f983dacc3a7b0991b841bc57",
+            "split": 5,
+            "name": "DV Tech Support",
+            "fee": false
           }
         ]
       },
@@ -16779,7 +16995,7 @@
       "paymentRecipients": [
         {
           "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-          "split": 100,
+          "split": 80,
           "name": "Sir TJ The Wrathful",
           "fee": false,
           "type": "node"
@@ -16790,14 +17006,34 @@
           "name": "Sovereign Feeds",
           "fee": true,
           "type": "lnaddress"
+        },
+        {
+          "address": "steven@getalby.com",
+          "split": 5,
+          "name": "Sovereign Feeds",
+          "fee": false,
+          "type": "lnaddress"
+        },
+        {
+          "address": "032870511bfa0309bab3ca1832ead69eed848a4abddbc4d50e55bb2157f9525e51",
+          "split": 10,
+          "name": "DV Music App",
+          "fee": false,
+          "type": "node"
+        },
+        {
+          "address": "03460a453d13c98ff06b36b3b6a8c06a7b48328ad5f983dacc3a7b0991b841bc57",
+          "split": 5,
+          "name": "DV Tech Support",
+          "fee": false,
+          "type": "lnaddress"
         }
       ],
       "feedGuid": "4a483a4b-867c-50d5-a61a-e99fe03ea57e",
       "feedUrl": "https://www.doerfelverse.com/feeds/wrath-of-banjo.xml",
       "imageUrl": "https://www.doerfelverse.com/art/wrath-of-banjo.png",
-      "feedId": "https-www-doerfelverse-com-feeds-wrath-of-banjo-xml",
-      "priority": "high",
-      "lastUpdated": "2025-12-14T16:26:14.286Z"
+      "feedId": "www-doerfelverse-com-feeds-wrath-of-banjo-xml",
+      "lastUpdated": "2026-01-22T23:57:04.747Z"
     },
     {
       "title": "Ring That Bell",
@@ -19426,174 +19662,6 @@
       "publisherUrl": "https://www.doerfelverse.com/feeds/citybeach-pubfeed.xml",
       "imageUrl": "https://www.doerfelverse.com/art/autumn.gif",
       "feedId": "https-www-doerfelverse-com-feeds-autumn-xml",
-      "priority": "extended",
-      "lastUpdated": "2025-12-14T16:26:15.054Z"
-    },
-    {
-      "title": "Unsound Existence (self-hosted version)",
-      "artist": "Ryan Fonda feat. CityBeach",
-      "description": "This song is dedicated to our brother Miles Fonda 1988-2023\n\nLyrics by Ryan Fonda. Music by Ryan Fonda and CityBeach. Lead vocal Ryan Fonda. Sir TJ The Wrathful playing Dobro.\n\nMore Ryan Fonda Music - https://lnbeats.com/artist/ryan_fonda\nMore CityBeach music - https://lnbeats.com/artist/citybeach\nwww.doerfelverse.com",
-      "coverArt": "https://www.doerfelverse.com/art/unsound-existence.png",
-      "tracks": [
-        {
-          "title": "Unsound Existence (self-hosted version)",
-          "duration": "4:56",
-          "url": "https://www.doerfelverse.com/tracks/unsound-existence.mp3",
-          "trackNumber": 1,
-          "image": "https://www.doerfelverse.com/art/unsound-existence.png",
-          "explicit": false,
-          "value": {
-            "type": "lightning",
-            "method": "keysend",
-            "suggested": "0.00000005000",
-            "recipients": [
-              {
-                "type": "node",
-                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-                "split": 90,
-                "name": "CityBeach",
-                "customKey": "696969",
-                "customValue": "5",
-                "fee": false
-              },
-              {
-                "type": "node",
-                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-                "split": 10,
-                "name": "DV Media",
-                "customKey": "696969",
-                "customValue": "13",
-                "fee": false
-              },
-              {
-                "type": "node",
-                "address": "035ad2c954e264004986da2d9499e1732e5175e1dcef2453c921c6cdcc3536e9d8",
-                "split": 5,
-                "name": "Sovereign Feeds",
-                "fee": true
-              }
-            ]
-          },
-          "paymentRecipients": [
-            {
-              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-              "split": 90,
-              "name": "CityBeach",
-              "fee": false,
-              "type": "node"
-            },
-            {
-              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-              "split": 10,
-              "name": "DV Media",
-              "fee": false,
-              "type": "node"
-            },
-            {
-              "address": "035ad2c954e264004986da2d9499e1732e5175e1dcef2453c921c6cdcc3536e9d8",
-              "split": 5,
-              "name": "Sovereign Feeds",
-              "fee": true,
-              "type": "node"
-            }
-          ],
-          "guid": "dc1f26d2-bc70-45e9-ac13-e85dfdef133c",
-          "feedGuid": "00addc23-7769-5471-bb9a-c0acb6f27437",
-          "imageUrl": "https://www.doerfelverse.com/art/unsound-existence.png"
-        }
-      ],
-      "releaseDate": "Sun, 17 Aug 2025 19:34:18 +0000",
-      "link": "https://lnbeats.com/artist/ryan_fonda",
-      "value": {
-        "type": "lightning",
-        "method": "keysend",
-        "recipients": [
-          {
-            "type": "node",
-            "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-            "split": 90,
-            "name": "CityBeach",
-            "customKey": "696969",
-            "customValue": "5",
-            "fee": false
-          },
-          {
-            "type": "node",
-            "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-            "split": 10,
-            "name": "DV Media",
-            "customKey": "696969",
-            "customValue": "13",
-            "fee": false
-          },
-          {
-            "type": "node",
-            "address": "035ad2c954e264004986da2d9499e1732e5175e1dcef2453c921c6cdcc3536e9d8",
-            "split": 5,
-            "name": "Sovereign Feeds",
-            "fee": true
-          }
-        ]
-      },
-      "keywords": [
-        "music"
-      ],
-      "categories": [
-        "Music"
-      ],
-      "explicit": false,
-      "podroll": [
-        {
-          "url": "https://www.sirtjthewrathful.com/wp-content/uploads/2023/08/CityBeach.xml",
-          "title": "Feed 5bb8f186..."
-        },
-        {
-          "url": "https://www.sirtjthewrathful.com/wp-content/uploads/2023/08/Nostalgic.xml",
-          "title": "Feed 1e7ed1fa..."
-        },
-        {
-          "url": "https://www.wavlake.com/feed/6bece1b8-5385-4a33-9224-09e7f3ee6965",
-          "title": "Feed 57203632..."
-        },
-        {
-          "url": "https://www.doerfelverse.com/feeds/autumn.xml",
-          "title": "Feed 47768d25..."
-        }
-      ],
-      "publisher": {
-        "feedGuid": "9dd3d9f3-5371-54c5-91e6-c68e157dd1ea",
-        "feedUrl": "https://www.doerfelverse.com/feeds/citybeach-pubfeed.xml",
-        "medium": "publisher"
-      },
-      "paymentRecipients": [
-        {
-          "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-          "split": 90,
-          "name": "CityBeach",
-          "fee": false,
-          "type": "node"
-        },
-        {
-          "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-          "split": 10,
-          "name": "DV Media",
-          "fee": false,
-          "type": "node"
-        },
-        {
-          "address": "035ad2c954e264004986da2d9499e1732e5175e1dcef2453c921c6cdcc3536e9d8",
-          "split": 5,
-          "name": "Sovereign Feeds",
-          "fee": true,
-          "type": "node"
-        }
-      ],
-      "feedGuid": "00addc23-7769-5471-bb9a-c0acb6f27437",
-      "feedUrl": "https://www.doerfelverse.com/feeds/unsound-existence.xml",
-      "publisherGuid": "9dd3d9f3-5371-54c5-91e6-c68e157dd1ea",
-      "publisherUrl": "https://www.doerfelverse.com/feeds/citybeach-pubfeed.xml",
-      "imageUrl": "https://www.doerfelverse.com/art/unsound-existence.png",
-      "feedId": "https-www-doerfelverse-com-feeds-unsound-existence-xml",
       "priority": "extended",
       "lastUpdated": "2025-12-14T16:26:15.054Z"
     },

@@ -1,7 +1,7 @@
 {
   "version": "1.0",
-  "totalAlbums": 50,
-  "indexedAt": "2025-12-14T16:31:18.944Z",
+  "totalAlbums": 49,
+  "indexedAt": "2026-01-22T23:57:40.823Z",
   "index": {
     "disco swag - the album": {
       "title": "Disco Swag - The Album",
@@ -113,7 +113,7 @@
       "coverArt": "https://www.doerfelverse.com/art/unsound-existence.png",
       "feedId": "https-www-doerfelverse-com-feeds-unsound-existence-xml",
       "feedUrl": "https://www.doerfelverse.com/feeds/unsound-existence.xml",
-      "index": 38
+      "index": 3
     },
     "unsound-existence-self-hosted-version": {
       "title": "Unsound Existence (self-hosted version)",
@@ -121,7 +121,7 @@
       "coverArt": "https://www.doerfelverse.com/art/unsound-existence.png",
       "feedId": "https-www-doerfelverse-com-feeds-unsound-existence-xml",
       "feedUrl": "https://www.doerfelverse.com/feeds/unsound-existence.xml",
-      "index": 38
+      "index": 3
     },
     "unsound-existence-(self-hosted-version)": {
       "title": "Unsound Existence (self-hosted version)",
@@ -129,7 +129,7 @@
       "coverArt": "https://www.doerfelverse.com/art/unsound-existence.png",
       "feedId": "https-www-doerfelverse-com-feeds-unsound-existence-xml",
       "feedUrl": "https://www.doerfelverse.com/feeds/unsound-existence.xml",
-      "index": 38
+      "index": 3
     },
     "unsound-existence-self": {
       "title": "Unsound Existence (self-hosted version)",
@@ -137,13 +137,13 @@
       "coverArt": "https://www.doerfelverse.com/art/unsound-existence.png",
       "feedId": "https-www-doerfelverse-com-feeds-unsound-existence-xml",
       "feedUrl": "https://www.doerfelverse.com/feeds/unsound-existence.xml",
-      "index": 38
+      "index": 3
     },
-    "www-doerfelverse-com-feeds-unsound-existence-xml": {
+    "https-www-doerfelverse-com-feeds-unsound-existence-xml": {
       "title": "Unsound Existence (self-hosted version)",
       "artist": "Ryan Fonda feat. CityBeach",
       "coverArt": "https://www.doerfelverse.com/art/unsound-existence.png",
-      "feedId": "www-doerfelverse-com-feeds-unsound-existence-xml",
+      "feedId": "https-www-doerfelverse-com-feeds-unsound-existence-xml",
       "feedUrl": "https://www.doerfelverse.com/feeds/unsound-existence.xml",
       "index": 3
     },
@@ -855,7 +855,7 @@
       "title": "Wrath Of Banjo",
       "artist": "Sir TJ The Wrathful",
       "coverArt": "https://www.doerfelverse.com/art/wrath-of-banjo.png",
-      "feedId": "https-www-doerfelverse-com-feeds-wrath-of-banjo-xml",
+      "feedId": "www-doerfelverse-com-feeds-wrath-of-banjo-xml",
       "feedUrl": "https://www.doerfelverse.com/feeds/wrath-of-banjo.xml",
       "index": 31
     },
@@ -863,15 +863,15 @@
       "title": "Wrath Of Banjo",
       "artist": "Sir TJ The Wrathful",
       "coverArt": "https://www.doerfelverse.com/art/wrath-of-banjo.png",
-      "feedId": "https-www-doerfelverse-com-feeds-wrath-of-banjo-xml",
+      "feedId": "www-doerfelverse-com-feeds-wrath-of-banjo-xml",
       "feedUrl": "https://www.doerfelverse.com/feeds/wrath-of-banjo.xml",
       "index": 31
     },
-    "https-www-doerfelverse-com-feeds-wrath-of-banjo-xml": {
+    "www-doerfelverse-com-feeds-wrath-of-banjo-xml": {
       "title": "Wrath Of Banjo",
       "artist": "Sir TJ The Wrathful",
       "coverArt": "https://www.doerfelverse.com/art/wrath-of-banjo.png",
-      "feedId": "https-www-doerfelverse-com-feeds-wrath-of-banjo-xml",
+      "feedId": "www-doerfelverse-com-feeds-wrath-of-banjo-xml",
       "feedUrl": "https://www.doerfelverse.com/feeds/wrath-of-banjo.xml",
       "index": 31
     },
@@ -995,21 +995,13 @@
       "feedUrl": "https://www.doerfelverse.com/feeds/autumn.xml",
       "index": 37
     },
-    "https-www-doerfelverse-com-feeds-unsound-existence-xml": {
-      "title": "Unsound Existence (self-hosted version)",
-      "artist": "Ryan Fonda feat. CityBeach",
-      "coverArt": "https://www.doerfelverse.com/art/unsound-existence.png",
-      "feedId": "https-www-doerfelverse-com-feeds-unsound-existence-xml",
-      "feedUrl": "https://www.doerfelverse.com/feeds/unsound-existence.xml",
-      "index": 38
-    },
     "pour over": {
       "title": "Pour Over",
       "artist": "CityBeach",
       "coverArt": "https://www.doerfelverse.com/art/pour-over.png",
       "feedId": "https-www-doerfelverse-com-feeds-pour-over-xml",
       "feedUrl": "https://www.doerfelverse.com/feeds/pour-over.xml",
-      "index": 39
+      "index": 38
     },
     "pour-over": {
       "title": "Pour Over",
@@ -1017,7 +1009,7 @@
       "coverArt": "https://www.doerfelverse.com/art/pour-over.png",
       "feedId": "https-www-doerfelverse-com-feeds-pour-over-xml",
       "feedUrl": "https://www.doerfelverse.com/feeds/pour-over.xml",
-      "index": 39
+      "index": 38
     },
     "https-www-doerfelverse-com-feeds-pour-over-xml": {
       "title": "Pour Over",
@@ -1025,7 +1017,7 @@
       "coverArt": "https://www.doerfelverse.com/art/pour-over.png",
       "feedId": "https-www-doerfelverse-com-feeds-pour-over-xml",
       "feedUrl": "https://www.doerfelverse.com/feeds/pour-over.xml",
-      "index": 39
+      "index": 38
     },
     "you feel like home(single)": {
       "title": "You Feel Like Home(Single)",
@@ -1033,7 +1025,7 @@
       "coverArt": "https://www.doerfelverse.com/art/you-feel-like-home-art.jpg",
       "feedId": "https-www-doerfelverse-com-feeds-you-feel-like-home-xml",
       "feedUrl": "https://www.doerfelverse.com/feeds/you-feel-like-home.xml",
-      "index": 40
+      "index": 39
     },
     "you-feel-like-homesingle": {
       "title": "You Feel Like Home(Single)",
@@ -1041,7 +1033,7 @@
       "coverArt": "https://www.doerfelverse.com/art/you-feel-like-home-art.jpg",
       "feedId": "https-www-doerfelverse-com-feeds-you-feel-like-home-xml",
       "feedUrl": "https://www.doerfelverse.com/feeds/you-feel-like-home.xml",
-      "index": 40
+      "index": 39
     },
     "you-feel-like-home(single)": {
       "title": "You Feel Like Home(Single)",
@@ -1049,7 +1041,7 @@
       "coverArt": "https://www.doerfelverse.com/art/you-feel-like-home-art.jpg",
       "feedId": "https-www-doerfelverse-com-feeds-you-feel-like-home-xml",
       "feedUrl": "https://www.doerfelverse.com/feeds/you-feel-like-home.xml",
-      "index": 40
+      "index": 39
     },
     "https-www-doerfelverse-com-feeds-you-feel-like-home-xml": {
       "title": "You Feel Like Home(Single)",
@@ -1057,7 +1049,7 @@
       "coverArt": "https://www.doerfelverse.com/art/you-feel-like-home-art.jpg",
       "feedId": "https-www-doerfelverse-com-feeds-you-feel-like-home-xml",
       "feedUrl": "https://www.doerfelverse.com/feeds/you-feel-like-home.xml",
-      "index": 40
+      "index": 39
     },
     "psalm 54": {
       "title": "Psalm 54",
@@ -1065,7 +1057,7 @@
       "coverArt": "https://www.doerfelverse.com/art/psalm-54-art.png",
       "feedId": "https-www-doerfelverse-com-feeds-psalm-54-xml",
       "feedUrl": "https://www.doerfelverse.com/feeds/psalm-54.xml",
-      "index": 41
+      "index": 40
     },
     "psalm-54": {
       "title": "Psalm 54",
@@ -1073,7 +1065,7 @@
       "coverArt": "https://www.doerfelverse.com/art/psalm-54-art.png",
       "feedId": "https-www-doerfelverse-com-feeds-psalm-54-xml",
       "feedUrl": "https://www.doerfelverse.com/feeds/psalm-54.xml",
-      "index": 41
+      "index": 40
     },
     "https-www-doerfelverse-com-feeds-psalm-54-xml": {
       "title": "Psalm 54",
@@ -1081,7 +1073,7 @@
       "coverArt": "https://www.doerfelverse.com/art/psalm-54-art.png",
       "feedId": "https-www-doerfelverse-com-feeds-psalm-54-xml",
       "feedUrl": "https://www.doerfelverse.com/feeds/psalm-54.xml",
-      "index": 41
+      "index": 40
     },
     "you are my world": {
       "title": "You Are My World",
@@ -1089,7 +1081,7 @@
       "coverArt": "https://www.doerfelverse.com/art/you-are-my-world.gif",
       "feedId": "https-www-doerfelverse-com-feeds-you-are-my-world-xml",
       "feedUrl": "https://www.doerfelverse.com/feeds/you-are-my-world.xml",
-      "index": 42
+      "index": 41
     },
     "you-are-my-world": {
       "title": "You Are My World",
@@ -1097,7 +1089,7 @@
       "coverArt": "https://www.doerfelverse.com/art/you-are-my-world.gif",
       "feedId": "https-www-doerfelverse-com-feeds-you-are-my-world-xml",
       "feedUrl": "https://www.doerfelverse.com/feeds/you-are-my-world.xml",
-      "index": 42
+      "index": 41
     },
     "https-www-doerfelverse-com-feeds-you-are-my-world-xml": {
       "title": "You Are My World",
@@ -1105,7 +1097,7 @@
       "coverArt": "https://www.doerfelverse.com/art/you-are-my-world.gif",
       "feedId": "https-www-doerfelverse-com-feeds-you-are-my-world-xml",
       "feedUrl": "https://www.doerfelverse.com/feeds/you-are-my-world.xml",
-      "index": 42
+      "index": 41
     },
     "dfb volume 2": {
       "title": "DFB Volume 2",
@@ -1113,7 +1105,7 @@
       "coverArt": "https://www.doerfelverse.com/art/dfbv2.png",
       "feedId": "https-www-doerfelverse-com-feeds-dfbv2-xml",
       "feedUrl": "https://www.doerfelverse.com/feeds/dfbv2.xml",
-      "index": 43
+      "index": 42
     },
     "dfb-volume-2": {
       "title": "DFB Volume 2",
@@ -1121,7 +1113,7 @@
       "coverArt": "https://www.doerfelverse.com/art/dfbv2.png",
       "feedId": "https-www-doerfelverse-com-feeds-dfbv2-xml",
       "feedUrl": "https://www.doerfelverse.com/feeds/dfbv2.xml",
-      "index": 43
+      "index": 42
     },
     "https-www-doerfelverse-com-feeds-dfbv2-xml": {
       "title": "DFB Volume 2",
@@ -1129,7 +1121,7 @@
       "coverArt": "https://www.doerfelverse.com/art/dfbv2.png",
       "feedId": "https-www-doerfelverse-com-feeds-dfbv2-xml",
       "feedUrl": "https://www.doerfelverse.com/feeds/dfbv2.xml",
-      "index": 43
+      "index": 42
     },
     "lnurl testing podcast": {
       "title": "LNURL Testing Podcast",
@@ -1137,7 +1129,7 @@
       "coverArt": "https://raw.githubusercontent.com/ChadFarrow/lnurl-test-feed/main/episode-image.jpg",
       "feedId": "lnurl-testing-podcast",
       "feedUrl": "https://raw.githubusercontent.com/ChadFarrow/lnurl-test-feed/main/public/lnurl-test-feed.xml",
-      "index": 44
+      "index": 43
     },
     "lnurl-testing-podcast": {
       "title": "LNURL Testing Podcast",
@@ -1145,7 +1137,7 @@
       "coverArt": "https://raw.githubusercontent.com/ChadFarrow/lnurl-test-feed/main/episode-image.jpg",
       "feedId": "lnurl-testing-podcast",
       "feedUrl": "https://raw.githubusercontent.com/ChadFarrow/lnurl-test-feed/main/public/lnurl-test-feed.xml",
-      "index": 44
+      "index": 43
     },
     "opus": {
       "title": "Opus",
@@ -1153,7 +1145,7 @@
       "coverArt": "https://www.doerfelverse.com/artists/opus/opus/opus.png",
       "feedId": "www-doerfelverse-com-artists-opus-opus-opus-xml",
       "feedUrl": "https://www.doerfelverse.com/artists/opus/opus/opus.xml",
-      "index": 45
+      "index": 44
     },
     "www-doerfelverse-com-artists-opus-opus-opus-xml": {
       "title": "Opus",
@@ -1161,7 +1153,7 @@
       "coverArt": "https://www.doerfelverse.com/artists/opus/opus/opus.png",
       "feedId": "www-doerfelverse-com-artists-opus-opus-opus-xml",
       "feedUrl": "https://www.doerfelverse.com/artists/opus/opus/opus.xml",
-      "index": 45
+      "index": 44
     },
     "the satellite spotlight": {
       "title": "The Satellite Spotlight",
@@ -1169,7 +1161,7 @@
       "coverArt": "https://music.behindthesch3m3s.com/wp-content/uploads/Sat_Skirmish/sproutingsymphonies/art/sat%20spotlight%20show%20art.png",
       "feedId": "music-behindthesch3m3s-com-satellite-spotlight-citybeach-tracks-xml",
       "feedUrl": "https://music.behindthesch3m3s.com/wp-content/uploads/Sat_Skirmish/sproutingsymphonies/rss/satspotlightsymphony.xml",
-      "index": 46
+      "index": 45
     },
     "the-satellite-spotlight": {
       "title": "The Satellite Spotlight",
@@ -1177,7 +1169,7 @@
       "coverArt": "https://music.behindthesch3m3s.com/wp-content/uploads/Sat_Skirmish/sproutingsymphonies/art/sat%20spotlight%20show%20art.png",
       "feedId": "music-behindthesch3m3s-com-satellite-spotlight-citybeach-tracks-xml",
       "feedUrl": "https://music.behindthesch3m3s.com/wp-content/uploads/Sat_Skirmish/sproutingsymphonies/rss/satspotlightsymphony.xml",
-      "index": 46
+      "index": 45
     },
     "music-behindthesch3m3s-com-satellite-spotlight-citybeach-tracks-xml": {
       "title": "The Satellite Spotlight",
@@ -1185,7 +1177,7 @@
       "coverArt": "https://music.behindthesch3m3s.com/wp-content/uploads/Sat_Skirmish/sproutingsymphonies/art/sat%20spotlight%20show%20art.png",
       "feedId": "music-behindthesch3m3s-com-satellite-spotlight-citybeach-tracks-xml",
       "feedUrl": "https://music.behindthesch3m3s.com/wp-content/uploads/Sat_Skirmish/sproutingsymphonies/rss/satspotlightsymphony.xml",
-      "index": 46
+      "index": 45
     },
     "autumn rust": {
       "title": "Autumn Rust",
@@ -1193,7 +1185,7 @@
       "coverArt": "https://music.behindthesch3m3s.com/wp-content/uploads/Sat_Skirmish/autumnrust/art/Autumn-Rust-Feed-Art.gif",
       "feedId": "music-behindthesch3m3s-com-autumn-rust-doerfels-tracks-xml",
       "feedUrl": "https://music.behindthesch3m3s.com/wp-content/uploads/Sat_Skirmish/autumnrust/mp3s/album_feed/feed.xml",
-      "index": 47
+      "index": 46
     },
     "autumn-rust": {
       "title": "Autumn Rust",
@@ -1201,7 +1193,7 @@
       "coverArt": "https://music.behindthesch3m3s.com/wp-content/uploads/Sat_Skirmish/autumnrust/art/Autumn-Rust-Feed-Art.gif",
       "feedId": "music-behindthesch3m3s-com-autumn-rust-doerfels-tracks-xml",
       "feedUrl": "https://music.behindthesch3m3s.com/wp-content/uploads/Sat_Skirmish/autumnrust/mp3s/album_feed/feed.xml",
-      "index": 47
+      "index": 46
     },
     "music-behindthesch3m3s-com-autumn-rust-doerfels-tracks-xml": {
       "title": "Autumn Rust",
@@ -1209,7 +1201,7 @@
       "coverArt": "https://music.behindthesch3m3s.com/wp-content/uploads/Sat_Skirmish/autumnrust/art/Autumn-Rust-Feed-Art.gif",
       "feedId": "music-behindthesch3m3s-com-autumn-rust-doerfels-tracks-xml",
       "feedUrl": "https://music.behindthesch3m3s.com/wp-content/uploads/Sat_Skirmish/autumnrust/mp3s/album_feed/feed.xml",
-      "index": 47
+      "index": 46
     },
     "jam with nate": {
       "title": "Jam with Nate",
@@ -1217,7 +1209,7 @@
       "coverArt": "https://www.doerfelverse.com/art/jam-with-nate-small.gif",
       "feedId": "www-doerfelverse-com-feeds-jam-with-nate-xml",
       "feedUrl": "https://www.doerfelverse.com/feeds/jam-with-nate.xml",
-      "index": 48
+      "index": 47
     },
     "jam-with-nate": {
       "title": "Jam with Nate",
@@ -1225,7 +1217,7 @@
       "coverArt": "https://www.doerfelverse.com/art/jam-with-nate-small.gif",
       "feedId": "www-doerfelverse-com-feeds-jam-with-nate-xml",
       "feedUrl": "https://www.doerfelverse.com/feeds/jam-with-nate.xml",
-      "index": 48
+      "index": 47
     },
     "www-doerfelverse-com-feeds-jam-with-nate-xml": {
       "title": "Jam with Nate",
@@ -1233,7 +1225,7 @@
       "coverArt": "https://www.doerfelverse.com/art/jam-with-nate-small.gif",
       "feedId": "www-doerfelverse-com-feeds-jam-with-nate-xml",
       "feedUrl": "https://www.doerfelverse.com/feeds/jam-with-nate.xml",
-      "index": 48
+      "index": 47
     },
     "think ep live!": {
       "title": "Think EP LIVE!",
@@ -1241,7 +1233,7 @@
       "coverArt": "https://www.doerfelverse.com/art/think-ep-live-2017.png",
       "feedId": "www-doerfelverse-com-feeds-think-ep-live-xml",
       "feedUrl": "https://www.doerfelverse.com/feeds/think-ep-live.xml",
-      "index": 49
+      "index": 48
     },
     "think-ep-live": {
       "title": "Think EP LIVE!",
@@ -1249,7 +1241,7 @@
       "coverArt": "https://www.doerfelverse.com/art/think-ep-live-2017.png",
       "feedId": "www-doerfelverse-com-feeds-think-ep-live-xml",
       "feedUrl": "https://www.doerfelverse.com/feeds/think-ep-live.xml",
-      "index": 49
+      "index": 48
     },
     "think-ep-live!": {
       "title": "Think EP LIVE!",
@@ -1257,7 +1249,7 @@
       "coverArt": "https://www.doerfelverse.com/art/think-ep-live-2017.png",
       "feedId": "www-doerfelverse-com-feeds-think-ep-live-xml",
       "feedUrl": "https://www.doerfelverse.com/feeds/think-ep-live.xml",
-      "index": 49
+      "index": 48
     },
     "www-doerfelverse-com-feeds-think-ep-live-xml": {
       "title": "Think EP LIVE!",
@@ -1265,7 +1257,7 @@
       "coverArt": "https://www.doerfelverse.com/art/think-ep-live-2017.png",
       "feedId": "www-doerfelverse-com-feeds-think-ep-live-xml",
       "feedUrl": "https://www.doerfelverse.com/feeds/think-ep-live.xml",
-      "index": 49
+      "index": 48
     }
   }
 }
