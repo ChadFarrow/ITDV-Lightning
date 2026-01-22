@@ -273,8 +273,12 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { url, urls } = body;
 
+    console.log('PUT /api/admin/manage-feeds - body:', JSON.stringify(body));
+
     // Handle single URL or multiple URLs
-    const feedUrls = urls || [url];
+    const feedUrls = urls || (url ? [url] : []);
+    console.log('PUT /api/admin/manage-feeds - feedUrls:', feedUrls);
+
     if (!feedUrls || feedUrls.length === 0) {
       return NextResponse.json({ error: 'No URL provided' }, { status: 400 });
     }
@@ -283,6 +287,7 @@ export async function PUT(request: NextRequest) {
     const errors = [];
 
     for (const feedUrl of feedUrls) {
+      console.log(`PUT /api/admin/manage-feeds - processing: "${feedUrl}"`);
       try {
         // Validate URL
         new URL(feedUrl);

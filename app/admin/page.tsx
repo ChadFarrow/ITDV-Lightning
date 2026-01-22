@@ -274,7 +274,12 @@ export default function AdminFeedManager() {
 
       if (response.ok) {
         const data = await response.json();
-        showMessage('success', `Reparsed ${data.reparsed.length} feed(s) successfully!`);
+        if (data.errors && data.errors.length > 0) {
+          const errorDetails = data.errors.map((e: any) => e.error).join(', ');
+          showMessage('error', `Reparsed ${data.reparsed.length} feed(s), but ${data.errors.length} failed: ${errorDetails}`);
+        } else {
+          showMessage('success', `Reparsed ${data.reparsed.length} feed(s) successfully!`);
+        }
         setFeedUrls('');
         loadFeeds();
       } else {
