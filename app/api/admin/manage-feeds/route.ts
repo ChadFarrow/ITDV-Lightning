@@ -1,14 +1,73 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { FeedManager } from '@/lib/feed-manager';
+import { FeedManager, FeedsData, Feed } from '@/lib/feed-manager';
 import { RSSParser } from '@/lib/rss-parser';
 import { validateSession } from '@/lib/admin-auth';
+import { commitFiles, isGitHubConfigured } from '@/lib/github';
 import fs from 'fs';
 import path from 'path';
+
+// Check if we're running on Vercel (read-only filesystem)
+// VERCEL can be '1' or 'true', also check for VERCEL_URL as a fallback
+const IS_VERCEL = !!(process.env.VERCEL || process.env.VERCEL_URL);
 
 // Helper function to verify authentication
 function verifyAuth(request: NextRequest): boolean {
   const token = request.cookies.get('admin-token')?.value;
   return validateSession(token);
+}
+
+// File paths for data files
+const FEEDS_PATH = 'data/feeds.json';
+const STATIC_ALBUMS_PATH = 'public/static-albums.json';
+const CACHED_ALBUMS_PATH = 'public/albums-static-cached.json';
+const ALBUM_INDEX_PATH = 'public/album-index.json';
+
+// Helper to read JSON files safely
+function readJsonFile<T>(relativePath: string, defaultValue: T): T {
+  try {
+    const fullPath = path.join(process.cwd(), relativePath);
+    if (fs.existsSync(fullPath)) {
+      return JSON.parse(fs.readFileSync(fullPath, 'utf8'));
+    }
+  } catch (error) {
+    console.error(`Failed to read ${relativePath}:`, error);
+  }
+  return defaultValue;
+}
+
+// Helper to write files - uses GitHub on Vercel, filesystem locally
+async function writeFiles(files: { path: string; content: string }[], commitMessage: string): Promise<{ success: boolean; error?: string; deployed?: boolean }> {
+  console.log(`writeFiles called - IS_VERCEL: ${IS_VERCEL}, VERCEL env: ${process.env.VERCEL}, VERCEL_URL: ${process.env.VERCEL_URL}`);
+
+  if (IS_VERCEL) {
+    // On Vercel: commit to GitHub, which triggers auto-deploy
+    console.log('Using GitHub commit method for Vercel');
+    if (!isGitHubConfigured()) {
+      return { success: false, error: 'GITHUB_TOKEN not configured on Vercel' };
+    }
+    const result = await commitFiles(files, commitMessage);
+    if (result.success) {
+      return { success: true, deployed: true };
+    }
+    return { success: false, error: result.error };
+  } else {
+    console.log('Using filesystem write method for local development');
+    // Local development: write directly to filesystem
+    try {
+      for (const file of files) {
+        const fullPath = path.join(process.cwd(), file.path);
+        const dir = path.dirname(fullPath);
+        if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir, { recursive: true });
+        }
+        fs.writeFileSync(fullPath, file.content);
+        console.log(`✅ Wrote ${file.path}`);
+      }
+      return { success: true, deployed: false };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  }
 }
 
 // Helper function to create URL slug for album index
@@ -20,66 +79,50 @@ function createSlug(title: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
-// Helper function to rebuild album index after static-albums.json changes
-function rebuildAlbumIndex() {
-  const staticAlbumsPath = path.join(process.cwd(), 'public', 'static-albums.json');
-  const indexFilePath = path.join(process.cwd(), 'public', 'album-index.json');
+// Helper function to build album index data from albums array
+function buildAlbumIndex(albums: any[]): any {
+  const index: Record<string, any> = {};
 
-  try {
-    if (!fs.existsSync(staticAlbumsPath)) return;
+  albums.forEach((album: any, idx: number) => {
+    if (!album.title) return;
 
-    const staticData = JSON.parse(fs.readFileSync(staticAlbumsPath, 'utf8'));
-    const albums = staticData.albums || [];
+    const title = album.title;
+    const lowerTitle = title.toLowerCase();
+    const slug = createSlug(title);
+    const simpleSlug = lowerTitle.replace(/\s+/g, '-');
+    const baseTitle = lowerTitle.split(/\s*[-–]\s*/)[0];
+    const baseSlug = createSlug(baseTitle);
 
-    const index: Record<string, any> = {};
-
-    albums.forEach((album: any, idx: number) => {
-      if (!album.title) return;
-
-      const title = album.title;
-      const lowerTitle = title.toLowerCase();
-      const slug = createSlug(title);
-      const simpleSlug = lowerTitle.replace(/\s+/g, '-');
-      const baseTitle = lowerTitle.split(/\s*[-–]\s*/)[0];
-      const baseSlug = createSlug(baseTitle);
-
-      const indexEntry = {
-        title: album.title,
-        artist: album.artist,
-        coverArt: album.coverArt,
-        feedId: album.feedId,
-        feedUrl: album.feedUrl,
-        index: idx
-      };
-
-      index[lowerTitle] = indexEntry;
-      index[slug] = indexEntry;
-      index[simpleSlug] = indexEntry;
-      index[baseSlug] = indexEntry;
-
-      if (album.feedId) {
-        index[album.feedId.toLowerCase()] = indexEntry;
-      }
-    });
-
-    const indexData = {
-      version: '1.0',
-      totalAlbums: albums.length,
-      indexedAt: new Date().toISOString(),
-      index: index
+    const indexEntry = {
+      title: album.title,
+      artist: album.artist,
+      coverArt: album.coverArt,
+      feedId: album.feedId,
+      feedUrl: album.feedUrl,
+      index: idx
     };
 
-    fs.writeFileSync(indexFilePath, JSON.stringify(indexData, null, 2));
-    console.log(`✅ Rebuilt album index with ${Object.keys(index).length} entries`);
-  } catch (error) {
-    console.error('Failed to rebuild album index:', error);
-  }
+    index[lowerTitle] = indexEntry;
+    index[slug] = indexEntry;
+    index[simpleSlug] = indexEntry;
+    index[baseSlug] = indexEntry;
+
+    if (album.feedId) {
+      index[album.feedId.toLowerCase()] = indexEntry;
+    }
+  });
+
+  return {
+    version: '1.0',
+    totalAlbums: albums.length,
+    indexedAt: new Date().toISOString(),
+    index: index
+  };
 }
 
-// Helper function to update static album files with a new album
-async function addAlbumToStaticFiles(album: any, feedUrl: string, feedId: string) {
-  const staticAlbumsPath = path.join(process.cwd(), 'public', 'static-albums.json');
-  const cachedAlbumsPath = path.join(process.cwd(), 'public', 'albums-static-cached.json');
+// Helper function to prepare updated album files (returns files to write)
+function prepareAlbumFilesForAdd(album: any, feedUrl: string, feedId: string): { path: string; content: string }[] {
+  const files: { path: string; content: string }[] = [];
 
   // Prepare album with feed metadata
   const albumWithMeta = {
@@ -90,85 +133,97 @@ async function addAlbumToStaticFiles(album: any, feedUrl: string, feedId: string
   };
 
   // Update static-albums.json
-  try {
-    if (fs.existsSync(staticAlbumsPath)) {
-      const staticData = JSON.parse(fs.readFileSync(staticAlbumsPath, 'utf8'));
-      // Check if album already exists (by feedUrl)
-      const existingIndex = staticData.albums?.findIndex((a: any) => a.feedUrl === feedUrl);
-      if (existingIndex >= 0) {
-        staticData.albums[existingIndex] = albumWithMeta;
-      } else {
-        staticData.albums = staticData.albums || [];
-        staticData.albums.push(albumWithMeta);
-      }
-      staticData.count = staticData.albums.length;
-      staticData.timestamp = new Date().toISOString();
-      fs.writeFileSync(staticAlbumsPath, JSON.stringify(staticData, null, 2));
-      console.log(`✅ Updated static-albums.json with ${album.title}`);
-
-      // Rebuild album index for fast lookups
-      rebuildAlbumIndex();
-    }
-  } catch (error) {
-    console.error('Failed to update static-albums.json:', error);
+  const staticData = readJsonFile<any>(STATIC_ALBUMS_PATH, { albums: [], count: 0 });
+  const existingStaticIndex = staticData.albums?.findIndex((a: any) => a.feedUrl === feedUrl);
+  if (existingStaticIndex >= 0) {
+    staticData.albums[existingStaticIndex] = albumWithMeta;
+  } else {
+    staticData.albums = staticData.albums || [];
+    staticData.albums.push(albumWithMeta);
   }
+  staticData.count = staticData.albums.length;
+  staticData.timestamp = new Date().toISOString();
+  files.push({ path: STATIC_ALBUMS_PATH, content: JSON.stringify(staticData, null, 2) });
 
   // Update albums-static-cached.json
-  try {
-    if (fs.existsSync(cachedAlbumsPath)) {
-      const cachedData = JSON.parse(fs.readFileSync(cachedAlbumsPath, 'utf8'));
-      const existingIndex = cachedData.albums?.findIndex((a: any) => a.feedUrl === feedUrl);
-      if (existingIndex >= 0) {
-        cachedData.albums[existingIndex] = albumWithMeta;
-      } else {
-        cachedData.albums = cachedData.albums || [];
-        cachedData.albums.push(albumWithMeta);
-      }
-      cachedData.count = cachedData.albums.length;
-      cachedData.timestamp = new Date().toISOString();
-      fs.writeFileSync(cachedAlbumsPath, JSON.stringify(cachedData, null, 2));
-      console.log(`✅ Updated albums-static-cached.json with ${album.title}`);
-    }
-  } catch (error) {
-    console.error('Failed to update albums-static-cached.json:', error);
+  const cachedData = readJsonFile<any>(CACHED_ALBUMS_PATH, { albums: [], count: 0 });
+  const existingCachedIndex = cachedData.albums?.findIndex((a: any) => a.feedUrl === feedUrl);
+  if (existingCachedIndex >= 0) {
+    cachedData.albums[existingCachedIndex] = albumWithMeta;
+  } else {
+    cachedData.albums = cachedData.albums || [];
+    cachedData.albums.push(albumWithMeta);
   }
+  cachedData.count = cachedData.albums.length;
+  cachedData.timestamp = new Date().toISOString();
+  files.push({ path: CACHED_ALBUMS_PATH, content: JSON.stringify(cachedData, null, 2) });
+
+  // Rebuild album index
+  const indexData = buildAlbumIndex(staticData.albums);
+  files.push({ path: ALBUM_INDEX_PATH, content: JSON.stringify(indexData, null, 2) });
+
+  return files;
 }
 
-// Helper function to remove album from static files
-async function removeAlbumFromStaticFiles(feedId: string) {
-  const staticAlbumsPath = path.join(process.cwd(), 'public', 'static-albums.json');
-  const cachedAlbumsPath = path.join(process.cwd(), 'public', 'albums-static-cached.json');
+// Helper function to prepare feeds.json update for adding a feed
+function prepareFeedsFileForAdd(feed: Omit<Feed, 'addedAt' | 'lastUpdated'>): { path: string; content: string } {
+  const feedsData = readJsonFile<FeedsData>(FEEDS_PATH, { feeds: [], lastUpdated: '', version: 1 });
+  const newFeed: Feed = {
+    ...feed,
+    addedAt: new Date().toISOString(),
+    lastUpdated: new Date().toISOString()
+  };
+  feedsData.feeds.push(newFeed);
+  feedsData.lastUpdated = new Date().toISOString();
+  return { path: FEEDS_PATH, content: JSON.stringify(feedsData, null, 2) };
+}
+
+// Helper function to prepare feeds.json update for updating a feed
+function prepareFeedsFileForUpdate(id: string, updates: Partial<Feed>): { path: string; content: string } {
+  const feedsData = readJsonFile<FeedsData>(FEEDS_PATH, { feeds: [], lastUpdated: '', version: 1 });
+  const feedIndex = feedsData.feeds.findIndex(feed => feed.id === id);
+  if (feedIndex !== -1) {
+    feedsData.feeds[feedIndex] = {
+      ...feedsData.feeds[feedIndex],
+      ...updates,
+      lastUpdated: new Date().toISOString()
+    };
+  }
+  feedsData.lastUpdated = new Date().toISOString();
+  return { path: FEEDS_PATH, content: JSON.stringify(feedsData, null, 2) };
+}
+
+// Helper function to prepare files for removing an album
+function prepareAlbumFilesForRemove(feedId: string): { path: string; content: string }[] {
+  const files: { path: string; content: string }[] = [];
 
   // Update static-albums.json
-  try {
-    if (fs.existsSync(staticAlbumsPath)) {
-      const staticData = JSON.parse(fs.readFileSync(staticAlbumsPath, 'utf8'));
-      staticData.albums = staticData.albums?.filter((a: any) => a.feedId !== feedId) || [];
-      staticData.count = staticData.albums.length;
-      staticData.timestamp = new Date().toISOString();
-      fs.writeFileSync(staticAlbumsPath, JSON.stringify(staticData, null, 2));
-      console.log(`✅ Removed feed ${feedId} from static-albums.json`);
-
-      // Rebuild album index
-      rebuildAlbumIndex();
-    }
-  } catch (error) {
-    console.error('Failed to update static-albums.json:', error);
-  }
+  const staticData = readJsonFile<any>(STATIC_ALBUMS_PATH, { albums: [], count: 0 });
+  staticData.albums = staticData.albums?.filter((a: any) => a.feedId !== feedId) || [];
+  staticData.count = staticData.albums.length;
+  staticData.timestamp = new Date().toISOString();
+  files.push({ path: STATIC_ALBUMS_PATH, content: JSON.stringify(staticData, null, 2) });
 
   // Update albums-static-cached.json
-  try {
-    if (fs.existsSync(cachedAlbumsPath)) {
-      const cachedData = JSON.parse(fs.readFileSync(cachedAlbumsPath, 'utf8'));
-      cachedData.albums = cachedData.albums?.filter((a: any) => a.feedId !== feedId) || [];
-      cachedData.count = cachedData.albums.length;
-      cachedData.timestamp = new Date().toISOString();
-      fs.writeFileSync(cachedAlbumsPath, JSON.stringify(cachedData, null, 2));
-      console.log(`✅ Removed feed ${feedId} from albums-static-cached.json`);
-    }
-  } catch (error) {
-    console.error('Failed to update albums-static-cached.json:', error);
-  }
+  const cachedData = readJsonFile<any>(CACHED_ALBUMS_PATH, { albums: [], count: 0 });
+  cachedData.albums = cachedData.albums?.filter((a: any) => a.feedId !== feedId) || [];
+  cachedData.count = cachedData.albums.length;
+  cachedData.timestamp = new Date().toISOString();
+  files.push({ path: CACHED_ALBUMS_PATH, content: JSON.stringify(cachedData, null, 2) });
+
+  // Rebuild album index
+  const indexData = buildAlbumIndex(staticData.albums);
+  files.push({ path: ALBUM_INDEX_PATH, content: JSON.stringify(indexData, null, 2) });
+
+  return files;
+}
+
+// Helper function to prepare feeds.json for removing a feed
+function prepareFeedsFileForRemove(id: string): { path: string; content: string } {
+  const feedsData = readJsonFile<FeedsData>(FEEDS_PATH, { feeds: [], lastUpdated: '', version: 1 });
+  feedsData.feeds = feedsData.feeds.filter(feed => feed.id !== id);
+  feedsData.lastUpdated = new Date().toISOString();
+  return { path: FEEDS_PATH, content: JSON.stringify(feedsData, null, 2) };
 }
 
 // Helper function to generate ID from URL
@@ -197,6 +252,8 @@ export async function POST(request: NextRequest) {
 
     const addedFeeds = [];
     const errors = [];
+    const allFilesToWrite: { path: string; content: string }[] = [];
+    const feedsToAdd: Omit<Feed, 'addedAt' | 'lastUpdated'>[] = [];
 
     for (const feedUrl of feedUrls) {
       try {
@@ -212,8 +269,8 @@ export async function POST(request: NextRequest) {
         // Generate ID
         const id = generateIdFromUrl(feedUrl);
 
-        // Add feed to feeds.json
-        FeedManager.addFeed({
+        // Prepare feed data
+        feedsToAdd.push({
           id,
           originalUrl: feedUrl,
           type: 'album',
@@ -223,13 +280,59 @@ export async function POST(request: NextRequest) {
           ...(trackFilter && { trackFilter }),
         });
 
-        // Add album to static files immediately
-        await addAlbumToStaticFiles(album, feedUrl, id);
+        // Prepare album files
+        const albumFiles = prepareAlbumFilesForAdd(album, feedUrl, id);
+        // Merge into allFilesToWrite (replace if same path)
+        for (const file of albumFiles) {
+          const existingIdx = allFilesToWrite.findIndex(f => f.path === file.path);
+          if (existingIdx >= 0) {
+            allFilesToWrite[existingIdx] = file;
+          } else {
+            allFilesToWrite.push(file);
+          }
+        }
 
         addedFeeds.push({ id, url: feedUrl, title: album.title });
       } catch (error) {
         errors.push({ url: feedUrl, error: String(error) });
       }
+    }
+
+    // Prepare feeds.json with all new feeds
+    if (feedsToAdd.length > 0) {
+      const feedsData = readJsonFile<FeedsData>(FEEDS_PATH, { feeds: [], lastUpdated: '', version: 1 });
+      for (const feed of feedsToAdd) {
+        feedsData.feeds.push({
+          ...feed,
+          addedAt: new Date().toISOString(),
+          lastUpdated: new Date().toISOString()
+        });
+      }
+      feedsData.lastUpdated = new Date().toISOString();
+      allFilesToWrite.push({ path: FEEDS_PATH, content: JSON.stringify(feedsData, null, 2) });
+    }
+
+    // Write all files (locally or via GitHub)
+    if (allFilesToWrite.length > 0) {
+      const titles = addedFeeds.map(f => f.title).join(', ');
+      const writeResult = await writeFiles(allFilesToWrite, `Add feed(s): ${titles}`);
+      if (!writeResult.success) {
+        return NextResponse.json(
+          { error: `Failed to write files: ${writeResult.error}` },
+          { status: 500 }
+        );
+      }
+
+      // Clear FeedManager cache since we modified feeds.json
+      FeedManager['feedsData'] = null;
+
+      return NextResponse.json({
+        success: true,
+        added: addedFeeds,
+        errors: errors.length > 0 ? errors : undefined,
+        deployed: writeResult.deployed,
+        message: writeResult.deployed ? 'Changes committed to GitHub. Site will redeploy automatically.' : undefined,
+      });
     }
 
     return NextResponse.json({
@@ -285,6 +388,10 @@ export async function PUT(request: NextRequest) {
 
     const reparsedFeeds = [];
     const errors = [];
+    const allFilesToWrite: { path: string; content: string }[] = [];
+
+    // Load current feeds.json for updates
+    const feedsData = readJsonFile<FeedsData>(FEEDS_PATH, { feeds: [], lastUpdated: '', version: 1 });
 
     for (const feedUrl of feedUrls) {
       console.log(`PUT /api/admin/manage-feeds - processing: "${feedUrl}"`);
@@ -302,31 +409,72 @@ export async function PUT(request: NextRequest) {
         const id = generateIdFromUrl(feedUrl);
 
         // Check if feed already exists in feeds.json
-        const existingFeeds = FeedManager.loadFeeds();
-        const existingFeed = existingFeeds.feeds.find(f => f.id === id);
+        const existingFeedIndex = feedsData.feeds.findIndex(f => f.id === id);
 
-        if (existingFeed) {
+        if (existingFeedIndex >= 0) {
           // Update existing feed's lastUpdated timestamp and title
-          FeedManager.updateFeed(id, { title: album.title });
+          feedsData.feeds[existingFeedIndex] = {
+            ...feedsData.feeds[existingFeedIndex],
+            title: album.title,
+            lastUpdated: new Date().toISOString()
+          };
         } else {
           // Add new feed to feeds.json so it shows in Current Feeds
-          FeedManager.addFeed({
+          feedsData.feeds.push({
             id,
             originalUrl: feedUrl,
             type: 'album',
             title: album.title,
             priority: 'extended',
             status: 'active',
+            addedAt: new Date().toISOString(),
+            lastUpdated: new Date().toISOString()
           });
         }
 
-        // Update static files with the fresh data
-        await addAlbumToStaticFiles(album, feedUrl, id);
+        // Prepare album files
+        const albumFiles = prepareAlbumFilesForAdd(album, feedUrl, id);
+        // Merge into allFilesToWrite (replace if same path)
+        for (const file of albumFiles) {
+          const existingIdx = allFilesToWrite.findIndex(f => f.path === file.path);
+          if (existingIdx >= 0) {
+            allFilesToWrite[existingIdx] = file;
+          } else {
+            allFilesToWrite.push(file);
+          }
+        }
 
         reparsedFeeds.push({ id, url: feedUrl, title: album.title });
       } catch (error) {
         errors.push({ url: feedUrl, error: String(error) });
       }
+    }
+
+    // Add feeds.json to files to write
+    feedsData.lastUpdated = new Date().toISOString();
+    allFilesToWrite.push({ path: FEEDS_PATH, content: JSON.stringify(feedsData, null, 2) });
+
+    // Write all files (locally or via GitHub)
+    if (allFilesToWrite.length > 0) {
+      const titles = reparsedFeeds.map(f => f.title).join(', ');
+      const writeResult = await writeFiles(allFilesToWrite, `Update static data with reparsed ${titles.length > 50 ? titles.substring(0, 50) + '...' : titles} feed`);
+      if (!writeResult.success) {
+        return NextResponse.json(
+          { error: `Failed to write files: ${writeResult.error}` },
+          { status: 500 }
+        );
+      }
+
+      // Clear FeedManager cache since we modified feeds.json
+      FeedManager['feedsData'] = null;
+
+      return NextResponse.json({
+        success: true,
+        reparsed: reparsedFeeds,
+        errors: errors.length > 0 ? errors : undefined,
+        deployed: writeResult.deployed,
+        message: writeResult.deployed ? 'Changes committed to GitHub. Site will redeploy automatically.' : undefined,
+      });
     }
 
     return NextResponse.json({
@@ -355,13 +503,34 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'No ID provided' }, { status: 400 });
     }
 
-    // Remove from feeds.json
-    FeedManager.removeFeed(id);
+    // Prepare all files for removal
+    const allFilesToWrite: { path: string; content: string }[] = [];
 
-    // Remove from static files
-    await removeAlbumFromStaticFiles(id);
+    // Prepare feeds.json without this feed
+    const feedsFile = prepareFeedsFileForRemove(id);
+    allFilesToWrite.push(feedsFile);
 
-    return NextResponse.json({ success: true });
+    // Prepare album files without this feed
+    const albumFiles = prepareAlbumFilesForRemove(id);
+    allFilesToWrite.push(...albumFiles);
+
+    // Write all files
+    const writeResult = await writeFiles(allFilesToWrite, `Remove feed: ${id}`);
+    if (!writeResult.success) {
+      return NextResponse.json(
+        { error: `Failed to write files: ${writeResult.error}` },
+        { status: 500 }
+      );
+    }
+
+    // Clear FeedManager cache since we modified feeds.json
+    FeedManager['feedsData'] = null;
+
+    return NextResponse.json({
+      success: true,
+      deployed: writeResult.deployed,
+      message: writeResult.deployed ? 'Changes committed to GitHub. Site will redeploy automatically.' : undefined,
+    });
   } catch (error) {
     return NextResponse.json(
       { error: 'Failed to remove feed' },
