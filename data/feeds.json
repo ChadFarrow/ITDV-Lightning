@@ -560,8 +560,18 @@
       "status": "active",
       "addedAt": "2026-03-04T17:04:27.589Z",
       "lastUpdated": "2026-03-04T17:04:27.589Z"
+    },
+    {
+      "id": "www-doerfelverse-com-feeds-wrathodies-xml",
+      "originalUrl": "https://www.doerfelverse.com/feeds/wrathodies.xml",
+      "type": "album",
+      "title": "Wrathodies",
+      "priority": "extended",
+      "status": "active",
+      "addedAt": "2026-03-04T17:14:16.651Z",
+      "lastUpdated": "2026-03-04T17:14:16.651Z"
     }
   ],
-  "lastUpdated": "2026-03-04T17:04:27.589Z",
+  "lastUpdated": "2026-03-04T17:14:16.651Z",
   "version": 2
 }
