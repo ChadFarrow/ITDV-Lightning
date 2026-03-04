@@ -1,7 +1,7 @@
 {
   "version": "1.0",
-  "totalAlbums": 48,
-  "indexedAt": "2026-01-23T00:43:09.053Z",
+  "totalAlbums": 49,
+  "indexedAt": "2026-03-04T17:04:27.589Z",
   "index": {
     "disco swag - the album": {
       "title": "Disco Swag - The Album",
@@ -1250,6 +1250,22 @@
       "feedId": "www-doerfelverse-com-feeds-think-ep-live-xml",
       "feedUrl": "https://www.doerfelverse.com/feeds/think-ep-live.xml",
       "index": 47
+    },
+    "them": {
+      "title": "Them",
+      "artist": "The Doerfels",
+      "coverArt": "https://www.doerfelverse.com/art/them.png",
+      "feedId": "www-doerfelverse-com-feeds-them-xml",
+      "feedUrl": "PRIVATE_FEED_URL",
+      "index": 48
+    },
+    "www-doerfelverse-com-feeds-them-xml": {
+      "title": "Them",
+      "artist": "The Doerfels",
+      "coverArt": "https://www.doerfelverse.com/art/them.png",
+      "feedId": "www-doerfelverse-com-feeds-them-xml",
+      "feedUrl": "PRIVATE_FEED_URL",
+      "index": 48
     }
   }
 }

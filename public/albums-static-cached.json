@@ -1,36 +1,26 @@
 {
   "albums": [
     {
-      "title": "Wrath Of Banjo",
-      "artist": "Sir TJ The Wrathful",
-      "description": "This is an album/feed I will be adding some of my new banjo songs to as I make them. These songs will be leaning towards edgy funky jazzy rock...with wrathful banjo! This is a Value for Value project. Learn more at www.doerfelverse.com",
-      "coverArt": "https://www.doerfelverse.com/art/wrath-of-banjo.png",
+      "title": "Them",
+      "artist": "The Doerfels",
+      "description": "\"Them\" is a mini album of Doerfelized covers we released when we went by the band name, \"Fuel on Fire\" back in 2019.",
+      "coverArt": "https://www.doerfelverse.com/art/them.png",
       "tracks": [
         {
-          "title": "METAL IN THE BANJO",
-          "duration": "3:01",
-          "url": "https://www.doerfelverse.com/tracks/01-metal-in-the-banjo.mp3",
+          "title": "Good Times Bad Times",
+          "duration": "3:11",
+          "url": "https://www.doerfelverse.com/tracks/good-times-bad-times.mp3",
           "trackNumber": 1,
-          "subtitle": "METAL IN THE BANJO",
-          "summary": "METAL IN THE BANJO by TJ Doerfel(Sir TJ The Wrathful)\nI made this song for Sir Libre after somehow it came up in discussion that I should make a metal banjo song. It took on it's own sound, not exactly metal, but close enough. However, after over 25 hours of creating and producing it, my Macbook with all the projects files, it's hard drive died. I was unable to recover the project or anything else on it and after trying to remove the HD, smashed it with a hammer with wrath. I had saved a few semi-mixed versions, and decided to move forward and release it. \nFun fact: 5 string banjos are surprisingly heavy, coming in at around 12 pounds. It's because other than the neck, it has a lot of metal pecies that help make up its tone.",
-          "image": "https://www.doerfelverse.com/art/wrath-of-banjo.png",
+          "subtitle": "Good Times Bad Times",
+          "summary": "Good Times Bad Times by The Doerfels",
+          "image": "https://www.doerfelverse.com/art/them.png",
           "explicit": false,
           "keywords": [
-            "sir",
-            "tj",
-            "the",
-            "wrathful",
-            "doerfel",
             "doerfels",
-            "wrath",
-            "of",
-            "banjo",
-            "metal",
-            "in",
-            "banjoverse",
-            "valueverse",
-            "music",
-            "rock"
+            "them",
+            "doerfelverse",
+            "the",
+            "v4vmusic"
           ],
           "value": {
             "type": "lightning",
@@ -40,16 +30,11 @@
               {
                 "type": "node",
                 "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-                "split": 80,
-                "name": "Sir TJ The Wrathful",
+                "split": 95,
+                "name": "The Doerfels",
+                "customKey": "696969",
+                "customValue": "1",
                 "fee": false
-              },
-              {
-                "type": "node",
-                "address": "035ad2c954e264004986da2d9499e1732e5175e1dcef2453c921c6cdcc3536e9d8",
-                "split": 5,
-                "name": "Sovereign Feeds",
-                "fee": true
               },
               {
                 "type": "lnaddress",
@@ -57,36 +42,15 @@
                 "split": 5,
                 "name": "Sovereign Feeds",
                 "fee": false
-              },
-              {
-                "type": "node",
-                "address": "032870511bfa0309bab3ca1832ead69eed848a4abddbc4d50e55bb2157f9525e51",
-                "split": 10,
-                "name": "DV Music App",
-                "fee": false
-              },
-              {
-                "type": "node",
-                "address": "03460a453d13c98ff06b36b3b6a8c06a7b48328ad5f983dacc3a7b0991b841bc57",
-                "split": 5,
-                "name": "DV Tech Support",
-                "fee": false
               }
             ]
           },
           "paymentRecipients": [
             {
               "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-              "split": 80,
-              "name": "Sir TJ The Wrathful",
+              "split": 95,
+              "name": "The Doerfels",
               "fee": false,
-              "type": "node"
-            },
-            {
-              "address": "035ad2c954e264004986da2d9499e1732e5175e1dcef2453c921c6cdcc3536e9d8",
-              "split": 5,
-              "name": "Sovereign Feeds",
-              "fee": true,
               "type": "node"
             },
             {
@@ -95,51 +59,27 @@
               "name": "Sovereign Feeds",
               "fee": false,
               "type": "lnaddress"
-            },
-            {
-              "address": "032870511bfa0309bab3ca1832ead69eed848a4abddbc4d50e55bb2157f9525e51",
-              "split": 10,
-              "name": "DV Music App",
-              "fee": false,
-              "type": "node"
-            },
-            {
-              "address": "03460a453d13c98ff06b36b3b6a8c06a7b48328ad5f983dacc3a7b0991b841bc57",
-              "split": 5,
-              "name": "DV Tech Support",
-              "fee": false,
-              "type": "node"
             }
           ],
-          "guid": "7078f042-0a2f-45a3-a4ff-379c124ea5c6",
-          "feedGuid": "4a483a4b-867c-50d5-a61a-e99fe03ea57e",
-          "imageUrl": "https://www.doerfelverse.com/art/wrath-of-banjo.png"
+          "guid": "0c390019-47cf-44ec-84b3-1ba1b7a37971",
+          "feedGuid": "97dfa881-a9de-54b0-a35f-100939930c2b",
+          "imageUrl": "https://www.doerfelverse.com/art/them.png"
         },
         {
-          "title": "THE BANJO",
-          "duration": "2:08",
-          "url": "https://www.doerfelverse.com/tracks/02-the-banjo.mp3",
+          "title": "Eleanor Rigby",
+          "duration": "2:28",
+          "url": "https://www.doerfelverse.com/tracks/eleanor-rigby.mp3",
           "trackNumber": 2,
-          "subtitle": "THE BANJO",
-          "summary": "you can't kill the BANJO\nwww.doerfelverse.com",
-          "image": "https://www.doerfelverse.com/art/the-banjo.png",
+          "subtitle": "Eleanor Rigby",
+          "summary": "Eleanor Rigby by The Doerfels",
+          "image": "https://www.doerfelverse.com/art/them.png",
           "explicit": false,
           "keywords": [
-            "sir",
-            "tj",
-            "the",
-            "wrathful",
-            "doerfel",
             "doerfels",
-            "wrath",
-            "of",
-            "banjo",
-            "metal",
-            "in",
-            "banjoverse",
-            "valueverse",
-            "music",
-            "rock"
+            "them",
+            "doerfelverse",
+            "the",
+            "v4vmusic"
           ],
           "value": {
             "type": "lightning",
@@ -149,16 +89,11 @@
               {
                 "type": "node",
                 "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-                "split": 80,
-                "name": "Sir TJ The Wrathful",
+                "split": 95,
+                "name": "The Doerfels",
+                "customKey": "696969",
+                "customValue": "1",
                 "fee": false
-              },
-              {
-                "type": "node",
-                "address": "035ad2c954e264004986da2d9499e1732e5175e1dcef2453c921c6cdcc3536e9d8",
-                "split": 5,
-                "name": "Sovereign Feeds",
-                "fee": true
               },
               {
                 "type": "lnaddress",
@@ -166,36 +101,15 @@
                 "split": 5,
                 "name": "Sovereign Feeds",
                 "fee": false
-              },
-              {
-                "type": "node",
-                "address": "03460a453d13c98ff06b36b3b6a8c06a7b48328ad5f983dacc3a7b0991b841bc57",
-                "split": 5,
-                "name": "DV Tech Support",
-                "fee": false
-              },
-              {
-                "type": "node",
-                "address": "032870511bfa0309bab3ca1832ead69eed848a4abddbc4d50e55bb2157f9525e51",
-                "split": 10,
-                "name": "DV Music App",
-                "fee": false
               }
             ]
           },
           "paymentRecipients": [
             {
               "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-              "split": 80,
-              "name": "Sir TJ The Wrathful",
+              "split": 95,
+              "name": "The Doerfels",
               "fee": false,
-              "type": "node"
-            },
-            {
-              "address": "035ad2c954e264004986da2d9499e1732e5175e1dcef2453c921c6cdcc3536e9d8",
-              "split": 5,
-              "name": "Sovereign Feeds",
-              "fee": true,
               "type": "node"
             },
             {
@@ -204,53 +118,27 @@
               "name": "Sovereign Feeds",
               "fee": false,
               "type": "lnaddress"
-            },
-            {
-              "address": "03460a453d13c98ff06b36b3b6a8c06a7b48328ad5f983dacc3a7b0991b841bc57",
-              "split": 5,
-              "name": "DV Tech Support",
-              "fee": false,
-              "type": "node"
-            },
-            {
-              "address": "032870511bfa0309bab3ca1832ead69eed848a4abddbc4d50e55bb2157f9525e51",
-              "split": 10,
-              "name": "DV Music App",
-              "fee": false,
-              "type": "node"
             }
           ],
-          "guid": "b9c1c065-9f1b-4e24-a5cc-296cf39766e2",
-          "feedGuid": "4a483a4b-867c-50d5-a61a-e99fe03ea57e",
-          "imageUrl": "https://www.doerfelverse.com/art/the-banjo.png"
+          "guid": "1d8cdc03-bd21-4ccf-a4df-77e1c873989f",
+          "feedGuid": "97dfa881-a9de-54b0-a35f-100939930c2b",
+          "imageUrl": "https://www.doerfelverse.com/art/them.png"
         },
         {
-          "title": "DOWN YONDER",
-          "duration": "2:26",
-          "url": "https://www.doerfelverse.com/tracks/down-yonder101.mp3",
+          "title": "With Or Without You feat. HP Campus School Choir",
+          "duration": "3:49",
+          "url": "https://www.doerfelverse.com/tracks/with-or-without-you.mp3",
           "trackNumber": 3,
-          "subtitle": "DOWN YONDER",
-          "summary": "DOWN YONDER by TJ Doerfel",
-          "image": "https://www.doerfelverse.com/art/down-yonder.png",
+          "subtitle": "With Or Without You feat. HP Campus School Choir",
+          "summary": "With Or Without You by The Doerfels",
+          "image": "https://www.doerfelverse.com/art/them.png",
           "explicit": false,
           "keywords": [
-            "sir",
-            "tj",
-            "the",
-            "wrathful",
-            "doerfel",
             "doerfels",
-            "wrath",
-            "of",
-            "banjo",
-            "metal",
-            "in",
-            "banjoverse",
-            "valueverse",
-            "music",
-            "rock",
-            "down",
-            "yonder"
+            "them",
+            "doerfelverse",
+            "the",
+            "v4vmusic"
           ],
           "value": {
             "type": "lightning",
@@ -260,29 +148,10 @@
               {
                 "type": "node",
                 "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-                "split": 100,
-                "name": "Sir TJ The Wrathful",
-                "fee": false
-              },
-              {
-                "type": "node",
-                "address": "035ad2c954e264004986da2d9499e1732e5175e1dcef2453c921c6cdcc3536e9d8",
-                "split": 5,
-                "name": "Sovereign Feeds",
-                "fee": true
-              },
-              {
-                "type": "node",
-                "address": "032870511bfa0309bab3ca1832ead69eed848a4abddbc4d50e55bb2157f9525e51",
-                "split": 10,
-                "name": "DV Music App",
-                "fee": false
-              },
-              {
-                "type": "node",
-                "address": "03460a453d13c98ff06b36b3b6a8c06a7b48328ad5f983dacc3a7b0991b841bc57",
-                "split": 5,
-                "name": "DV Tech Support",
+                "split": 95,
+                "name": "The Doerfels",
+                "customKey": "696969",
+                "customValue": "1",
                 "fee": false
               },
               {
@@ -297,29 +166,8 @@
           "paymentRecipients": [
             {
               "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-              "split": 100,
-              "name": "Sir TJ The Wrathful",
-              "fee": false,
-              "type": "node"
-            },
-            {
-              "address": "035ad2c954e264004986da2d9499e1732e5175e1dcef2453c921c6cdcc3536e9d8",
-              "split": 5,
-              "name": "Sovereign Feeds",
-              "fee": true,
-              "type": "node"
-            },
-            {
-              "address": "032870511bfa0309bab3ca1832ead69eed848a4abddbc4d50e55bb2157f9525e51",
-              "split": 10,
-              "name": "DV Music App",
-              "fee": false,
-              "type": "node"
-            },
-            {
-              "address": "03460a453d13c98ff06b36b3b6a8c06a7b48328ad5f983dacc3a7b0991b841bc57",
-              "split": 5,
-              "name": "DV Tech Support",
+              "split": 95,
+              "name": "The Doerfels",
               "fee": false,
               "type": "node"
             },
@@ -331,19 +179,367 @@
               "type": "lnaddress"
             }
           ],
-          "guid": "cf819594-4a34-43c6-9666-26e5fa764de6",
-          "feedGuid": "4a483a4b-867c-50d5-a61a-e99fe03ea57e",
-          "imageUrl": "https://www.doerfelverse.com/art/down-yonder.png"
-        }
-      ],
-      "releaseDate": "Thu, 22 Jan 2026 00:18:20 +0000",
-      "link": "https://www.doerfelverse.com",
-      "funding": [
+          "guid": "37db2ce4-dad8-4919-b4c9-1dfc7ed9dc27",
+          "feedGuid": "97dfa881-a9de-54b0-a35f-100939930c2b",
+          "imageUrl": "https://www.doerfelverse.com/art/them.png"
+        },
         {
-          "url": "https://www.paypal.com/donate/?hosted_button_id=ATL9BD9EQRSNN",
-          "message": "If my music has brought you value, you can support me here :)"
+          "title": "Goodbye Stranger",
+          "duration": "4:00",
+          "url": "https://www.doerfelverse.com/tracks/goodbye-stranger.mp3",
+          "trackNumber": 4,
+          "subtitle": "Goodbye Stranger",
+          "summary": "Goodbye Stranger by The Doerfels",
+          "image": "https://www.doerfelverse.com/art/them.png",
+          "explicit": false,
+          "keywords": [
+            "doerfels",
+            "them",
+            "doerfelverse",
+            "the",
+            "v4vmusic"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 95,
+                "name": "The Doerfels",
+                "customKey": "696969",
+                "customValue": "1",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 95,
+              "name": "The Doerfels",
+              "fee": false,
+              "type": "node"
+            },
+            {
+              "address": "steven@getalby.com",
+              "split": 5,
+              "name": "Sovereign Feeds",
+              "fee": false,
+              "type": "lnaddress"
+            }
+          ],
+          "guid": "db907cbb-8f8f-4323-8e8a-93695fe98398",
+          "feedGuid": "97dfa881-a9de-54b0-a35f-100939930c2b",
+          "imageUrl": "https://www.doerfelverse.com/art/them.png"
+        },
+        {
+          "title": "Stay",
+          "duration": "4:11",
+          "url": "https://www.doerfelverse.com/tracks/stay.mp3",
+          "trackNumber": 5,
+          "subtitle": "Stay",
+          "summary": "Stay by The Doerfels",
+          "image": "https://www.doerfelverse.com/art/them.png",
+          "explicit": false,
+          "keywords": [
+            "doerfels",
+            "them",
+            "doerfelverse",
+            "the",
+            "v4vmusic"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 95,
+                "name": "The Doerfels",
+                "customKey": "696969",
+                "customValue": "1",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 95,
+              "name": "The Doerfels",
+              "fee": false,
+              "type": "node"
+            },
+            {
+              "address": "steven@getalby.com",
+              "split": 5,
+              "name": "Sovereign Feeds",
+              "fee": false,
+              "type": "lnaddress"
+            }
+          ],
+          "guid": "b5f23697-1027-476d-a342-7e552daaeaa4",
+          "feedGuid": "97dfa881-a9de-54b0-a35f-100939930c2b",
+          "imageUrl": "https://www.doerfelverse.com/art/them.png"
+        },
+        {
+          "title": "I Like Me Better",
+          "duration": "3:58",
+          "url": "https://www.doerfelverse.com/tracks/i-like-me-better.mp3",
+          "trackNumber": 6,
+          "subtitle": "I Like Me Better",
+          "summary": "I Like Me Better by The Doerfels",
+          "image": "https://www.doerfelverse.com/art/them.png",
+          "explicit": false,
+          "keywords": [
+            "doerfels",
+            "them",
+            "doerfelverse",
+            "the",
+            "v4vmusic"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 95,
+                "name": "The Doerfels",
+                "customKey": "696969",
+                "customValue": "1",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 95,
+              "name": "The Doerfels",
+              "fee": false,
+              "type": "node"
+            },
+            {
+              "address": "steven@getalby.com",
+              "split": 5,
+              "name": "Sovereign Feeds",
+              "fee": false,
+              "type": "lnaddress"
+            }
+          ],
+          "guid": "818cfc2b-1383-401a-9d69-644182d41400",
+          "feedGuid": "97dfa881-a9de-54b0-a35f-100939930c2b",
+          "imageUrl": "https://www.doerfelverse.com/art/them.png"
+        },
+        {
+          "title": "No Promises",
+          "duration": "3:36",
+          "url": "https://www.doerfelverse.com/tracks/no-promises.mp3",
+          "trackNumber": 7,
+          "subtitle": "No Promises",
+          "summary": "No Promises by The Doerfels",
+          "image": "https://www.doerfelverse.com/art/them.png",
+          "explicit": false,
+          "keywords": [
+            "doerfels",
+            "them",
+            "doerfelverse",
+            "the",
+            "v4vmusic"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 95,
+                "name": "The Doerfels",
+                "customKey": "696969",
+                "customValue": "1",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 95,
+              "name": "The Doerfels",
+              "fee": false,
+              "type": "node"
+            },
+            {
+              "address": "steven@getalby.com",
+              "split": 5,
+              "name": "Sovereign Feeds",
+              "fee": false,
+              "type": "lnaddress"
+            }
+          ],
+          "guid": "f07aab0b-9bd7-4f2a-8d3f-fd26011a787f",
+          "feedGuid": "97dfa881-a9de-54b0-a35f-100939930c2b",
+          "imageUrl": "https://www.doerfelverse.com/art/them.png"
+        },
+        {
+          "title": "Use Somebody/Streets - Live 2017",
+          "duration": "8:54",
+          "url": "https://www.doerfelverse.com/tracks/use-somebody-streets-live.mp3",
+          "trackNumber": 8,
+          "subtitle": "Use Somebody/Streets - Live 2017",
+          "summary": "Use Somebody/Streets - Live 2017 by The Doerfels",
+          "image": "https://www.doerfelverse.com/art/them.png",
+          "explicit": false,
+          "keywords": [
+            "doerfels",
+            "them",
+            "doerfelverse",
+            "the",
+            "v4vmusic"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 95,
+                "name": "The Doerfels",
+                "customKey": "696969",
+                "customValue": "1",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 95,
+              "name": "The Doerfels",
+              "fee": false,
+              "type": "node"
+            },
+            {
+              "address": "steven@getalby.com",
+              "split": 5,
+              "name": "Sovereign Feeds",
+              "fee": false,
+              "type": "lnaddress"
+            }
+          ],
+          "guid": "c5c21628-8818-4c47-b944-23ffa7cb937f",
+          "feedGuid": "97dfa881-a9de-54b0-a35f-100939930c2b",
+          "imageUrl": "https://www.doerfelverse.com/art/them.png"
+        },
+        {
+          "title": "Good Times Bad Times Pure - Live 2017",
+          "duration": "3:31",
+          "url": "https://www.doerfelverse.com/tracks/good-times-bad-times-live.mp3",
+          "trackNumber": 9,
+          "subtitle": "Good Times Bad Times Pure - Live 2017",
+          "summary": "Good Times Bad Times Pure - Live 2017 by The Doerfels",
+          "image": "https://www.doerfelverse.com/art/them.png",
+          "explicit": false,
+          "keywords": [
+            "doerfels",
+            "them",
+            "doerfelverse",
+            "the",
+            "v4vmusic"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 95,
+                "name": "The Doerfels",
+                "customKey": "696969",
+                "customValue": "1",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 95,
+              "name": "The Doerfels",
+              "fee": false,
+              "type": "node"
+            },
+            {
+              "address": "steven@getalby.com",
+              "split": 5,
+              "name": "Sovereign Feeds",
+              "fee": false,
+              "type": "lnaddress"
+            }
+          ],
+          "guid": "78aad92d-3cde-46e0-b0b2-8e4d8e0e2c13",
+          "feedGuid": "97dfa881-a9de-54b0-a35f-100939930c2b",
+          "imageUrl": "https://www.doerfelverse.com/art/them.png"
         }
       ],
+      "releaseDate": "Wed, 04 Mar 2026 15:48:35 +0000",
+      "link": "https://www.doerfelverse.com",
       "value": {
         "type": "lightning",
         "method": "keysend",
@@ -352,16 +548,11 @@
           {
             "type": "node",
             "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-            "split": 80,
-            "name": "Sir TJ The Wrathful",
+            "split": 95,
+            "name": "The Doerfels",
+            "customKey": "696969",
+            "customValue": "1",
             "fee": false
-          },
-          {
-            "type": "lnaddress",
-            "address": "steven@curiohoster.com",
-            "split": 5,
-            "name": "Sovereign Feeds",
-            "fee": true
           },
           {
             "type": "lnaddress",
@@ -369,41 +560,17 @@
             "split": 5,
             "name": "Sovereign Feeds",
             "fee": false
-          },
-          {
-            "type": "node",
-            "address": "032870511bfa0309bab3ca1832ead69eed848a4abddbc4d50e55bb2157f9525e51",
-            "split": 10,
-            "name": "DV Music App",
-            "fee": false
-          },
-          {
-            "type": "lnaddress",
-            "address": "03460a453d13c98ff06b36b3b6a8c06a7b48328ad5f983dacc3a7b0991b841bc57",
-            "split": 5,
-            "name": "DV Tech Support",
-            "fee": false
           }
         ]
       },
-      "subtitle": "METAL IN THE BANJO",
-      "summary": "METAL IN THE BANJO by TJ Doerfel(Sir TJ The Wrathful)\nI made this song for Sir Libre after somehow it came up in discussion that I should make a metal banjo song. It took on it's own sound, not exactly metal, but close enough. However, after over 25 hours of creating and producing it, my Macbook with all the projects files, it's hard drive died. I was unable to recover the project or anything else on it and after trying to remove the HD, smashed it with a hammer with wrath. I had saved a few semi-mixed versions, and decided to move forward and release it. \nFun fact: 5 string banjos are surprisingly heavy, coming in at around 12 pounds. It's because other than the neck, it has a lot of metal pecies that help make up its tone.",
+      "subtitle": "Good Times Bad Times",
+      "summary": "Good Times Bad Times by The Doerfels",
       "keywords": [
-        "sir",
-        "tj",
-        "the",
-        "wrathful",
-        "doerfel",
         "doerfels",
-        "wrath",
-        "of",
-        "banjo",
-        "metal",
-        "in",
-        "banjoverse",
-        "valueverse",
-        "music",
-        "rock"
+        "them",
+        "doerfelverse",
+        "the",
+        "v4vmusic"
       ],
       "categories": [
         "Music"
@@ -412,24 +579,41 @@
       "language": "en",
       "podroll": [
         {
-          "url": "https://www.sirtjthewrathful.com/wp-content/uploads/2023/07/Beware-of-Banjo.xml",
-          "title": "Feed c3fb85f3..."
+          "url": "https://www.doerfelverse.com/feeds/disco-swag-album.xml",
+          "title": "Feed b2a87a4c..."
+        },
+        {
+          "url": "https://www.doerfelverse.com/feeds/bloodshot-lies-album.xml",
+          "title": "Feed a1077af6..."
+        },
+        {
+          "url": "https://www.doerfelverse.com/feeds/think-ep.xml",
+          "title": "Feed af99d1b4..."
+        },
+        {
+          "url": "https://www.doerfelverse.com/feeds/think-ep-live.xml",
+          "title": "Feed c49ec2b5..."
+        },
+        {
+          "url": "https://www.doerfelverse.com/feeds/your-chance.xml",
+          "title": "Feed 4ab3741a..."
+        },
+        {
+          "url": "https://www.doerfelverse.com/feeds/jam-with-nate.xml",
+          "title": "Feed dbfd9254..."
+        },
+        {
+          "url": "https://www.doerfelverse.com/feeds/intothedoerfelverse.xml",
+          "title": "Feed 41aace28..."
         }
       ],
       "paymentRecipients": [
         {
           "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-          "split": 80,
-          "name": "Sir TJ The Wrathful",
+          "split": 95,
+          "name": "The Doerfels",
           "fee": false,
           "type": "node"
-        },
-        {
-          "address": "steven@curiohoster.com",
-          "split": 5,
-          "name": "Sovereign Feeds",
-          "fee": true,
-          "type": "lnaddress"
         },
         {
           "address": "steven@getalby.com",
@@ -437,29 +621,15 @@
           "name": "Sovereign Feeds",
           "fee": false,
           "type": "lnaddress"
-        },
-        {
-          "address": "032870511bfa0309bab3ca1832ead69eed848a4abddbc4d50e55bb2157f9525e51",
-          "split": 10,
-          "name": "DV Music App",
-          "fee": false,
-          "type": "node"
-        },
-        {
-          "address": "03460a453d13c98ff06b36b3b6a8c06a7b48328ad5f983dacc3a7b0991b841bc57",
-          "split": 5,
-          "name": "DV Tech Support",
-          "fee": false,
-          "type": "lnaddress"
         }
       ],
-      "feedGuid": "4a483a4b-867c-50d5-a61a-e99fe03ea57e",
-      "feedUrl": "https://www.doerfelverse.com/feeds/wrath-of-banjo.xml",
-      "imageUrl": "https://www.doerfelverse.com/art/wrath-of-banjo.png",
-      "feedId": "www-doerfelverse-com-feeds-wrath-of-banjo-xml",
-      "lastUpdated": "2026-01-23T00:43:09.028Z"
+      "feedGuid": "97dfa881-a9de-54b0-a35f-100939930c2b",
+      "feedUrl": "PRIVATE_FEED_URL",
+      "imageUrl": "https://www.doerfelverse.com/art/them.png",
+      "feedId": "www-doerfelverse-com-feeds-them-xml",
+      "lastUpdated": "2026-03-04T17:04:27.546Z"
     }
   ],
   "count": 1,
-  "timestamp": "2026-01-23T00:43:09.051Z"
+  "timestamp": "2026-03-04T17:04:27.588Z"
 }
