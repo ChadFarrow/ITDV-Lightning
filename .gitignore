@@ -165,6 +165,9 @@ node_modules/
 data/cache/
 data/rss-cache/
 
+# Worktrees
+.worktrees/
+
 # Task files
 # tasks.json
 # tasks/ 
