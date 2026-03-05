@@ -3,6 +3,7 @@ import { FeedManager, FeedsData, Feed } from '@/lib/feed-manager';
 import { RSSParser } from '@/lib/rss-parser';
 import { validateSession } from '@/lib/admin-auth';
 import { commitFiles, isGitHubConfigured } from '@/lib/github';
+import { checkFeedOnPodcastIndex } from '@/lib/podcast-index';
 import fs from 'fs';
 import path from 'path';
 
@@ -35,8 +36,37 @@ function readJsonFile<T>(relativePath: string, defaultValue: T): T {
   return defaultValue;
 }
 
+// Data file paths that should have private URLs redacted in GitHub commits
+const DATA_FILE_PATHS = [FEEDS_PATH, STATIC_ALBUMS_PATH, CACHED_ALBUMS_PATH, ALBUM_INDEX_PATH];
+
+// Redact private feed URLs from file contents before committing to GitHub
+function redactPrivateUrls(files: { path: string; content: string }[], privateUrls: Set<string>): { path: string; content: string }[] {
+  if (privateUrls.size === 0) return files;
+
+  return files.map(file => {
+    if (!DATA_FILE_PATHS.includes(file.path)) return file;
+
+    let content = file.content;
+    Array.from(privateUrls).forEach(url => {
+      content = content.split(url).join('PRIVATE_FEED_URL');
+    });
+    return { path: file.path, content };
+  });
+}
+
+// Collect private feed URLs from feeds.json data
+function collectPrivateUrls(feedsData: FeedsData): Set<string> {
+  const privateUrls = new Set<string>();
+  for (const feed of feedsData.feeds) {
+    if (feed.isPrivate) {
+      privateUrls.add(feed.originalUrl);
+    }
+  }
+  return privateUrls;
+}
+
 // Helper to write files - uses GitHub on Vercel, filesystem locally
-async function writeFiles(files: { path: string; content: string }[], commitMessage: string): Promise<{ success: boolean; error?: string; deployed?: boolean }> {
+async function writeFiles(files: { path: string; content: string }[], commitMessage: string, privateUrls?: Set<string>): Promise<{ success: boolean; error?: string; deployed?: boolean }> {
   console.log(`writeFiles called - IS_VERCEL: ${IS_VERCEL}, VERCEL env: ${process.env.VERCEL}, VERCEL_URL: ${process.env.VERCEL_URL}`);
 
   if (IS_VERCEL) {
@@ -45,14 +75,19 @@ async function writeFiles(files: { path: string; content: string }[], commitMess
     if (!isGitHubConfigured()) {
       return { success: false, error: 'GITHUB_TOKEN not configured on Vercel' };
     }
-    const result = await commitFiles(files, commitMessage);
+    // Redact private feed URLs before committing to GitHub
+    const filesToCommit = privateUrls ? redactPrivateUrls(files, privateUrls) : files;
+    if (privateUrls && privateUrls.size > 0) {
+      console.log(`🔒 Redacted ${privateUrls.size} private feed URL(s) from GitHub commit`);
+    }
+    const result = await commitFiles(filesToCommit, commitMessage);
     if (result.success) {
       return { success: true, deployed: true };
     }
     return { success: false, error: result.error };
   } else {
     console.log('Using filesystem write method for local development');
-    // Local development: write directly to filesystem
+    // Local development: write directly to filesystem (keep real URLs)
     try {
       for (const file of files) {
         const fullPath = path.join(process.cwd(), file.path);
@@ -269,6 +304,13 @@ export async function POST(request: NextRequest) {
         // Generate ID
         const id = generateIdFromUrl(feedUrl);
 
+        // Check if feed is indexed on Podcast Index
+        const piResult = await checkFeedOnPodcastIndex(feedUrl);
+        const isPrivate = !piResult.found;
+        if (isPrivate) {
+          console.log(`🔒 Feed not found on Podcast Index, marking as private: ${feedUrl}`);
+        }
+
         // Prepare feed data
         feedsToAdd.push({
           id,
@@ -278,6 +320,7 @@ export async function POST(request: NextRequest) {
           priority,
           status,
           ...(trackFilter && { trackFilter }),
+          ...(isPrivate && { isPrivate: true }),
         });
 
         // Prepare album files
@@ -314,8 +357,15 @@ export async function POST(request: NextRequest) {
 
     // Write all files (locally or via GitHub)
     if (allFilesToWrite.length > 0) {
+      // Collect all private URLs (existing + newly added) for redaction
+      const currentFeedsData = readJsonFile<FeedsData>(FEEDS_PATH, { feeds: [], lastUpdated: '', version: 1 });
+      const privateUrls = collectPrivateUrls(currentFeedsData);
+      for (const feed of feedsToAdd) {
+        if (feed.isPrivate) privateUrls.add(feed.originalUrl);
+      }
+
       const titles = addedFeeds.map(f => f.title).join(', ');
-      const writeResult = await writeFiles(allFilesToWrite, `Add feed(s): ${titles}`);
+      const writeResult = await writeFiles(allFilesToWrite, `Add feed(s): ${titles}`, privateUrls);
       if (!writeResult.success) {
         return NextResponse.json(
           { error: `Failed to write files: ${writeResult.error}` },
@@ -413,12 +463,20 @@ export async function PUT(request: NextRequest) {
 
         if (existingFeedIndex >= 0) {
           // Update existing feed's lastUpdated timestamp and title
+          // Preserve existing isPrivate flag
           feedsData.feeds[existingFeedIndex] = {
             ...feedsData.feeds[existingFeedIndex],
             title: album.title,
             lastUpdated: new Date().toISOString()
           };
         } else {
+          // New feed being added via reparse — check if it's private
+          const piResult = await checkFeedOnPodcastIndex(feedUrl);
+          const isPrivate = !piResult.found;
+          if (isPrivate) {
+            console.log(`🔒 Feed not found on Podcast Index, marking as private: ${feedUrl}`);
+          }
+
           // Add new feed to feeds.json so it shows in Current Feeds
           feedsData.feeds.push({
             id,
@@ -427,6 +485,7 @@ export async function PUT(request: NextRequest) {
             title: album.title,
             priority: 'extended',
             status: 'active',
+            ...(isPrivate && { isPrivate: true }),
             addedAt: new Date().toISOString(),
             lastUpdated: new Date().toISOString()
           });
@@ -456,8 +515,11 @@ export async function PUT(request: NextRequest) {
 
     // Write all files (locally or via GitHub)
     if (allFilesToWrite.length > 0) {
+      // Collect private URLs for redaction in GitHub commits
+      const privateUrls = collectPrivateUrls(feedsData);
+
       const titles = reparsedFeeds.map(f => f.title).join(', ');
-      const writeResult = await writeFiles(allFilesToWrite, `Update static data with reparsed ${titles.length > 50 ? titles.substring(0, 50) + '...' : titles} feed`);
+      const writeResult = await writeFiles(allFilesToWrite, `Update static data with reparsed ${titles.length > 50 ? titles.substring(0, 50) + '...' : titles} feed`, privateUrls);
       if (!writeResult.success) {
         return NextResponse.json(
           { error: `Failed to write files: ${writeResult.error}` },
@@ -514,8 +576,12 @@ export async function DELETE(request: NextRequest) {
     const albumFiles = prepareAlbumFilesForRemove(id);
     allFilesToWrite.push(...albumFiles);
 
+    // Collect private URLs for redaction (from remaining feeds after removal)
+    const remainingFeedsData = readJsonFile<FeedsData>(FEEDS_PATH, { feeds: [], lastUpdated: '', version: 1 });
+    const privateUrls = collectPrivateUrls(remainingFeedsData);
+
     // Write all files
-    const writeResult = await writeFiles(allFilesToWrite, `Remove feed: ${id}`);
+    const writeResult = await writeFiles(allFilesToWrite, `Remove feed: ${id}`, privateUrls);
     if (!writeResult.success) {
       return NextResponse.json(
         { error: `Failed to write files: ${writeResult.error}` },

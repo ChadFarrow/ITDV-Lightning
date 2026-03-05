@@ -11,6 +11,7 @@ export interface Feed {
   trackFilter?: string; // Optional filter to only include tracks matching this string (e.g., artist name)
   addedAt: string;
   lastUpdated: string;
+  isPrivate?: boolean; // True if feed is not indexed on Podcast Index
   source?: 'manual' | 'podroll' | 'recursive'; // Track how the feed was discovered
   discoveredFrom?: string; // URL of the parent feed if discovered via podroll
 }
