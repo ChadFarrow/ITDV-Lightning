@@ -596,19 +596,23 @@ export default function HomePage() {
     }
   };
 
+  // Detect iOS PWA standalone mode (added to home screen)
+  const isIOSPWA = typeof window !== 'undefined' &&
+    ('standalone' in window.navigator && (window.navigator as any).standalone === true);
+
   const loadAlbumsData = async () => {
     try {
       // Check for cache-busting query parameter
       const urlParams = new URLSearchParams(window.location.search);
       const forceRefresh = urlParams.get('refresh') === '1' || urlParams.get('nocache') === '1';
-      
+
       // Clear client-side cache if force refresh requested
       if (forceRefresh && typeof window !== 'undefined') {
         safeLocalStorage.removeItem('cachedAlbums');
         safeLocalStorage.removeItem('albumsCacheTimestamp');
         console.log('🔄 Client-side cache cleared due to refresh parameter');
       }
-      
+
       // Check for cached albums first - use longer cache time for better performance
       if (!forceRefresh && typeof window !== 'undefined') {
         const cached = safeLocalStorage.getItem('cachedAlbums');
@@ -620,30 +624,57 @@ export default function HomePage() {
         }
       }
 
-      // Use static cached data for fast loading (optimized timeouts)
-      let response;
-      let data;
+      // iOS PWA cold start: network may not be ready immediately
+      // Use longer timeouts and retry logic for PWA standalone mode
+      const staticTimeout = isIOSPWA ? 3000 : 1000;
+      const albumsTimeout = isIOSPWA ? 6000 : 3000;
+      const maxRetries = isIOSPWA ? 2 : 0;
 
-      try {
-        // Try the fastest endpoint first (in-memory cached) with shorter timeout
-        // Add refresh parameter to force server-side cache clear
-        const staticUrl = forceRefresh ? '/api/albums-static-cached?refresh=1' : '/api/albums-static-cached';
-        response = await fetchWithTimeout(staticUrl, 1000);
-        if (response?.ok) {
-          data = await response.json();
-        }
-      } catch (error) {
-        // Silently handle errors - will try fallback
-      }
+      // Helper to attempt fetching albums from API endpoints
+      const attemptFetch = async (): Promise<any> => {
+        let response;
+        let data;
 
-      // Only try fallback if static cache failed (with longer timeout for RSS parsing)
-      // Add refresh parameter to force server-side cache clear
-      if (!data) {
         try {
-          const albumsUrl = forceRefresh ? '/api/albums?refresh=1' : '/api/albums';
-          response = await fetchWithTimeout(albumsUrl, 3000);
+          const staticUrl = forceRefresh ? '/api/albums-static-cached?refresh=1' : '/api/albums-static-cached';
+          response = await fetchWithTimeout(staticUrl, staticTimeout);
           if (response?.ok) {
             data = await response.json();
+          }
+        } catch (error) {
+          // Silently handle errors - will try fallback
+        }
+
+        if (!data) {
+          try {
+            const albumsUrl = forceRefresh ? '/api/albums?refresh=1' : '/api/albums';
+            response = await fetchWithTimeout(albumsUrl, albumsTimeout);
+            if (response?.ok) {
+              data = await response.json();
+            }
+          } catch (error) {
+            // Silently handle errors
+          }
+        }
+
+        return data;
+      };
+
+      // Try fetching, with retries for iOS PWA cold start
+      let data = await attemptFetch();
+
+      for (let retry = 0; retry < maxRetries && !data; retry++) {
+        // Wait before retrying - gives iOS networking time to initialize
+        await new Promise(resolve => setTimeout(resolve, 1000 * (retry + 1)));
+        data = await attemptFetch();
+      }
+
+      // Last resort: try loading the static JSON file directly from public folder
+      if (!data) {
+        try {
+          const staticResponse = await fetchWithTimeout('/static-albums.json', 5000);
+          if (staticResponse?.ok) {
+            data = await staticResponse.json();
           }
         } catch (error) {
           // Silently handle errors

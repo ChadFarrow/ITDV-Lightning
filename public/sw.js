@@ -1,5 +1,5 @@
-const CACHE_NAME = 'itdv-music-v1';
-const STATIC_CACHE_NAME = 'itdv-static-v1';
+const CACHE_NAME = 'itdv-music-v2';
+const STATIC_CACHE_NAME = 'itdv-static-v2';
 
 // Files to cache for offline functionality and performance
 const STATIC_FILES = [
@@ -109,7 +109,22 @@ self.addEventListener('fetch', (event) => {
         })
         .catch(() => {
           // Serve cached API responses when offline
-          return caches.match(request);
+          // IMPORTANT: Must return a valid Response, never undefined
+          // On iOS WebKit, respondWith(undefined) causes a network error
+          return caches.match(request).then((cachedResponse) => {
+            if (cachedResponse) {
+              return cachedResponse;
+            }
+            // Return a proper error response instead of undefined
+            return new Response(
+              JSON.stringify({ error: 'Offline and no cached data available', albums: [] }),
+              {
+                status: 503,
+                statusText: 'Service Unavailable',
+                headers: { 'Content-Type': 'application/json' }
+              }
+            );
+          });
         })
     );
     return;
