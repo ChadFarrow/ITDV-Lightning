@@ -279,11 +279,27 @@ export default function HomePage() {
         if (album.title === 'LNURL Testing Podcast') {
           return;
         }
-        
+
+        // Check if this is a Satellite Spotlight/Skirmish compilation album
+        const isSatelliteAlbum = album.title?.toLowerCase().includes('satellite spotlight') ||
+                                  album.title?.toLowerCase().includes('satellite skirmish') ||
+                                  album.artist?.toLowerCase().includes('satellite skirmish') ||
+                                  album.artist?.toLowerCase().includes('satellite spotlight');
+
         album.tracks.forEach(track => {
           // Skip video-only tracks (no audio URL) - shuffle is audio only
           if (!track.url) {
             return;
+          }
+
+          // For Satellite Spotlight/Skirmish albums, only include Doerfels and CityBeach tracks
+          if (isSatelliteAlbum) {
+            const titleLower = track.title?.toLowerCase() || '';
+            const isDoerfels = titleLower.includes('doerfel');
+            const isCityBeach = titleLower.includes('citybeach');
+            if (!isDoerfels && !isCityBeach) {
+              return;
+            }
           }
           // Create track object that matches AudioContext's Track interface
           allTracks.push({
