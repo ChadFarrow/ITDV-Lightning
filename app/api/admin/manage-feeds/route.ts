@@ -598,8 +598,9 @@ export async function DELETE(request: NextRequest) {
       message: writeResult.deployed ? 'Changes committed to GitHub. Site will redeploy automatically.' : undefined,
     });
   } catch (error) {
+    console.error('Error removing feed:', error);
     return NextResponse.json(
-      { error: 'Failed to remove feed' },
+      { error: `Failed to remove feed: ${error instanceof Error ? error.message : String(error)}` },
       { status: 500 }
     );
   }

@@ -307,10 +307,12 @@ export default function AdminFeedManager() {
         showMessage('success', 'Feed deleted successfully!');
         loadFeeds();
       } else {
-        showMessage('error', 'Failed to delete feed');
+        const data = await response.json().catch(() => ({}));
+        const detail = data.error || `Server returned ${response.status}`;
+        showMessage('error', `Failed to delete feed: ${detail}`);
       }
     } catch (error) {
-      showMessage('error', 'Failed to delete feed');
+      showMessage('error', `Failed to delete feed: ${error instanceof Error ? error.message : 'Network error'}`);
     }
   };
 
