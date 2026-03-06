@@ -4,12 +4,10 @@ if (typeof window !== 'undefined') {
   console.log('🧹 FORCE CLEARING ALL PRODUCTION CACHES...');
   
   // Clear localStorage
-  localStorage.clear();
-  console.log('🗑️  localStorage cleared');
-  
+  try { localStorage.clear(); console.log('🗑️  localStorage cleared'); } catch (e) { console.log('⚠️  localStorage not available'); }
+
   // Clear sessionStorage
-  sessionStorage.clear();
-  console.log('🗑️  sessionStorage cleared');
+  try { sessionStorage.clear(); console.log('🗑️  sessionStorage cleared'); } catch (e) { console.log('⚠️  sessionStorage not available'); }
   
   // Clear all caches
   if ('caches' in window) {

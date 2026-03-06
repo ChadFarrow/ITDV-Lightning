@@ -7,6 +7,7 @@ import {
   type Event,
   type EventTemplate
 } from 'nostr-tools';
+import { safeLocalStorage } from '@/lib/safe-storage';
 
 export interface NWCConnection {
   relay: string;
@@ -178,8 +179,8 @@ export class NWCService {
       console.log('✅ Connected to NWC wallet:', info);
       
       // Store the connection string for future use
-      if (typeof window !== 'undefined' && window.localStorage) {
-        window.localStorage.setItem('nwc_connection_string', connectionString);
+      if (typeof window !== 'undefined') {
+        safeLocalStorage.setItem('nwc_connection_string', connectionString);
       }
     } catch (error) {
       this.connection = null;

@@ -14,15 +14,28 @@ export interface ExtractedColors {
   isDark: boolean;
 }
 
+// Default fallback colors for when canvas extraction fails (e.g., DuckDuckGo browser blocks canvas)
+const FALLBACK_COLORS: ExtractedColors = {
+  dominant: 'rgb(64, 64, 64)',
+  palette: {
+    primary: 'hsl(0, 0%, 25%)',
+    secondary: 'hsl(0, 0%, 35%)',
+    accent: 'hsl(220, 15%, 30%)',
+    background: 'linear-gradient(135deg, hsl(0, 0%, 10%) 0%, hsl(0, 0%, 5%) 100%)',
+    text: '#ffffff'
+  },
+  isDark: true
+};
+
 // Extract dominant colors from an image using Canvas API
 export const extractColorsFromImage = async (imageUrl: string): Promise<ExtractedColors> => {
   return new Promise((resolve, reject) => {
     console.log('🖼️ Starting color extraction for:', imageUrl);
     const img = new Image();
-    
+
     // Handle different image sources
     let finalUrl = imageUrl;
-    
+
     // Always use proxy for external URLs to avoid CORS issues
     if (imageUrl.startsWith('http')) {
       // Convert HTTP to HTTPS if needed
@@ -34,28 +47,37 @@ export const extractColorsFromImage = async (imageUrl: string): Promise<Extracte
       finalUrl = `/api/proxy-image?url=${encodeURIComponent(secureUrl)}`;
       console.log('🔄 Using proxy for image:', secureUrl, '→', finalUrl);
     }
-    
+
     img.crossOrigin = 'anonymous';
-    
+
     img.onload = () => {
       try {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
-        
+
         if (!ctx) {
-          reject(new Error('Could not get canvas context'));
+          // Canvas context unavailable (privacy browsers may block this)
+          console.warn('Canvas context unavailable, using fallback colors');
+          resolve(FALLBACK_COLORS);
           return;
         }
 
         // Set canvas size (smaller for performance)
         canvas.width = 100;
         canvas.height = 100;
-        
+
         // Draw image to canvas
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        
-        // Get image data
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+        // Get image data - DuckDuckGo and privacy browsers may throw SecurityError here
+        let imageData;
+        try {
+          imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        } catch (canvasError) {
+          console.warn('Canvas getImageData blocked (privacy browser detected), using fallback colors');
+          resolve(FALLBACK_COLORS);
+          return;
+        }
         const data = imageData.data;
         
         // Collect all pixels for KMeans clustering
@@ -120,15 +142,15 @@ export const extractColorsFromImage = async (imageUrl: string): Promise<Extracte
           isDark
         });
       } catch (error) {
-        reject(error);
+        console.warn('Color extraction failed, using fallback colors:', error);
+        resolve(FALLBACK_COLORS);
       }
     };
-    
+
     img.onerror = (error) => {
-      console.error('Failed to load image from proxy:', finalUrl, error);
-      // Don't fallback to direct URL as it will fail with CORS
-      // Instead, just use a fallback color scheme
-      reject(new Error('Failed to load image from proxy'));
+      console.warn('Failed to load image for color extraction:', finalUrl, error);
+      // Use fallback colors instead of rejecting to prevent crashes
+      resolve(FALLBACK_COLORS);
     };
     
     img.src = finalUrl;

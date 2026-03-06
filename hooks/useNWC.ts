@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getNWCService, type NWCConnection } from '@/lib/nwc-service';
+import { safeLocalStorage } from '@/lib/safe-storage';
 
 interface UseNWCReturn {
   isConnected: boolean;
@@ -43,7 +44,7 @@ export function useNWC(): UseNWCReturn {
 
   // Load saved connection on mount
   useEffect(() => {
-    const savedConnection = localStorage.getItem(NWC_STORAGE_KEY);
+    const savedConnection = safeLocalStorage.getItem(NWC_STORAGE_KEY);
     if (savedConnection) {
       console.log('🔄 Auto-connecting with saved connection...');
       connect(savedConnection);
@@ -81,7 +82,7 @@ export function useNWC(): UseNWCReturn {
       console.log('✅ NWC wallet connected successfully');
       
       // Save to localStorage
-      localStorage.setItem(NWC_STORAGE_KEY, connString);
+      safeLocalStorage.setItem(NWC_STORAGE_KEY, connString);
       
       // Fetch initial balance
       await refreshBalance();
@@ -103,7 +104,7 @@ export function useNWC(): UseNWCReturn {
     setError(null);
     
     // Remove from localStorage
-    localStorage.removeItem(NWC_STORAGE_KEY);
+    safeLocalStorage.removeItem(NWC_STORAGE_KEY);
   }, [nwcService]);
 
   const payInvoice = useCallback(async (invoice: string) => {

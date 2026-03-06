@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { getBoostToNostrService, type TrackMetadata, type BoostResult } from '@/lib/boost-to-nostr-service';
 import type { Event } from 'nostr-tools';
 import { getPublicKey, nip19 } from 'nostr-tools';
+import { safeLocalStorage } from '@/lib/safe-storage';
 // Minimal subscription interface for type safety
 interface MinimalSubscription {
   close(): void;
@@ -72,9 +73,9 @@ export function useBoostToNostr(options: UseBoostToNostrOptions = {}): UseBoostT
         setPublicKey(pubKey);
         
         // Store keys in localStorage for persistence
-        const keys = localStorage.getItem('nostr_keys');
+        const keys = safeLocalStorage.getItem('nostr_keys');
         if (!keys) {
-          localStorage.setItem('nostr_keys', JSON.stringify({ publicKey: pubKey }));
+          safeLocalStorage.setItem('nostr_keys', JSON.stringify({ publicKey: pubKey }));
         }
       } else if (options.secretKey) {
         // Use provided secret key
@@ -97,7 +98,7 @@ export function useBoostToNostr(options: UseBoostToNostrOptions = {}): UseBoostT
     setPublicKey(pubKey);
     
     // Store in localStorage
-    localStorage.setItem('nostr_keys', JSON.stringify({ 
+    safeLocalStorage.setItem('nostr_keys', JSON.stringify({ 
       publicKey: pubKey,
       // Note: In production, you'd want to encrypt the secret key
       // or use a proper key management solution
@@ -146,11 +147,11 @@ export function useBoostToNostr(options: UseBoostToNostrOptions = {}): UseBoostT
         setBoostHistory(prev => [result.event, ...prev]);
         
         // Store in localStorage for persistence
-        const stored = localStorage.getItem('boost_history');
+        const stored = safeLocalStorage.getItem('boost_history');
         const history = stored ? JSON.parse(stored) : [];
         history.unshift(result.event);
         // Keep only last 50 boosts
-        localStorage.setItem('boost_history', JSON.stringify(history.slice(0, 50)));
+        safeLocalStorage.setItem('boost_history', JSON.stringify(history.slice(0, 50)));
         
         // Trigger a custom event for other components to listen to
         window.dispatchEvent(new CustomEvent('newBoost', { 
@@ -220,7 +221,7 @@ export function useBoostToNostr(options: UseBoostToNostrOptions = {}): UseBoostT
 
   // Load boost history from localStorage on mount
   useEffect(() => {
-    const stored = localStorage.getItem('boost_history');
+    const stored = safeLocalStorage.getItem('boost_history');
     if (stored) {
       try {
         const history = JSON.parse(stored);

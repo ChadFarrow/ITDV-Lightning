@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { useLightning } from './LightningContext';
+import { safeLocalStorage } from '@/lib/safe-storage';
 
 interface BitcoinConnectContextType {
   isConnected: boolean;
@@ -42,12 +43,12 @@ export function BitcoinConnectProvider({ children }: { children: ReactNode }) {
       const weblnEnabled = weblnExists && !!(window as any).webln?.enabled;
       
       // Check Bitcoin Connect state - enhanced for AlbyGo detection
-      const bcConnected = localStorage.getItem('bc:connectorType');
+      const bcConnected = safeLocalStorage.getItem('bc:connectorType');
       let bcConfig = null;
-      let nwcConnected = localStorage.getItem('nwc_connection_string');
-      
+      let nwcConnected = safeLocalStorage.getItem('nwc_connection_string');
+
       try {
-        const bcConfigRaw = localStorage.getItem('bc:config');
+        const bcConfigRaw = safeLocalStorage.getItem('bc:config');
         if (bcConfigRaw) {
           // Clean up potential JSON formatting issues
           const cleanConfigRaw = bcConfigRaw.trim();
@@ -63,7 +64,7 @@ export function BitcoinConnectProvider({ children }: { children: ReactNode }) {
           }
         }
       } catch (error) {
-        console.warn('Failed to parse bc:config:', error, 'Raw value:', localStorage.getItem('bc:config'));
+        console.warn('Failed to parse bc:config:', error, 'Raw value:', safeLocalStorage.getItem('bc:config'));
         bcConfig = null;
       }
       
@@ -87,15 +88,16 @@ export function BitcoinConnectProvider({ children }: { children: ReactNode }) {
       }
       
       // Debug: Log all Bitcoin Connect related localStorage items
+      const storageKeys = safeLocalStorage.keys();
       console.log('🔍 Bitcoin Connect localStorage debug:', {
         bcConnectorType: bcConnected,
         bcConfig: bcConfig,
         nwcConnectionString: nwcConnected,
-        allLocalStorageKeys: Object.keys(localStorage).filter(k => k.startsWith('bc') || k.includes('nwc') || k.includes('alby')),
+        allLocalStorageKeys: storageKeys.filter(k => k.startsWith('bc') || k.includes('nwc') || k.includes('alby')),
         allLocalStorageData: Object.fromEntries(
-          Object.keys(localStorage)
+          storageKeys
             .filter(k => k.startsWith('bc') || k.includes('nwc') || k.includes('alby'))
-            .map(k => [k, localStorage.getItem(k)])
+            .map(k => [k, safeLocalStorage.getItem(k)])
         )
       });
       
@@ -295,7 +297,7 @@ export function BitcoinConnectProvider({ children }: { children: ReactNode }) {
       if (fastCheckInterval) return; // Already checking
       console.log('🚀 Starting fast connection checking (BC in transitional state)');
       fastCheckInterval = setInterval(() => {
-        const bcConfigExists = localStorage.getItem('bc:config');
+        const bcConfigExists = safeLocalStorage.getItem('bc:config');
         if (bcConfigExists && !isConnected) {
           checkConnection();
         } else {
@@ -310,7 +312,7 @@ export function BitcoinConnectProvider({ children }: { children: ReactNode }) {
     };
     
     // Start fast checking if BC config exists but not connected
-    if (localStorage.getItem('bc:config') && !isConnected) {
+    if (safeLocalStorage.getItem('bc:config') && !isConnected) {
       startFastChecking();
     }
 
