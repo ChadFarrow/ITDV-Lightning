@@ -355,7 +355,7 @@ const NowPlayingScreen: React.FC<NowPlayingScreenProps> = ({ isOpen, onClose }) 
         colors: ['#FFD700', '#FFA500', '#FF8C00', '#FFE55C', '#FFFF00']
       };
 
-      function fire(particleRatio: number, opts: any) {
+      const fire = (particleRatio: number, opts: any) => {
         confetti({
           ...defaults,
           ...opts,

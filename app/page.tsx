@@ -176,11 +176,11 @@ export default function HomePage() {
         colors: ['#FFD700', '#FFA500', '#FF8C00', '#FFE55C', '#FFFF00']
       };
 
-      function fire(particleRatio: number, opts: any) {
+      const fire = (particleRatio: number, opts: any) => {
         confetti(Object.assign({}, defaults, opts, {
           particleCount: Math.floor(count * particleRatio)
         }));
-      }
+      };
 
       fire(0.25, { spread: 26, startVelocity: 55 });
       fire(0.2, { spread: 60 });
@@ -210,13 +210,13 @@ export default function HomePage() {
         origin: { y: 0.7 }
       };
 
-      function fire(particleRatio: number, opts: any) {
+      const fire = (particleRatio: number, opts: any) => {
         confetti({
           ...defaults,
           ...opts,
           particleCount: Math.floor(count * particleRatio)
         });
-      }
+      };
 
       fire(0.25, {
         spread: 26,

@@ -175,11 +175,11 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
         colors: ['#FFD700', '#FFA500', '#FF8C00', '#FFE55C', '#FFFF00']
       };
 
-      function fire(particleRatio: number, opts: any) {
+      const fire = (particleRatio: number, opts: any) => {
         confetti(Object.assign({}, defaults, opts, {
           particleCount: Math.floor(count * particleRatio)
         }));
-      }
+      };
 
       fire(0.25, {
         spread: 26,
