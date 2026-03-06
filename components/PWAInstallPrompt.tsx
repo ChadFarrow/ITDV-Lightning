@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { safeSessionStorage } from '@/lib/safe-storage';
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -83,13 +84,11 @@ export default function PWAInstallPrompt() {
   const handleDismiss = () => {
     setShowInstallPrompt(false);
     // Remember dismissal for this session
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('pwa-install-dismissed', 'true');
-    }
+    safeSessionStorage.setItem('pwa-install-dismissed', 'true');
   };
 
   // Don't show if already installed or user dismissed in this session
-  if (isStandalone || (typeof window !== 'undefined' && sessionStorage.getItem('pwa-install-dismissed'))) {
+  if (isStandalone || safeSessionStorage.getItem('pwa-install-dismissed') === 'true') {
     return null;
   }
 

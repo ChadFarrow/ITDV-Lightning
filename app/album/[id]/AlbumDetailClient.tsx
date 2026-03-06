@@ -15,6 +15,7 @@ import dynamic from 'next/dynamic';
 import { filterPodrollItems } from '@/lib/podroll-utils';
 import confetti from 'canvas-confetti';
 import PerformanceMonitor from '@/components/PerformanceMonitor';
+import { safeLocalStorage } from '@/lib/safe-storage';
 
 // Dynamic import for ControlsBar
 const ControlsBar = dynamic(() => import('@/components/ControlsBar'), {
@@ -166,40 +167,45 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
     setBoostMessage(''); // Clear the message input after successful boost
     
     // Trigger multiple confetti bursts for dramatic effect
-    const count = 200;
-    const defaults = {
-      origin: { y: 0.7 },
-      colors: ['#FFD700', '#FFA500', '#FF8C00', '#FFE55C', '#FFFF00']
-    };
+    // Wrapped in try/catch for privacy browsers that block canvas (e.g., DuckDuckGo)
+    try {
+      const count = 200;
+      const defaults = {
+        origin: { y: 0.7 },
+        colors: ['#FFD700', '#FFA500', '#FF8C00', '#FFE55C', '#FFFF00']
+      };
 
-    function fire(particleRatio: number, opts: any) {
-      confetti(Object.assign({}, defaults, opts, {
-        particleCount: Math.floor(count * particleRatio)
-      }));
+      const fire = (particleRatio: number, opts: any) => {
+        confetti(Object.assign({}, defaults, opts, {
+          particleCount: Math.floor(count * particleRatio)
+        }));
+      };
+
+      fire(0.25, {
+        spread: 26,
+        startVelocity: 55,
+      });
+      fire(0.2, {
+        spread: 60,
+      });
+      fire(0.35, {
+        spread: 100,
+        decay: 0.91,
+        scalar: 0.8
+      });
+      fire(0.1, {
+        spread: 120,
+        startVelocity: 25,
+        decay: 0.92,
+        scalar: 1.2
+      });
+      fire(0.1, {
+        spread: 120,
+        startVelocity: 45,
+      });
+    } catch (e) {
+      // Canvas-based confetti may be blocked by privacy browsers
     }
-
-    fire(0.25, {
-      spread: 26,
-      startVelocity: 55,
-    });
-    fire(0.2, {
-      spread: 60,
-    });
-    fire(0.35, {
-      spread: 100,
-      decay: 0.91,
-      scalar: 0.8
-    });
-    fire(0.1, {
-      spread: 120,
-      startVelocity: 25,
-      decay: 0.92,
-      scalar: 1.2
-    });
-    fire(0.1, {
-      spread: 120,
-      startVelocity: 45,
-    });
   };
 
   const handleBoostError = (error: string) => {
@@ -694,7 +700,7 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
   // Load saved sender name from localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const savedSenderName = localStorage.getItem('boost-sender-name');
+      const savedSenderName = safeLocalStorage.getItem('boost-sender-name');
       if (savedSenderName) {
         setSenderName(savedSenderName);
       }
@@ -704,7 +710,7 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
   // Save sender name to localStorage when it changes
   useEffect(() => {
     if (typeof window !== 'undefined' && senderName.trim()) {
-      localStorage.setItem('boost-sender-name', senderName.trim());
+      safeLocalStorage.setItem('boost-sender-name', senderName.trim());
     }
   }, [senderName]);
 
@@ -1762,7 +1768,7 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
                     onChange={(e) => {
                       setSenderName(e.target.value);
                       if (e.target.value.trim()) {
-                        localStorage.setItem('boost-sender-name', e.target.value.trim());
+                        safeLocalStorage.setItem('boost-sender-name', e.target.value.trim());
                       }
                     }}
                     className="w-full mt-2 px-4 py-3 bg-gray-800/50 border border-gray-700 text-white rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
@@ -2091,7 +2097,7 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
                     onChange={(e) => {
                       setSenderName(e.target.value);
                       if (e.target.value.trim()) {
-                        localStorage.setItem('boost-sender-name', e.target.value.trim());
+                        safeLocalStorage.setItem('boost-sender-name', e.target.value.trim());
                       }
                     }}
                     className="w-full mt-2 px-4 py-3 bg-gray-800/50 border border-gray-700 text-white rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { safeLocalStorage } from '@/lib/safe-storage';
 
 interface LightningContextType {
   isLightningEnabled: boolean;
@@ -15,7 +16,7 @@ export function LightningProvider({ children }: { children: ReactNode }) {
 
   // Load Lightning setting from localStorage on mount
   useEffect(() => {
-    const saved = localStorage.getItem('lightning_enabled');
+    const saved = safeLocalStorage.getItem('lightning_enabled');
     if (saved !== null) {
       setIsLightningEnabled(saved === 'true');
     }
@@ -24,7 +25,7 @@ export function LightningProvider({ children }: { children: ReactNode }) {
 
   // Save to localStorage when setting changes
   useEffect(() => {
-    localStorage.setItem('lightning_enabled', isLightningEnabled.toString());
+    safeLocalStorage.setItem('lightning_enabled', isLightningEnabled.toString());
   }, [isLightningEnabled]);
 
   const toggleLightning = () => {

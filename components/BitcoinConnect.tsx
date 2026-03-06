@@ -5,6 +5,7 @@ import { Zap, Wallet, Loader2 } from 'lucide-react';
 import { useBitcoinConnect } from '@/contexts/BitcoinConnectContext';
 import { useBoostToNostr } from '@/hooks/useBoostToNostr';
 import { useLightning } from '@/contexts/LightningContext';
+import { safeLocalStorage } from '@/lib/safe-storage';
 
 declare global {
   namespace JSX {
@@ -465,7 +466,7 @@ export function BitcoinConnectPayment({
       let nwcConnectionString = null;
       
       try {
-        const bcConfigRaw = localStorage.getItem('bc:config');
+        const bcConfigRaw = safeLocalStorage.getItem('bc:config');
         if (bcConfigRaw) {
           bcConfig = JSON.parse(bcConfigRaw);
           bcConnectorType = bcConfig.connectorType;
@@ -477,10 +478,10 @@ export function BitcoinConnectPayment({
       
       // Fallback to old method
       if (!bcConnectorType) {
-        bcConnectorType = localStorage.getItem('bc:connectorType');
+        bcConnectorType = safeLocalStorage.getItem('bc:connectorType');
       }
       if (!nwcConnectionString) {
-        nwcConnectionString = localStorage.getItem('nwc_connection_string');
+        nwcConnectionString = safeLocalStorage.getItem('nwc_connection_string');
       }
       
       console.log(`🔍 Bitcoin Connect state - connectorType: "${bcConnectorType}", NWC URL exists: ${!!nwcConnectionString}`);

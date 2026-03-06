@@ -15,6 +15,7 @@ import dynamic from 'next/dynamic';
 import { Zap, Video, Play, Info } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { isLightningEnabled } from '@/lib/feature-flags';
+import { safeLocalStorage } from '@/lib/safe-storage';
 import VideoPlayer from '@/components/VideoPlayer';
 
 // Lazy load Lightning components - not needed on initial page load
@@ -167,25 +168,29 @@ export default function HomePage() {
     setShowBoostModal(false);
     setBoostMessage(''); // Clear the message input after successful boost
     
-    // Trigger confetti animation
-    const count = 200;
-    const defaults = {
-      origin: { y: 0.7 },
-      colors: ['#FFD700', '#FFA500', '#FF8C00', '#FFE55C', '#FFFF00']
-    };
+    // Trigger confetti animation (wrapped in try/catch for privacy browsers that block canvas)
+    try {
+      const count = 200;
+      const defaults = {
+        origin: { y: 0.7 },
+        colors: ['#FFD700', '#FFA500', '#FF8C00', '#FFE55C', '#FFFF00']
+      };
 
-    function fire(particleRatio: number, opts: any) {
-      confetti(Object.assign({}, defaults, opts, {
-        particleCount: Math.floor(count * particleRatio)
-      }));
+      const fire = (particleRatio: number, opts: any) => {
+        confetti(Object.assign({}, defaults, opts, {
+          particleCount: Math.floor(count * particleRatio)
+        }));
+      };
+
+      fire(0.25, { spread: 26, startVelocity: 55 });
+      fire(0.2, { spread: 60 });
+      fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
+      fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
+      fire(0.1, { spread: 120, startVelocity: 45 });
+    } catch (e) {
+      // Canvas-based confetti may be blocked by privacy browsers (e.g., DuckDuckGo)
     }
 
-    fire(0.25, { spread: 26, startVelocity: 55 });
-    fire(0.2, { spread: 60 });
-    fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
-    fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
-    fire(0.1, { spread: 120, startVelocity: 45 });
-    
     toast.success('⚡ Boost sent successfully!');
   };
   
@@ -198,42 +203,46 @@ export default function HomePage() {
     setShowVideoBoostModal(false);
     setVideoBoostMessage('');
     
-    // Trigger confetti animation
-    const count = 200;
-    const defaults = {
-      origin: { y: 0.7 }
-    };
+    // Trigger confetti animation (wrapped in try/catch for privacy browsers that block canvas)
+    try {
+      const count = 200;
+      const defaults = {
+        origin: { y: 0.7 }
+      };
 
-    function fire(particleRatio: number, opts: any) {
-      confetti({
-        ...defaults,
-        ...opts,
-        particleCount: Math.floor(count * particleRatio)
+      const fire = (particleRatio: number, opts: any) => {
+        confetti({
+          ...defaults,
+          ...opts,
+          particleCount: Math.floor(count * particleRatio)
+        });
+      };
+
+      fire(0.25, {
+        spread: 26,
+        startVelocity: 55,
       });
+      fire(0.2, {
+        spread: 60,
+      });
+      fire(0.35, {
+        spread: 100,
+        decay: 0.91,
+        scalar: 0.8
+      });
+      fire(0.1, {
+        spread: 120,
+        startVelocity: 25,
+        decay: 0.92,
+        scalar: 1.2
+      });
+      fire(0.1, {
+        spread: 120,
+        startVelocity: 45,
+      });
+    } catch (e) {
+      // Canvas-based confetti may be blocked by privacy browsers (e.g., DuckDuckGo)
     }
-
-    fire(0.25, {
-      spread: 26,
-      startVelocity: 55,
-    });
-    fire(0.2, {
-      spread: 60,
-    });
-    fire(0.35, {
-      spread: 100,
-      decay: 0.91,
-      scalar: 0.8
-    });
-    fire(0.1, {
-      spread: 120,
-      startVelocity: 25,
-      decay: 0.92,
-      scalar: 1.2
-    });
-    fire(0.1, {
-      spread: 120,
-      startVelocity: 45,
-    });
 
     toast.success('⚡ Boost sent successfully!');
   };
@@ -270,11 +279,27 @@ export default function HomePage() {
         if (album.title === 'LNURL Testing Podcast') {
           return;
         }
-        
+
+        // Check if this is a Satellite Spotlight/Skirmish compilation album
+        const isSatelliteAlbum = album.title?.toLowerCase().includes('satellite spotlight') ||
+                                  album.title?.toLowerCase().includes('satellite skirmish') ||
+                                  album.artist?.toLowerCase().includes('satellite skirmish') ||
+                                  album.artist?.toLowerCase().includes('satellite spotlight');
+
         album.tracks.forEach(track => {
           // Skip video-only tracks (no audio URL) - shuffle is audio only
           if (!track.url) {
             return;
+          }
+
+          // For Satellite Spotlight/Skirmish albums, only include Doerfels and CityBeach tracks
+          if (isSatelliteAlbum) {
+            const titleLower = track.title?.toLowerCase() || '';
+            const isDoerfels = titleLower.includes('doerfel');
+            const isCityBeach = titleLower.includes('citybeach');
+            if (!isDoerfels && !isCityBeach) {
+              return;
+            }
           }
           // Create track object that matches AudioContext's Track interface
           allTracks.push({
@@ -400,7 +425,7 @@ export default function HomePage() {
     setIsClient(true);
     
     // Load saved sender name
-    const savedSenderName = localStorage.getItem('boost-sender-name');
+    const savedSenderName = safeLocalStorage.getItem('boost-sender-name');
     if (savedSenderName) {
       setSenderName(savedSenderName);
     }
@@ -434,8 +459,8 @@ export default function HomePage() {
     hasLoadedRef.current = true;
     
     // Check for cached data first - show immediately even if stale (stale-while-revalidate pattern)
-    const cachedAlbums = localStorage.getItem('cachedAlbums');
-    const cacheTime = localStorage.getItem('albumsCacheTimestamp');
+    const cachedAlbums = safeLocalStorage.getItem('cachedAlbums');
+    const cacheTime = safeLocalStorage.getItem('albumsCacheTimestamp');
     
     if (cachedAlbums && cacheTime) {
       const cacheAge = Date.now() - parseInt(cacheTime);
@@ -579,15 +604,15 @@ export default function HomePage() {
       
       // Clear client-side cache if force refresh requested
       if (forceRefresh && typeof window !== 'undefined') {
-        localStorage.removeItem('cachedAlbums');
-        localStorage.removeItem('albumsCacheTimestamp');
+        safeLocalStorage.removeItem('cachedAlbums');
+        safeLocalStorage.removeItem('albumsCacheTimestamp');
         console.log('🔄 Client-side cache cleared due to refresh parameter');
       }
       
       // Check for cached albums first - use longer cache time for better performance
       if (!forceRefresh && typeof window !== 'undefined') {
-        const cached = localStorage.getItem('cachedAlbums');
-        const cacheTime = localStorage.getItem('albumsCacheTimestamp');
+        const cached = safeLocalStorage.getItem('cachedAlbums');
+        const cacheTime = safeLocalStorage.getItem('albumsCacheTimestamp');
 
         // Use cache if less than 30 minutes old (extended from 10 minutes)
         if (cached && cacheTime && (Date.now() - parseInt(cacheTime)) < 30 * 60 * 1000) {
@@ -648,8 +673,8 @@ export default function HomePage() {
       // Cache all albums - no tier-based restrictions
       if (typeof window !== 'undefined') {
         try {
-          localStorage.setItem('cachedAlbums', JSON.stringify(uniqueAlbums));
-          localStorage.setItem('albumsCacheTimestamp', Date.now().toString());
+          safeLocalStorage.setItem('cachedAlbums', JSON.stringify(uniqueAlbums));
+          safeLocalStorage.setItem('albumsCacheTimestamp', Date.now().toString());
         } catch (error) {
           // Silently handle errors
         }
@@ -1625,7 +1650,7 @@ export default function HomePage() {
                   onChange={(e) => {
                     setSenderName(e.target.value);
                     if (e.target.value.trim()) {
-                      localStorage.setItem('boost-sender-name', e.target.value.trim());
+                      safeLocalStorage.setItem('boost-sender-name', e.target.value.trim());
                     }
                   }}
                   className="w-full mt-2 px-4 py-3 bg-gray-800/50 border border-gray-700 text-white rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
@@ -2101,7 +2126,7 @@ export default function HomePage() {
                   onChange={(e) => {
                     setSenderName(e.target.value);
                     if (e.target.value.trim()) {
-                      localStorage.setItem('boost-sender-name', e.target.value.trim());
+                      safeLocalStorage.setItem('boost-sender-name', e.target.value.trim());
                     }
                   }}
                   className="w-full mt-2 px-4 py-3 bg-gray-800/50 border border-gray-700 text-white rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
