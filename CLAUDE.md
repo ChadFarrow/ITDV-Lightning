@@ -10,6 +10,7 @@ ITDV-Site is a Next.js web application that serves as a platform for showcasing 
 - Service Workers for PWA functionality
 - RSS Feed parsing
 - CDN integration (Bunny.net)
+- BoostBox integration (tardbox.com) for boost metadata logging
 
 ## Important Directories
 - `/app` - Next.js pages and routes
@@ -32,6 +33,7 @@ ITDV-Site is a Next.js web application that serves as a platform for showcasing 
 3. Optimizing image and audio delivery
 4. Maintaining service worker functionality
 5. Managing CDN integration
+6. BoostBox integration (boost/stream metadata posted to tardbox.com via `lib/boostbox-service.ts`)
 
 ## Task Master AI Instructions
 **Import Task Master's development workflow commands and guidelines, treat as if import is in the main CLAUDE.md file.**
@@ -57,3 +59,4 @@ ITDV-Site is a Next.js web application that serves as a platform for showcasing 
 3. Protected admin routes
 4. Proper environment variable handling
 5. Regular security audits
+6. BoostBox API key is client-side (`NEXT_PUBLIC_` prefix) by design — BoostBox expects this

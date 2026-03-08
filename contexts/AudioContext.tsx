@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useRef, useEffect, useCallb
 import { toast } from '@/components/Toast';
 import { makeAutoBoostPayment } from '@/utils/payment-utils';
 import { useBoostToNostr } from '@/hooks/useBoostToNostr';
+import { postToBoostBox } from '@/lib/boostbox-service';
 
 interface Track {
   title: string;
@@ -611,6 +612,11 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         } catch (nostrError) {
           console.warn('⚠️ Auto boost Nostr post failed:', nostrError);
         }
+
+        // Post to BoostBox (fire-and-forget)
+        postToBoostBox(autoBoostAmount, boostMetadata, 'stream').catch(err =>
+          console.warn('BoostBox auto-boost post failed:', err)
+        );
 
         toast.success(`⚡ Auto boosted "${track.title}" with ${autoBoostAmount} sats!`, 3000);
         console.log('✅ Auto boost payment successful:', paymentResult.results);

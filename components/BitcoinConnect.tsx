@@ -6,6 +6,7 @@ import { useBitcoinConnect } from '@/contexts/BitcoinConnectContext';
 import { useBoostToNostr } from '@/hooks/useBoostToNostr';
 import { useLightning } from '@/contexts/LightningContext';
 import { safeLocalStorage } from '@/lib/safe-storage';
+import { postToBoostBox } from '@/lib/boostbox-service';
 
 declare global {
   namespace JSX {
@@ -402,6 +403,13 @@ export function BitcoinConnectPayment({
       }
     } catch (error) {
       console.warn('⚠️ Failed to create boost note:', error);
+    }
+
+    // Post to BoostBox (fire-and-forget)
+    if (boostMetadata) {
+      postToBoostBox(totalAmount, boostMetadata).catch(err =>
+        console.warn('BoostBox post failed:', err)
+      );
     }
   };
 
