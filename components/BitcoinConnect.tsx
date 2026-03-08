@@ -202,7 +202,7 @@ export function BitcoinConnectPayment({
 }) {
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { isConnected } = useBitcoinConnect();
+  const { isConnected, isInitializing } = useBitcoinConnect();
   const { isLightningEnabled } = useLightning();
   const isProcessingRef = useRef(false); // Guard to prevent multiple simultaneous payments
 
@@ -993,7 +993,7 @@ export function BitcoinConnectPayment({
                 <span className="dot-3">.</span>
               </span>
             </span>
-          ) : !isConnected ? 'Connect Wallet First' : `Send ${amount} sats`}
+          ) : !isConnected ? (isInitializing ? 'Connecting Wallet...' : 'Connect Wallet First') : `Send ${amount} sats`}
         </span>
       </button>
     </>

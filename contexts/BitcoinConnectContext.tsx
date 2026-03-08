@@ -6,6 +6,7 @@ import { safeLocalStorage } from '@/lib/safe-storage';
 
 interface BitcoinConnectContextType {
   isConnected: boolean;
+  isInitializing: boolean;
   setIsConnected: (connected: boolean) => void;
   checkConnection: () => void;
 }
@@ -14,6 +15,7 @@ const BitcoinConnectContext = createContext<BitcoinConnectContextType | undefine
 
 export function BitcoinConnectProvider({ children }: { children: ReactNode }) {
   const [isConnected, setIsConnected] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
   const { isLightningEnabled } = useLightning();
   const lastCheckRef = useRef<number>(0);
   const checkInProgressRef = useRef<boolean>(false);
@@ -178,8 +180,19 @@ export function BitcoinConnectProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    // Initial check
-    checkConnection();
+    // Optimistic: if bc:config exists in localStorage, assume connected immediately
+    const bcConfigRaw = safeLocalStorage.getItem('bc:config');
+    if (bcConfigRaw) {
+      try {
+        const config = JSON.parse(bcConfigRaw.trim());
+        if (config && (config.connectorType || config.nwcUrl)) {
+          setIsConnected(true);
+        }
+      } catch { /* checkConnection will verify */ }
+    }
+
+    // Initial check — then mark initialization complete
+    checkConnection().finally(() => setIsInitializing(false));
     
     // Listen for Bitcoin Connect events
     const handleConnected = () => {
@@ -298,7 +311,9 @@ export function BitcoinConnectProvider({ children }: { children: ReactNode }) {
       console.log('🚀 Starting fast connection checking (BC in transitional state)');
       fastCheckInterval = setInterval(() => {
         const bcConfigExists = safeLocalStorage.getItem('bc:config');
-        if (bcConfigExists && !isConnected) {
+        const alreadyConnected = !!(window as any).webln?.enabled ||
+          !!safeLocalStorage.getItem('bc:connectorType');
+        if (bcConfigExists && !alreadyConnected) {
           checkConnection();
         } else {
           // Stop fast checking once connected or no BC config
@@ -311,8 +326,8 @@ export function BitcoinConnectProvider({ children }: { children: ReactNode }) {
       }, 1000); // Check every second when in transitional state
     };
     
-    // Start fast checking if BC config exists but not connected
-    if (safeLocalStorage.getItem('bc:config') && !isConnected) {
+    // Start fast checking if BC config exists (interval self-stops once connected)
+    if (safeLocalStorage.getItem('bc:config')) {
       startFastChecking();
     }
 
@@ -339,7 +354,7 @@ export function BitcoinConnectProvider({ children }: { children: ReactNode }) {
   }, [isLightningEnabled]);
 
   return (
-    <BitcoinConnectContext.Provider value={{ isConnected, setIsConnected, checkConnection }}>
+    <BitcoinConnectContext.Provider value={{ isConnected, isInitializing, setIsConnected, checkConnection }}>
       {children}
     </BitcoinConnectContext.Provider>
   );
@@ -352,6 +367,7 @@ export function useBitcoinConnect() {
     // This can happen during SSR or when lightning is disabled
     return {
       isConnected: false,
+      isInitializing: false,
       setIsConnected: () => {},
       checkConnection: async () => false
     };
