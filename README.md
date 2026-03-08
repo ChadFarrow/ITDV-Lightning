@@ -73,6 +73,7 @@ A Lightning Network-powered Value4Value music platform showcasing independent ar
 - **Nostr Integration**: NIP-57/NIP-73 boost notes with automatic relay publishing
 - **Value Splits**: Lightning Network value tag parsing for payment distribution
 - **Metadata Collection**: Automatic 2 sat fee collection for platform analytics
+- **BoostBox Integration**: Boost and stream metadata logged to [tardbox.com](https://tardbox.com) for payment analytics
 - **Deployment**: Vercel with automated builds and edge deployment
 
 ## Content Structure
@@ -109,6 +110,13 @@ The app uses a hybrid approach:
 - **Comprehensive coverage** of all albums, EPs, and singles from DoerfelVerse artists
 
 ## Recent Improvements
+
+### BoostBox Integration (March 2026)
+- **Payment Metadata Logging**: Boost and stream payment metadata posted to [tardbox.com](https://tardbox.com) via `lib/boostbox-service.ts`
+- **Fire-and-Forget**: Non-blocking — never disrupts the payment flow if BoostBox is unavailable
+- **Comprehensive Data**: Logs sender name, message, feed/episode info, amounts, and timestamps
+- **Dual Trigger**: Called after both manual boosts (`BitcoinConnect.tsx`) and auto-boosts (`AudioContext.tsx`)
+- **Client-Side by Design**: API key uses `NEXT_PUBLIC_` prefix as expected by BoostBox
 
 ### UI/UX Improvements (September 2025)
 - **Boost Modal Popup System**: Replaced inline boost forms with elegant popup modals across the platform
@@ -186,6 +194,7 @@ The app uses a hybrid approach:
 - **Node Keysends**: Direct payments to Lightning node public keys
 - **Value Splits**: Podcasting 2.0 value tag parsing for payment distribution
 - **Metadata Collection**: 2 sat fee per boost for platform analytics and development
+- **BoostBox Logging**: Payment metadata (boost and stream) posted to [tardbox.com](https://tardbox.com) for analytics
 
 ### Nostr Integration
 - **Boost Notes**: NIP-57/NIP-73 compliant boost posts to Nostr relays
