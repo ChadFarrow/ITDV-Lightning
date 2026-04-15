@@ -1,6 +1,6 @@
 {
-  "timestamp": "2026-03-04T17:14:16.642Z",
-  "count": 50,
+  "timestamp": "2026-04-15T00:31:22.384Z",
+  "count": 51,
   "albums": [
     {
       "title": "Disco Swag - The Album",
@@ -45793,6 +45793,792 @@
       "imageUrl": "https://www.doerfelverse.com/art/wrathodies.png",
       "feedId": "www-doerfelverse-com-feeds-wrathodies-xml",
       "lastUpdated": "2026-03-04T17:14:16.625Z"
+    },
+    {
+      "title": "Them",
+      "artist": "The Doerfels",
+      "description": "\"Them\" is a mini album of Doerfelized covers we released when we went by the band name, \"Fuel on Fire\" back in 2019.",
+      "coverArt": "https://www.doerfelverse.com/art/them.png",
+      "tracks": [
+        {
+          "title": "Good Times Bad Times",
+          "duration": "3:11",
+          "url": "https://www.doerfelverse.com/tracks/good-times-bad-times.mp3",
+          "trackNumber": 1,
+          "subtitle": "Good Times Bad Times",
+          "summary": "Good Times Bad Times by The Doerfels",
+          "image": "https://www.doerfelverse.com/art/them.png",
+          "explicit": false,
+          "keywords": [
+            "doerfels",
+            "them",
+            "doerfelverse",
+            "the",
+            "v4vmusic"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "lnaddress",
+                "address": "sirtjthewrathful@getalby.com",
+                "split": 95,
+                "name": "The Doerfels",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "sirtjthewrathful@getalby.com",
+              "split": 95,
+              "name": "The Doerfels",
+              "fee": false,
+              "type": "lnaddress"
+            },
+            {
+              "address": "steven@getalby.com",
+              "split": 5,
+              "name": "Sovereign Feeds",
+              "fee": false,
+              "type": "lnaddress"
+            }
+          ],
+          "guid": "0c390019-47cf-44ec-84b3-1ba1b7a37971",
+          "feedGuid": "351d060e-2f51-5b71-8778-b4c5c84be9c1",
+          "imageUrl": "https://www.doerfelverse.com/art/them.png"
+        },
+        {
+          "title": "Eleanor Rigby",
+          "duration": "2:28",
+          "url": "https://www.doerfelverse.com/tracks/eleanor-rigby.mp3",
+          "trackNumber": 2,
+          "subtitle": "Eleanor Rigby",
+          "summary": "Eleanor Rigby by The Doerfels",
+          "image": "https://www.doerfelverse.com/art/them.png",
+          "explicit": false,
+          "keywords": [
+            "doerfels",
+            "them",
+            "doerfelverse",
+            "the",
+            "v4vmusic"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "lnaddress",
+                "address": "sirtjthewrathful@getalby.com",
+                "split": 95,
+                "name": "The Doerfels",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "sirtjthewrathful@getalby.com",
+              "split": 95,
+              "name": "The Doerfels",
+              "fee": false,
+              "type": "lnaddress"
+            },
+            {
+              "address": "steven@getalby.com",
+              "split": 5,
+              "name": "Sovereign Feeds",
+              "fee": false,
+              "type": "lnaddress"
+            }
+          ],
+          "guid": "1d8cdc03-bd21-4ccf-a4df-77e1c873989f",
+          "feedGuid": "351d060e-2f51-5b71-8778-b4c5c84be9c1",
+          "imageUrl": "https://www.doerfelverse.com/art/them.png"
+        },
+        {
+          "title": "With Or Without You feat. HP Campus School Choir",
+          "duration": "3:49",
+          "url": "https://www.doerfelverse.com/tracks/with-or-without-you.mp3",
+          "trackNumber": 3,
+          "subtitle": "With Or Without You feat. HP Campus School Choir",
+          "summary": "With Or Without You by The Doerfels",
+          "image": "https://www.doerfelverse.com/art/them.png",
+          "explicit": false,
+          "keywords": [
+            "doerfels",
+            "them",
+            "doerfelverse",
+            "the",
+            "v4vmusic"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "lnaddress",
+                "address": "sirtjthewrathful@getalby.com",
+                "split": 95,
+                "name": "The Doerfels",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "sirtjthewrathful@getalby.com",
+              "split": 95,
+              "name": "The Doerfels",
+              "fee": false,
+              "type": "lnaddress"
+            },
+            {
+              "address": "steven@getalby.com",
+              "split": 5,
+              "name": "Sovereign Feeds",
+              "fee": false,
+              "type": "lnaddress"
+            }
+          ],
+          "guid": "37db2ce4-dad8-4919-b4c9-1dfc7ed9dc27",
+          "feedGuid": "351d060e-2f51-5b71-8778-b4c5c84be9c1",
+          "imageUrl": "https://www.doerfelverse.com/art/them.png"
+        },
+        {
+          "title": "Goodbye Stranger",
+          "duration": "4:00",
+          "url": "https://www.doerfelverse.com/tracks/goodbye-stranger.mp3",
+          "trackNumber": 4,
+          "subtitle": "Goodbye Stranger",
+          "summary": "Goodbye Stranger by The Doerfels",
+          "image": "https://www.doerfelverse.com/art/them.png",
+          "explicit": false,
+          "keywords": [
+            "doerfels",
+            "them",
+            "doerfelverse",
+            "the",
+            "v4vmusic"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "lnaddress",
+                "address": "sirtjthewrathful@getalby.com",
+                "split": 95,
+                "name": "The Doerfels",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "sirtjthewrathful@getalby.com",
+              "split": 95,
+              "name": "The Doerfels",
+              "fee": false,
+              "type": "lnaddress"
+            },
+            {
+              "address": "steven@getalby.com",
+              "split": 5,
+              "name": "Sovereign Feeds",
+              "fee": false,
+              "type": "lnaddress"
+            }
+          ],
+          "guid": "db907cbb-8f8f-4323-8e8a-93695fe98398",
+          "feedGuid": "351d060e-2f51-5b71-8778-b4c5c84be9c1",
+          "imageUrl": "https://www.doerfelverse.com/art/them.png"
+        },
+        {
+          "title": "Rule The World",
+          "duration": "4:41",
+          "url": "https://www.doerfelverse.com/tracks/rule-the-world.mp3",
+          "trackNumber": 5,
+          "subtitle": "Rule The World",
+          "summary": "Rule The World by The Doerfels",
+          "image": "https://www.doerfelverse.com/art/them.png",
+          "explicit": false,
+          "keywords": [
+            "doerfels",
+            "them",
+            "doerfelverse",
+            "the",
+            "v4vmusic"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "lnaddress",
+                "address": "sirtjthewrathful@getalby.com",
+                "split": 95,
+                "name": "The Doerfels",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "sirtjthewrathful@getalby.com",
+              "split": 95,
+              "name": "The Doerfels",
+              "fee": false,
+              "type": "lnaddress"
+            },
+            {
+              "address": "steven@getalby.com",
+              "split": 5,
+              "name": "Sovereign Feeds",
+              "fee": false,
+              "type": "lnaddress"
+            }
+          ],
+          "guid": "9ac3be63-c9a3-4065-88fe-5f07006a1abe",
+          "feedGuid": "351d060e-2f51-5b71-8778-b4c5c84be9c1",
+          "imageUrl": "https://www.doerfelverse.com/art/them.png"
+        },
+        {
+          "title": "Stay",
+          "duration": "4:11",
+          "url": "https://www.doerfelverse.com/tracks/stay.mp3",
+          "trackNumber": 6,
+          "subtitle": "Stay",
+          "summary": "Stay by The Doerfels",
+          "image": "https://www.doerfelverse.com/art/them.png",
+          "explicit": false,
+          "keywords": [
+            "doerfels",
+            "them",
+            "doerfelverse",
+            "the",
+            "v4vmusic"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "lnaddress",
+                "address": "sirtjthewrathful@getalby.com",
+                "split": 95,
+                "name": "The Doerfels",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "sirtjthewrathful@getalby.com",
+              "split": 95,
+              "name": "The Doerfels",
+              "fee": false,
+              "type": "lnaddress"
+            },
+            {
+              "address": "steven@getalby.com",
+              "split": 5,
+              "name": "Sovereign Feeds",
+              "fee": false,
+              "type": "lnaddress"
+            }
+          ],
+          "guid": "b5f23697-1027-476d-a342-7e552daaeaa4",
+          "feedGuid": "351d060e-2f51-5b71-8778-b4c5c84be9c1",
+          "imageUrl": "https://www.doerfelverse.com/art/them.png"
+        },
+        {
+          "title": "Secrets",
+          "duration": "3:40",
+          "url": "https://www.doerfelverse.com/tracks/secrets.mp3",
+          "trackNumber": 7,
+          "subtitle": "Secrets",
+          "summary": "Secrets by The Doerfels",
+          "image": "https://www.doerfelverse.com/art/them.png",
+          "explicit": false,
+          "keywords": [
+            "doerfels",
+            "them",
+            "doerfelverse",
+            "the",
+            "v4vmusic"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "lnaddress",
+                "address": "sirtjthewrathful@getalby.com",
+                "split": 95,
+                "name": "The Doerfels",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "sirtjthewrathful@getalby.com",
+              "split": 95,
+              "name": "The Doerfels",
+              "fee": false,
+              "type": "lnaddress"
+            },
+            {
+              "address": "steven@getalby.com",
+              "split": 5,
+              "name": "Sovereign Feeds",
+              "fee": false,
+              "type": "lnaddress"
+            }
+          ],
+          "guid": "1dd32ec6-0a7a-4061-a087-8e4150b3ec23",
+          "feedGuid": "351d060e-2f51-5b71-8778-b4c5c84be9c1",
+          "imageUrl": "https://www.doerfelverse.com/art/them.png"
+        },
+        {
+          "title": "I Like Me Better",
+          "duration": "3:58",
+          "url": "https://www.doerfelverse.com/tracks/i-like-me-better.mp3",
+          "trackNumber": 8,
+          "subtitle": "I Like Me Better",
+          "summary": "I Like Me Better by The Doerfels",
+          "image": "https://www.doerfelverse.com/art/them.png",
+          "explicit": false,
+          "keywords": [
+            "doerfels",
+            "them",
+            "doerfelverse",
+            "the",
+            "v4vmusic"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "lnaddress",
+                "address": "sirtjthewrathful@getalby.com",
+                "split": 95,
+                "name": "The Doerfels",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "sirtjthewrathful@getalby.com",
+              "split": 95,
+              "name": "The Doerfels",
+              "fee": false,
+              "type": "lnaddress"
+            },
+            {
+              "address": "steven@getalby.com",
+              "split": 5,
+              "name": "Sovereign Feeds",
+              "fee": false,
+              "type": "lnaddress"
+            }
+          ],
+          "guid": "818cfc2b-1383-401a-9d69-644182d41400",
+          "feedGuid": "351d060e-2f51-5b71-8778-b4c5c84be9c1",
+          "imageUrl": "https://www.doerfelverse.com/art/them.png"
+        },
+        {
+          "title": "No Promises",
+          "duration": "3:36",
+          "url": "https://www.doerfelverse.com/tracks/no-promises.mp3",
+          "trackNumber": 9,
+          "subtitle": "No Promises",
+          "summary": "No Promises by The Doerfels",
+          "image": "https://www.doerfelverse.com/art/them.png",
+          "explicit": false,
+          "keywords": [
+            "doerfels",
+            "them",
+            "doerfelverse",
+            "the",
+            "v4vmusic"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "lnaddress",
+                "address": "sirtjthewrathful@getalby.com",
+                "split": 95,
+                "name": "The Doerfels",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "sirtjthewrathful@getalby.com",
+              "split": 95,
+              "name": "The Doerfels",
+              "fee": false,
+              "type": "lnaddress"
+            },
+            {
+              "address": "steven@getalby.com",
+              "split": 5,
+              "name": "Sovereign Feeds",
+              "fee": false,
+              "type": "lnaddress"
+            }
+          ],
+          "guid": "f07aab0b-9bd7-4f2a-8d3f-fd26011a787f",
+          "feedGuid": "351d060e-2f51-5b71-8778-b4c5c84be9c1",
+          "imageUrl": "https://www.doerfelverse.com/art/them.png"
+        },
+        {
+          "title": "Yellow",
+          "duration": "3:58",
+          "url": "https://www.doerfelverse.com/tracks/yellow.mp3",
+          "trackNumber": 10,
+          "subtitle": "Yellow",
+          "summary": "Yellow by The Doerfels",
+          "image": "https://www.doerfelverse.com/art/them.png",
+          "explicit": false,
+          "keywords": [
+            "doerfels",
+            "them",
+            "doerfelverse",
+            "the",
+            "v4vmusic"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "lnaddress",
+                "address": "sirtjthewrathful@getalby.com",
+                "split": 95,
+                "name": "The Doerfels",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "sirtjthewrathful@getalby.com",
+              "split": 95,
+              "name": "The Doerfels",
+              "fee": false,
+              "type": "lnaddress"
+            },
+            {
+              "address": "steven@getalby.com",
+              "split": 5,
+              "name": "Sovereign Feeds",
+              "fee": false,
+              "type": "lnaddress"
+            }
+          ],
+          "guid": "0f2554df-e076-40d0-bd92-bc48c6e9a9c8",
+          "feedGuid": "351d060e-2f51-5b71-8778-b4c5c84be9c1",
+          "imageUrl": "https://www.doerfelverse.com/art/them.png"
+        },
+        {
+          "title": "Use Somebody/Streets - Live 2017",
+          "duration": "8:54",
+          "url": "https://www.doerfelverse.com/tracks/use-somebody-streets-live.mp3",
+          "trackNumber": 11,
+          "subtitle": "Use Somebody/Streets - Live 2017",
+          "summary": "Use Somebody/Streets - Live 2017 by The Doerfels",
+          "image": "https://www.doerfelverse.com/art/them.png",
+          "explicit": false,
+          "keywords": [
+            "doerfels",
+            "them",
+            "doerfelverse",
+            "the",
+            "v4vmusic"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 95,
+                "name": "The Doerfels",
+                "customKey": "696969",
+                "customValue": "1",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 95,
+              "name": "The Doerfels",
+              "fee": false,
+              "type": "node"
+            },
+            {
+              "address": "steven@getalby.com",
+              "split": 5,
+              "name": "Sovereign Feeds",
+              "fee": false,
+              "type": "lnaddress"
+            }
+          ],
+          "guid": "c5c21628-8818-4c47-b944-23ffa7cb937f",
+          "feedGuid": "351d060e-2f51-5b71-8778-b4c5c84be9c1",
+          "imageUrl": "https://www.doerfelverse.com/art/them.png"
+        },
+        {
+          "title": "Good Times Bad Times Pure - Live 2017",
+          "duration": "3:31",
+          "url": "https://www.doerfelverse.com/tracks/good-times-bad-times-live.mp3",
+          "trackNumber": 12,
+          "subtitle": "Good Times Bad Times Pure - Live 2017",
+          "summary": "Good Times Bad Times Pure - Live 2017 by The Doerfels",
+          "image": "https://www.doerfelverse.com/art/them.png",
+          "explicit": false,
+          "keywords": [
+            "doerfels",
+            "them",
+            "doerfelverse",
+            "the",
+            "v4vmusic"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "node",
+                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+                "split": 95,
+                "name": "The Doerfels",
+                "customKey": "696969",
+                "customValue": "1",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+              "split": 95,
+              "name": "The Doerfels",
+              "fee": false,
+              "type": "node"
+            },
+            {
+              "address": "steven@getalby.com",
+              "split": 5,
+              "name": "Sovereign Feeds",
+              "fee": false,
+              "type": "lnaddress"
+            }
+          ],
+          "guid": "78aad92d-3cde-46e0-b0b2-8e4d8e0e2c13",
+          "feedGuid": "351d060e-2f51-5b71-8778-b4c5c84be9c1",
+          "imageUrl": "https://www.doerfelverse.com/art/them.png"
+        }
+      ],
+      "releaseDate": "Wed, 15 Apr 2026 00:16:52 +0000",
+      "link": "https://www.doerfelverse.com",
+      "value": {
+        "type": "lightning",
+        "method": "keysend",
+        "suggested": "0.00000005000",
+        "recipients": [
+          {
+            "type": "node",
+            "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+            "split": 95,
+            "name": "The Doerfels",
+            "customKey": "696969",
+            "customValue": "1",
+            "fee": false
+          },
+          {
+            "type": "lnaddress",
+            "address": "steven@getalby.com",
+            "split": 5,
+            "name": "Sovereign Feeds",
+            "fee": false
+          }
+        ]
+      },
+      "subtitle": "Good Times Bad Times",
+      "summary": "Good Times Bad Times by The Doerfels",
+      "keywords": [
+        "doerfels",
+        "them",
+        "doerfelverse",
+        "the",
+        "v4vmusic"
+      ],
+      "categories": [
+        "Music"
+      ],
+      "explicit": false,
+      "language": "en",
+      "podroll": [
+        {
+          "url": "https://www.doerfelverse.com/feeds/disco-swag-album.xml",
+          "title": "Feed b2a87a4c..."
+        },
+        {
+          "url": "https://www.doerfelverse.com/feeds/bloodshot-lies-album.xml",
+          "title": "Feed a1077af6..."
+        },
+        {
+          "url": "https://www.doerfelverse.com/feeds/think-ep.xml",
+          "title": "Feed af99d1b4..."
+        },
+        {
+          "url": "https://www.doerfelverse.com/feeds/think-ep-live.xml",
+          "title": "Feed c49ec2b5..."
+        },
+        {
+          "url": "https://www.doerfelverse.com/feeds/your-chance.xml",
+          "title": "Feed 4ab3741a..."
+        },
+        {
+          "url": "https://www.doerfelverse.com/feeds/jam-with-nate.xml",
+          "title": "Feed dbfd9254..."
+        },
+        {
+          "url": "https://www.doerfelverse.com/feeds/intothedoerfelverse.xml",
+          "title": "Feed 41aace28..."
+        }
+      ],
+      "paymentRecipients": [
+        {
+          "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
+          "split": 95,
+          "name": "The Doerfels",
+          "fee": false,
+          "type": "node"
+        },
+        {
+          "address": "steven@getalby.com",
+          "split": 5,
+          "name": "Sovereign Feeds",
+          "fee": false,
+          "type": "lnaddress"
+        }
+      ],
+      "feedGuid": "351d060e-2f51-5b71-8778-b4c5c84be9c1",
+      "feedUrl": "https://www.doerfelverse.com/feeds/them.xml",
+      "imageUrl": "https://www.doerfelverse.com/art/them.png",
+      "feedId": "www-doerfelverse-com-feeds-them-xml",
+      "lastUpdated": "2026-04-15T00:31:22.367Z"
     }
   ]
 }

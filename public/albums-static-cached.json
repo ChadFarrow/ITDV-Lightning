@@ -1,26 +1,26 @@
 {
   "albums": [
     {
-      "title": "Wrathodies",
-      "artist": "Sir TJ The Wrathful",
-      "description": "A compilation of parodies I made for the podcasts No Agenda and Curry & The Keeper over the years.",
-      "coverArt": "https://www.doerfelverse.com/art/wrathodies.png",
+      "title": "Them",
+      "artist": "The Doerfels",
+      "description": "\"Them\" is a mini album of Doerfelized covers we released when we went by the band name, \"Fuel on Fire\" back in 2019.",
+      "coverArt": "https://www.doerfelverse.com/art/them.png",
       "tracks": [
         {
-          "title": "We Don't Talk About Brandon",
-          "duration": "2:55",
-          "url": "https://www.doerfelverse.com/tracks/we-dont-talk-about-brandon.mp3",
+          "title": "Good Times Bad Times",
+          "duration": "3:11",
+          "url": "https://www.doerfelverse.com/tracks/good-times-bad-times.mp3",
           "trackNumber": 1,
-          "subtitle": "We Don't Talk About Brandon",
-          "summary": "I had no idea this was one of Tina's fav songs of all time, WOW! :) Aired on ep 47 of Curry And The Keeper",
-          "image": "https://www.doerfelverse.com/art/wrathodies.png",
+          "subtitle": "Good Times Bad Times",
+          "summary": "Good Times Bad Times by The Doerfels",
+          "image": "https://www.doerfelverse.com/art/them.png",
           "explicit": false,
           "keywords": [
-            "wrathodies",
-            "sir",
-            "tj",
+            "doerfels",
+            "them",
+            "doerfelverse",
             "the",
-            "wrathful"
+            "v4vmusic"
           ],
           "value": {
             "type": "lightning",
@@ -28,10 +28,10 @@
             "suggested": "0.00000005000",
             "recipients": [
               {
-                "type": "node",
-                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-                "split": 50,
-                "name": "Sir TJ The Wrathful",
+                "type": "lnaddress",
+                "address": "sirtjthewrathful@getalby.com",
+                "split": 95,
+                "name": "The Doerfels",
                 "fee": false
               },
               {
@@ -40,23 +40,16 @@
                 "split": 5,
                 "name": "Sovereign Feeds",
                 "fee": false
-              },
-              {
-                "type": "lnaddress",
-                "address": "thisisjdog@fountain.fm",
-                "split": 45,
-                "name": "Jdog",
-                "fee": false
               }
             ]
           },
           "paymentRecipients": [
             {
-              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-              "split": 50,
-              "name": "Sir TJ The Wrathful",
+              "address": "sirtjthewrathful@getalby.com",
+              "split": 95,
+              "name": "The Doerfels",
               "fee": false,
-              "type": "node"
+              "type": "lnaddress"
             },
             {
               "address": "steven@getalby.com",
@@ -64,34 +57,539 @@
               "name": "Sovereign Feeds",
               "fee": false,
               "type": "lnaddress"
+            }
+          ],
+          "guid": "0c390019-47cf-44ec-84b3-1ba1b7a37971",
+          "feedGuid": "351d060e-2f51-5b71-8778-b4c5c84be9c1",
+          "imageUrl": "https://www.doerfelverse.com/art/them.png"
+        },
+        {
+          "title": "Eleanor Rigby",
+          "duration": "2:28",
+          "url": "https://www.doerfelverse.com/tracks/eleanor-rigby.mp3",
+          "trackNumber": 2,
+          "subtitle": "Eleanor Rigby",
+          "summary": "Eleanor Rigby by The Doerfels",
+          "image": "https://www.doerfelverse.com/art/them.png",
+          "explicit": false,
+          "keywords": [
+            "doerfels",
+            "them",
+            "doerfelverse",
+            "the",
+            "v4vmusic"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "lnaddress",
+                "address": "sirtjthewrathful@getalby.com",
+                "split": 95,
+                "name": "The Doerfels",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "sirtjthewrathful@getalby.com",
+              "split": 95,
+              "name": "The Doerfels",
+              "fee": false,
+              "type": "lnaddress"
             },
             {
-              "address": "thisisjdog@fountain.fm",
-              "split": 45,
-              "name": "Jdog",
+              "address": "steven@getalby.com",
+              "split": 5,
+              "name": "Sovereign Feeds",
               "fee": false,
               "type": "lnaddress"
             }
           ],
-          "guid": "d809466b-d1a2-4446-8088-95200e470503",
-          "feedGuid": "3197a0a6-4c7e-56ea-8469-cfb3ca0d3cdc",
-          "imageUrl": "https://www.doerfelverse.com/art/wrathodies.png"
+          "guid": "1d8cdc03-bd21-4ccf-a4df-77e1c873989f",
+          "feedGuid": "351d060e-2f51-5b71-8778-b4c5c84be9c1",
+          "imageUrl": "https://www.doerfelverse.com/art/them.png"
         },
         {
-          "title": "Everything's A Scam",
-          "duration": "1:57",
-          "url": "https://www.doerfelverse.com/tracks/everythings-a-scam-with-prologue.mp3",
-          "trackNumber": 2,
-          "subtitle": "Everything's A Scam",
-          "summary": "A fun spoof featuring the pretty much the whole family! Featured on No Agenda ep 1540",
-          "image": "https://www.doerfelverse.com/art/wrathodies.png",
+          "title": "With Or Without You feat. HP Campus School Choir",
+          "duration": "3:49",
+          "url": "https://www.doerfelverse.com/tracks/with-or-without-you.mp3",
+          "trackNumber": 3,
+          "subtitle": "With Or Without You feat. HP Campus School Choir",
+          "summary": "With Or Without You by The Doerfels",
+          "image": "https://www.doerfelverse.com/art/them.png",
           "explicit": false,
           "keywords": [
-            "wrathodies",
-            "sir",
-            "tj",
+            "doerfels",
+            "them",
+            "doerfelverse",
             "the",
-            "wrathful",
+            "v4vmusic"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "lnaddress",
+                "address": "sirtjthewrathful@getalby.com",
+                "split": 95,
+                "name": "The Doerfels",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "sirtjthewrathful@getalby.com",
+              "split": 95,
+              "name": "The Doerfels",
+              "fee": false,
+              "type": "lnaddress"
+            },
+            {
+              "address": "steven@getalby.com",
+              "split": 5,
+              "name": "Sovereign Feeds",
+              "fee": false,
+              "type": "lnaddress"
+            }
+          ],
+          "guid": "37db2ce4-dad8-4919-b4c9-1dfc7ed9dc27",
+          "feedGuid": "351d060e-2f51-5b71-8778-b4c5c84be9c1",
+          "imageUrl": "https://www.doerfelverse.com/art/them.png"
+        },
+        {
+          "title": "Goodbye Stranger",
+          "duration": "4:00",
+          "url": "https://www.doerfelverse.com/tracks/goodbye-stranger.mp3",
+          "trackNumber": 4,
+          "subtitle": "Goodbye Stranger",
+          "summary": "Goodbye Stranger by The Doerfels",
+          "image": "https://www.doerfelverse.com/art/them.png",
+          "explicit": false,
+          "keywords": [
+            "doerfels",
+            "them",
+            "doerfelverse",
+            "the",
+            "v4vmusic"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "lnaddress",
+                "address": "sirtjthewrathful@getalby.com",
+                "split": 95,
+                "name": "The Doerfels",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "sirtjthewrathful@getalby.com",
+              "split": 95,
+              "name": "The Doerfels",
+              "fee": false,
+              "type": "lnaddress"
+            },
+            {
+              "address": "steven@getalby.com",
+              "split": 5,
+              "name": "Sovereign Feeds",
+              "fee": false,
+              "type": "lnaddress"
+            }
+          ],
+          "guid": "db907cbb-8f8f-4323-8e8a-93695fe98398",
+          "feedGuid": "351d060e-2f51-5b71-8778-b4c5c84be9c1",
+          "imageUrl": "https://www.doerfelverse.com/art/them.png"
+        },
+        {
+          "title": "Rule The World",
+          "duration": "4:41",
+          "url": "https://www.doerfelverse.com/tracks/rule-the-world.mp3",
+          "trackNumber": 5,
+          "subtitle": "Rule The World",
+          "summary": "Rule The World by The Doerfels",
+          "image": "https://www.doerfelverse.com/art/them.png",
+          "explicit": false,
+          "keywords": [
+            "doerfels",
+            "them",
+            "doerfelverse",
+            "the",
+            "v4vmusic"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "lnaddress",
+                "address": "sirtjthewrathful@getalby.com",
+                "split": 95,
+                "name": "The Doerfels",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "sirtjthewrathful@getalby.com",
+              "split": 95,
+              "name": "The Doerfels",
+              "fee": false,
+              "type": "lnaddress"
+            },
+            {
+              "address": "steven@getalby.com",
+              "split": 5,
+              "name": "Sovereign Feeds",
+              "fee": false,
+              "type": "lnaddress"
+            }
+          ],
+          "guid": "9ac3be63-c9a3-4065-88fe-5f07006a1abe",
+          "feedGuid": "351d060e-2f51-5b71-8778-b4c5c84be9c1",
+          "imageUrl": "https://www.doerfelverse.com/art/them.png"
+        },
+        {
+          "title": "Stay",
+          "duration": "4:11",
+          "url": "https://www.doerfelverse.com/tracks/stay.mp3",
+          "trackNumber": 6,
+          "subtitle": "Stay",
+          "summary": "Stay by The Doerfels",
+          "image": "https://www.doerfelverse.com/art/them.png",
+          "explicit": false,
+          "keywords": [
+            "doerfels",
+            "them",
+            "doerfelverse",
+            "the",
+            "v4vmusic"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "lnaddress",
+                "address": "sirtjthewrathful@getalby.com",
+                "split": 95,
+                "name": "The Doerfels",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "sirtjthewrathful@getalby.com",
+              "split": 95,
+              "name": "The Doerfels",
+              "fee": false,
+              "type": "lnaddress"
+            },
+            {
+              "address": "steven@getalby.com",
+              "split": 5,
+              "name": "Sovereign Feeds",
+              "fee": false,
+              "type": "lnaddress"
+            }
+          ],
+          "guid": "b5f23697-1027-476d-a342-7e552daaeaa4",
+          "feedGuid": "351d060e-2f51-5b71-8778-b4c5c84be9c1",
+          "imageUrl": "https://www.doerfelverse.com/art/them.png"
+        },
+        {
+          "title": "Secrets",
+          "duration": "3:40",
+          "url": "https://www.doerfelverse.com/tracks/secrets.mp3",
+          "trackNumber": 7,
+          "subtitle": "Secrets",
+          "summary": "Secrets by The Doerfels",
+          "image": "https://www.doerfelverse.com/art/them.png",
+          "explicit": false,
+          "keywords": [
+            "doerfels",
+            "them",
+            "doerfelverse",
+            "the",
+            "v4vmusic"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "lnaddress",
+                "address": "sirtjthewrathful@getalby.com",
+                "split": 95,
+                "name": "The Doerfels",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "sirtjthewrathful@getalby.com",
+              "split": 95,
+              "name": "The Doerfels",
+              "fee": false,
+              "type": "lnaddress"
+            },
+            {
+              "address": "steven@getalby.com",
+              "split": 5,
+              "name": "Sovereign Feeds",
+              "fee": false,
+              "type": "lnaddress"
+            }
+          ],
+          "guid": "1dd32ec6-0a7a-4061-a087-8e4150b3ec23",
+          "feedGuid": "351d060e-2f51-5b71-8778-b4c5c84be9c1",
+          "imageUrl": "https://www.doerfelverse.com/art/them.png"
+        },
+        {
+          "title": "I Like Me Better",
+          "duration": "3:58",
+          "url": "https://www.doerfelverse.com/tracks/i-like-me-better.mp3",
+          "trackNumber": 8,
+          "subtitle": "I Like Me Better",
+          "summary": "I Like Me Better by The Doerfels",
+          "image": "https://www.doerfelverse.com/art/them.png",
+          "explicit": false,
+          "keywords": [
+            "doerfels",
+            "them",
+            "doerfelverse",
+            "the",
+            "v4vmusic"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "lnaddress",
+                "address": "sirtjthewrathful@getalby.com",
+                "split": 95,
+                "name": "The Doerfels",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "sirtjthewrathful@getalby.com",
+              "split": 95,
+              "name": "The Doerfels",
+              "fee": false,
+              "type": "lnaddress"
+            },
+            {
+              "address": "steven@getalby.com",
+              "split": 5,
+              "name": "Sovereign Feeds",
+              "fee": false,
+              "type": "lnaddress"
+            }
+          ],
+          "guid": "818cfc2b-1383-401a-9d69-644182d41400",
+          "feedGuid": "351d060e-2f51-5b71-8778-b4c5c84be9c1",
+          "imageUrl": "https://www.doerfelverse.com/art/them.png"
+        },
+        {
+          "title": "No Promises",
+          "duration": "3:36",
+          "url": "https://www.doerfelverse.com/tracks/no-promises.mp3",
+          "trackNumber": 9,
+          "subtitle": "No Promises",
+          "summary": "No Promises by The Doerfels",
+          "image": "https://www.doerfelverse.com/art/them.png",
+          "explicit": false,
+          "keywords": [
+            "doerfels",
+            "them",
+            "doerfelverse",
+            "the",
+            "v4vmusic"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "lnaddress",
+                "address": "sirtjthewrathful@getalby.com",
+                "split": 95,
+                "name": "The Doerfels",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "sirtjthewrathful@getalby.com",
+              "split": 95,
+              "name": "The Doerfels",
+              "fee": false,
+              "type": "lnaddress"
+            },
+            {
+              "address": "steven@getalby.com",
+              "split": 5,
+              "name": "Sovereign Feeds",
+              "fee": false,
+              "type": "lnaddress"
+            }
+          ],
+          "guid": "f07aab0b-9bd7-4f2a-8d3f-fd26011a787f",
+          "feedGuid": "351d060e-2f51-5b71-8778-b4c5c84be9c1",
+          "imageUrl": "https://www.doerfelverse.com/art/them.png"
+        },
+        {
+          "title": "Yellow",
+          "duration": "3:58",
+          "url": "https://www.doerfelverse.com/tracks/yellow.mp3",
+          "trackNumber": 10,
+          "subtitle": "Yellow",
+          "summary": "Yellow by The Doerfels",
+          "image": "https://www.doerfelverse.com/art/them.png",
+          "explicit": false,
+          "keywords": [
+            "doerfels",
+            "them",
+            "doerfelverse",
+            "the",
+            "v4vmusic"
+          ],
+          "value": {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000",
+            "recipients": [
+              {
+                "type": "lnaddress",
+                "address": "sirtjthewrathful@getalby.com",
+                "split": 95,
+                "name": "The Doerfels",
+                "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": "steven@getalby.com",
+                "split": 5,
+                "name": "Sovereign Feeds",
+                "fee": false
+              }
+            ]
+          },
+          "paymentRecipients": [
+            {
+              "address": "sirtjthewrathful@getalby.com",
+              "split": 95,
+              "name": "The Doerfels",
+              "fee": false,
+              "type": "lnaddress"
+            },
+            {
+              "address": "steven@getalby.com",
+              "split": 5,
+              "name": "Sovereign Feeds",
+              "fee": false,
+              "type": "lnaddress"
+            }
+          ],
+          "guid": "0f2554df-e076-40d0-bd92-bc48c6e9a9c8",
+          "feedGuid": "351d060e-2f51-5b71-8778-b4c5c84be9c1",
+          "imageUrl": "https://www.doerfelverse.com/art/them.png"
+        },
+        {
+          "title": "Use Somebody/Streets - Live 2017",
+          "duration": "8:54",
+          "url": "https://www.doerfelverse.com/tracks/use-somebody-streets-live.mp3",
+          "trackNumber": 11,
+          "subtitle": "Use Somebody/Streets - Live 2017",
+          "summary": "Use Somebody/Streets - Live 2017 by The Doerfels",
+          "image": "https://www.doerfelverse.com/art/them.png",
+          "explicit": false,
+          "keywords": [
+            "doerfels",
+            "them",
+            "doerfelverse",
+            "the",
             "v4vmusic"
           ],
           "value": {
@@ -102,150 +600,10 @@
               {
                 "type": "node",
                 "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-                "split": 50,
-                "name": "Sir TJ",
-                "fee": false
-              },
-              {
-                "type": "lnaddress",
-                "address": "steven@getalby.com",
-                "split": 5,
-                "name": "Sovereign Feeds",
-                "fee": false
-              },
-              {
-                "type": "lnaddress",
-                "address": "thisisjdog@fountain.fm",
-                "split": 45,
-                "name": "Jdog",
-                "fee": false
-              }
-            ]
-          },
-          "paymentRecipients": [
-            {
-              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-              "split": 50,
-              "name": "Sir TJ",
-              "fee": false,
-              "type": "node"
-            },
-            {
-              "address": "steven@getalby.com",
-              "split": 5,
-              "name": "Sovereign Feeds",
-              "fee": false,
-              "type": "lnaddress"
-            },
-            {
-              "address": "thisisjdog@fountain.fm",
-              "split": 45,
-              "name": "Jdog",
-              "fee": false,
-              "type": "lnaddress"
-            }
-          ],
-          "guid": "0acd16f9-92be-4ced-93e6-f6a8ce3fa77b",
-          "feedGuid": "3197a0a6-4c7e-56ea-8469-cfb3ca0d3cdc",
-          "imageUrl": "https://www.doerfelverse.com/art/wrathodies.png"
-        },
-        {
-          "title": "Hey! Listen to No Agenda",
-          "duration": "1:27",
-          "url": "https://www.doerfelverse.com/tracks/hey-listen-to-no-agenda.mp3",
-          "trackNumber": 3,
-          "subtitle": "Hey! Listen to No Agenda",
-          "summary": "If you watched pbs kids in the 90s you will know this one!",
-          "image": "https://www.doerfelverse.com/art/wrathodies.png",
-          "explicit": false,
-          "keywords": [
-            "wrathodies",
-            "sir",
-            "tj",
-            "the",
-            "wrathful"
-          ],
-          "value": {
-            "type": "lightning",
-            "method": "keysend",
-            "suggested": "0.00000005000",
-            "recipients": [
-              {
-                "type": "node",
-                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-                "split": 50,
-                "name": "Sir TJ",
-                "fee": false
-              },
-              {
-                "type": "lnaddress",
-                "address": "steven@getalby.com",
-                "split": 5,
-                "name": "Sovereign Feeds",
-                "fee": false
-              },
-              {
-                "type": "lnaddress",
-                "address": "thisisjdog@fountain.fm",
-                "split": 45,
-                "name": "Jdog",
-                "fee": false
-              }
-            ]
-          },
-          "paymentRecipients": [
-            {
-              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-              "split": 50,
-              "name": "Sir TJ",
-              "fee": false,
-              "type": "node"
-            },
-            {
-              "address": "steven@getalby.com",
-              "split": 5,
-              "name": "Sovereign Feeds",
-              "fee": false,
-              "type": "lnaddress"
-            },
-            {
-              "address": "thisisjdog@fountain.fm",
-              "split": 45,
-              "name": "Jdog",
-              "fee": false,
-              "type": "lnaddress"
-            }
-          ],
-          "guid": "80bcd85f-b1f1-4f58-bf7f-2f5bd5d562ea",
-          "feedGuid": "3197a0a6-4c7e-56ea-8469-cfb3ca0d3cdc",
-          "imageUrl": "https://www.doerfelverse.com/art/wrathodies.png"
-        },
-        {
-          "title": "Chicken Tumors",
-          "duration": "1:01",
-          "url": "https://www.doerfelverse.com/tracks/chicken-tumors.mp3",
-          "trackNumber": 4,
-          "subtitle": "Chicken Tumors",
-          "summary": "It tastes like chicken!...LOL",
-          "image": "https://www.doerfelverse.com/art/wrathodies.png",
-          "explicit": false,
-          "keywords": [
-            "wrathodies",
-            "sir",
-            "tj",
-            "the",
-            "wrathful"
-          ],
-          "value": {
-            "type": "lightning",
-            "method": "keysend",
-            "suggested": "0.00000005000",
-            "recipients": [
-              {
-                "type": "node",
-                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
                 "split": 95,
-                "name": "Sir TJ",
+                "name": "The Doerfels",
+                "customKey": "696969",
+                "customValue": "1",
                 "fee": false
               },
               {
@@ -261,7 +619,7 @@
             {
               "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
               "split": 95,
-              "name": "Sir TJ",
+              "name": "The Doerfels",
               "fee": false,
               "type": "node"
             },
@@ -273,451 +631,25 @@
               "type": "lnaddress"
             }
           ],
-          "guid": "aa734bd4-6d8e-4cbe-a03d-3727fa011ab2",
-          "feedGuid": "3197a0a6-4c7e-56ea-8469-cfb3ca0d3cdc",
-          "imageUrl": "https://www.doerfelverse.com/art/wrathodies.png"
+          "guid": "c5c21628-8818-4c47-b944-23ffa7cb937f",
+          "feedGuid": "351d060e-2f51-5b71-8778-b4c5c84be9c1",
+          "imageUrl": "https://www.doerfelverse.com/art/them.png"
         },
         {
-          "title": "COVIDS Back",
-          "duration": "2:11",
-          "url": "https://www.doerfelverse.com/tracks/covids-back.mp3",
-          "trackNumber": 5,
-          "subtitle": "COVIDS Back",
-          "summary": "The banjo was oddly fun on this one! Featured on ep 1590 of No Agenda",
-          "image": "https://www.doerfelverse.com/art/wrathodies.png",
-          "explicit": false,
-          "keywords": [
-            "wrathodies",
-            "sir",
-            "tj",
-            "the",
-            "wrathful"
-          ],
-          "value": {
-            "type": "lightning",
-            "method": "keysend",
-            "suggested": "0.00000005000",
-            "recipients": [
-              {
-                "type": "node",
-                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-                "split": 95,
-                "name": "Sir TJ",
-                "fee": false
-              },
-              {
-                "type": "lnaddress",
-                "address": "steven@getalby.com",
-                "split": 5,
-                "name": "Sovereign Feeds",
-                "fee": false
-              }
-            ]
-          },
-          "paymentRecipients": [
-            {
-              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-              "split": 95,
-              "name": "Sir TJ",
-              "fee": false,
-              "type": "node"
-            },
-            {
-              "address": "steven@getalby.com",
-              "split": 5,
-              "name": "Sovereign Feeds",
-              "fee": false,
-              "type": "lnaddress"
-            }
-          ],
-          "guid": "1045027c-4b01-4673-9325-40865fd15dad",
-          "feedGuid": "3197a0a6-4c7e-56ea-8469-cfb3ca0d3cdc",
-          "imageUrl": "https://www.doerfelverse.com/art/wrathodies.png"
-        },
-        {
-          "title": "Kamala De Vil",
-          "duration": "1:11",
-          "url": "https://www.doerfelverse.com/tracks/kamaladevil.mp3",
-          "trackNumber": 6,
-          "subtitle": "Kamala De Vil",
-          "summary": "ouch",
-          "image": "https://www.doerfelverse.com/art/wrathodies.png",
-          "explicit": false,
-          "keywords": [
-            "wrathodies",
-            "sir",
-            "tj",
-            "the",
-            "wrathful"
-          ],
-          "value": {
-            "type": "lightning",
-            "method": "keysend",
-            "suggested": "0.00000005000",
-            "recipients": [
-              {
-                "type": "node",
-                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-                "split": 95,
-                "name": "Sir TJ",
-                "fee": false
-              },
-              {
-                "type": "lnaddress",
-                "address": "steven@getalby.com",
-                "split": 5,
-                "name": "Sovereign Feeds",
-                "fee": false
-              }
-            ]
-          },
-          "paymentRecipients": [
-            {
-              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-              "split": 95,
-              "name": "Sir TJ",
-              "fee": false,
-              "type": "node"
-            },
-            {
-              "address": "steven@getalby.com",
-              "split": 5,
-              "name": "Sovereign Feeds",
-              "fee": false,
-              "type": "lnaddress"
-            }
-          ],
-          "guid": "5a36a910-fd98-4a35-8db1-8731414b7152",
-          "feedGuid": "3197a0a6-4c7e-56ea-8469-cfb3ca0d3cdc",
-          "imageUrl": "https://www.doerfelverse.com/art/wrathodies.png"
-        },
-        {
-          "title": "Toilet Seats Down",
-          "duration": "1:01",
-          "url": "https://www.doerfelverse.com/tracks/toilet-seats-down.mp3",
-          "trackNumber": 7,
-          "subtitle": "Toilet Seats Down",
-          "summary": "As aired on Episode 42 of Curry and The Keeper",
-          "image": "https://www.doerfelverse.com/art/wrathodies.png",
-          "explicit": false,
-          "keywords": [
-            "wrathodies",
-            "sir",
-            "tj",
-            "the",
-            "wrathful"
-          ],
-          "value": {
-            "type": "lightning",
-            "method": "keysend",
-            "suggested": "0.00000005000",
-            "recipients": [
-              {
-                "type": "node",
-                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-                "split": 95,
-                "name": "Sir TJ",
-                "fee": false
-              },
-              {
-                "type": "lnaddress",
-                "address": "steven@getalby.com",
-                "split": 5,
-                "name": "Sovereign Feeds",
-                "fee": false
-              }
-            ]
-          },
-          "paymentRecipients": [
-            {
-              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-              "split": 95,
-              "name": "Sir TJ",
-              "fee": false,
-              "type": "node"
-            },
-            {
-              "address": "steven@getalby.com",
-              "split": 5,
-              "name": "Sovereign Feeds",
-              "fee": false,
-              "type": "lnaddress"
-            }
-          ],
-          "guid": "4f4dcaff-5096-4e33-ac5b-401bdc351d8a",
-          "feedGuid": "3197a0a6-4c7e-56ea-8469-cfb3ca0d3cdc",
-          "imageUrl": "https://www.doerfelverse.com/art/wrathodies.png"
-        },
-        {
-          "title": "WLTLU?",
-          "duration": "1:22",
-          "url": "https://www.doerfelverse.com/tracks/wltlu.mp3",
-          "trackNumber": 8,
-          "subtitle": "WLTLU?",
-          "summary": "Had a great time recording this with my daugters Violet and Hazel, I think they were 8 and 10 at the time. Never featured on a curry and the keeper episode...(I guess they got tired of the bathroom jokes) :(",
-          "image": "https://www.doerfelverse.com/art/wrathodies.png",
-          "explicit": false,
-          "keywords": [
-            "wrathodies",
-            "sir",
-            "tj",
-            "the",
-            "wrathful"
-          ],
-          "value": {
-            "type": "lightning",
-            "method": "keysend",
-            "suggested": "0.00000005000",
-            "recipients": [
-              {
-                "type": "node",
-                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-                "split": 95,
-                "name": "Sir TJ",
-                "fee": false
-              },
-              {
-                "type": "lnaddress",
-                "address": "steven@getalby.com",
-                "split": 5,
-                "name": "Sovereign Feeds",
-                "fee": false
-              }
-            ]
-          },
-          "paymentRecipients": [
-            {
-              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-              "split": 95,
-              "name": "Sir TJ",
-              "fee": false,
-              "type": "node"
-            },
-            {
-              "address": "steven@getalby.com",
-              "split": 5,
-              "name": "Sovereign Feeds",
-              "fee": false,
-              "type": "lnaddress"
-            }
-          ],
-          "guid": "dbce0605-4249-4596-b738-d30f188decc7",
-          "feedGuid": "3197a0a6-4c7e-56ea-8469-cfb3ca0d3cdc",
-          "imageUrl": "https://www.doerfelverse.com/art/wrathodies.png"
-        },
-        {
-          "title": "Lovely Dame",
-          "duration": "2:17",
-          "url": "https://www.doerfelverse.com/tracks/lovely-dame.mp3",
-          "trackNumber": 9,
-          "subtitle": "Lovely Dame",
-          "summary": "I had no idea this was one of Tina's fav songs of all time, WOW! :)",
-          "image": "https://www.doerfelverse.com/art/wrathodies.png",
-          "explicit": false,
-          "keywords": [
-            "wrathodies",
-            "sir",
-            "tj",
-            "the",
-            "wrathful"
-          ],
-          "value": {
-            "type": "lightning",
-            "method": "keysend",
-            "suggested": "0.00000005000",
-            "recipients": [
-              {
-                "type": "node",
-                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-                "split": 95,
-                "name": "Sir TJ",
-                "fee": false
-              },
-              {
-                "type": "lnaddress",
-                "address": "steven@getalby.com",
-                "split": 5,
-                "name": "Sovereign Feeds",
-                "fee": false
-              }
-            ]
-          },
-          "paymentRecipients": [
-            {
-              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-              "split": 95,
-              "name": "Sir TJ",
-              "fee": false,
-              "type": "node"
-            },
-            {
-              "address": "steven@getalby.com",
-              "split": 5,
-              "name": "Sovereign Feeds",
-              "fee": false,
-              "type": "lnaddress"
-            }
-          ],
-          "guid": "5092dc27-2bee-4fe0-8483-2478ee0c0e64",
-          "feedGuid": "3197a0a6-4c7e-56ea-8469-cfb3ca0d3cdc",
-          "imageUrl": "https://www.doerfelverse.com/art/wrathodies.png"
-        },
-        {
-          "title": "BFF Sir Brian",
-          "duration": "1:14",
-          "url": "https://www.doerfelverse.com/tracks/bff-sirbrian.mp3",
-          "trackNumber": 10,
-          "subtitle": "BFF Sir Brian",
-          "summary": "Do we have to speak of Brian??? Yes, yes we do.",
-          "image": "https://www.doerfelverse.com/art/wrathodies.png",
-          "explicit": false,
-          "keywords": [
-            "wrathodies",
-            "sir",
-            "tj",
-            "the",
-            "wrathful"
-          ],
-          "value": {
-            "type": "lightning",
-            "method": "keysend",
-            "suggested": "0.00000005000",
-            "recipients": [
-              {
-                "type": "node",
-                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-                "split": 50,
-                "name": "Sir TJ",
-                "fee": false
-              },
-              {
-                "type": "lnaddress",
-                "address": "steven@getalby.com",
-                "split": 5,
-                "name": "Sovereign Feeds",
-                "fee": false
-              },
-              {
-                "type": "lnaddress",
-                "address": "sir_brian_with_an_i@fountain.fm",
-                "split": 45,
-                "name": "Sir Brian with an I",
-                "fee": false
-              }
-            ]
-          },
-          "paymentRecipients": [
-            {
-              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-              "split": 50,
-              "name": "Sir TJ",
-              "fee": false,
-              "type": "node"
-            },
-            {
-              "address": "steven@getalby.com",
-              "split": 5,
-              "name": "Sovereign Feeds",
-              "fee": false,
-              "type": "lnaddress"
-            },
-            {
-              "address": "sir_brian_with_an_i@fountain.fm",
-              "split": 45,
-              "name": "Sir Brian with an I",
-              "fee": false,
-              "type": "lnaddress"
-            }
-          ],
-          "guid": "af2dc125-fe92-4eb5-82ab-41553011b273",
-          "feedGuid": "3197a0a6-4c7e-56ea-8469-cfb3ca0d3cdc",
-          "imageUrl": "https://www.doerfelverse.com/art/wrathodies.png"
-        },
-        {
-          "title": "TJ/Brian Curry & Keeper skit",
-          "duration": "2:35",
-          "url": "https://www.doerfelverse.com/tracks/catk-skit-tj-brian.mp3",
-          "trackNumber": 11,
-          "subtitle": "TJ/Brian Curry & Keeper skit",
-          "image": "https://www.doerfelverse.com/art/wrathodies.png",
-          "explicit": false,
-          "keywords": [
-            "wrathodies",
-            "sir",
-            "tj",
-            "the",
-            "wrathful"
-          ],
-          "value": {
-            "type": "lightning",
-            "method": "keysend",
-            "suggested": "0.00000005000",
-            "recipients": [
-              {
-                "type": "node",
-                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-                "split": 50,
-                "name": "Sir TJ",
-                "fee": false
-              },
-              {
-                "type": "lnaddress",
-                "address": "steven@getalby.com",
-                "split": 5,
-                "name": "Sovereign Feeds",
-                "fee": false
-              },
-              {
-                "type": "lnaddress",
-                "address": "sir_brian_with_an_i@fountain.fm",
-                "split": 45,
-                "name": "Sir Brian",
-                "fee": false
-              }
-            ]
-          },
-          "paymentRecipients": [
-            {
-              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-              "split": 50,
-              "name": "Sir TJ",
-              "fee": false,
-              "type": "node"
-            },
-            {
-              "address": "steven@getalby.com",
-              "split": 5,
-              "name": "Sovereign Feeds",
-              "fee": false,
-              "type": "lnaddress"
-            },
-            {
-              "address": "sir_brian_with_an_i@fountain.fm",
-              "split": 45,
-              "name": "Sir Brian",
-              "fee": false,
-              "type": "lnaddress"
-            }
-          ],
-          "guid": "56144111-6849-4243-a89f-bcf956957d06",
-          "feedGuid": "3197a0a6-4c7e-56ea-8469-cfb3ca0d3cdc",
-          "imageUrl": "https://www.doerfelverse.com/art/wrathodies.png"
-        },
-        {
-          "title": "Question of the Week",
-          "duration": "1:15",
-          "url": "https://www.doerfelverse.com/tracks/question-of-the-week.mp3",
+          "title": "Good Times Bad Times Pure - Live 2017",
+          "duration": "3:31",
+          "url": "https://www.doerfelverse.com/tracks/good-times-bad-times-live.mp3",
           "trackNumber": 12,
-          "subtitle": "Question of the Week",
-          "summary": "Curry and the Keeper used this as a part of their show, feel free to also use it. The idea was from Sir Brian With an I, thanks bro!",
-          "image": "https://www.doerfelverse.com/art/wrathodies.png",
+          "subtitle": "Good Times Bad Times Pure - Live 2017",
+          "summary": "Good Times Bad Times Pure - Live 2017 by The Doerfels",
+          "image": "https://www.doerfelverse.com/art/them.png",
           "explicit": false,
           "keywords": [
-            "wrathodies",
-            "sir",
-            "tj",
+            "doerfels",
+            "them",
+            "doerfelverse",
             "the",
-            "wrathful"
+            "v4vmusic"
           ],
           "value": {
             "type": "lightning",
@@ -727,8 +659,10 @@
               {
                 "type": "node",
                 "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-                "split": 50,
-                "name": "Sir TJ",
+                "split": 95,
+                "name": "The Doerfels",
+                "customKey": "696969",
+                "customValue": "1",
                 "fee": false
               },
               {
@@ -737,21 +671,14 @@
                 "split": 5,
                 "name": "Sovereign Feeds",
                 "fee": false
-              },
-              {
-                "type": "lnaddress",
-                "address": "sir_brian_with_an_i@fountain.fm",
-                "split": 45,
-                "name": "Sir Brian",
-                "fee": false
               }
             ]
           },
           "paymentRecipients": [
             {
               "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-              "split": 50,
-              "name": "Sir TJ",
+              "split": 95,
+              "name": "The Doerfels",
               "fee": false,
               "type": "node"
             },
@@ -761,21 +688,14 @@
               "name": "Sovereign Feeds",
               "fee": false,
               "type": "lnaddress"
-            },
-            {
-              "address": "sir_brian_with_an_i@fountain.fm",
-              "split": 45,
-              "name": "Sir Brian",
-              "fee": false,
-              "type": "lnaddress"
             }
           ],
-          "guid": "c8b1237f-f238-4a39-8b25-8fb0817bc450",
-          "feedGuid": "3197a0a6-4c7e-56ea-8469-cfb3ca0d3cdc",
-          "imageUrl": "https://www.doerfelverse.com/art/wrathodies.png"
+          "guid": "78aad92d-3cde-46e0-b0b2-8e4d8e0e2c13",
+          "feedGuid": "351d060e-2f51-5b71-8778-b4c5c84be9c1",
+          "imageUrl": "https://www.doerfelverse.com/art/them.png"
         }
       ],
-      "releaseDate": "Wed, 04 Mar 2026 16:47:44 +0000",
+      "releaseDate": "Wed, 15 Apr 2026 00:16:52 +0000",
       "link": "https://www.doerfelverse.com",
       "value": {
         "type": "lightning",
@@ -783,10 +703,12 @@
         "suggested": "0.00000005000",
         "recipients": [
           {
-            "type": "lnaddress",
-            "address": "sirtjthewrathful@getalby.com",
+            "type": "node",
+            "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
             "split": 95,
-            "name": "Sir TJ The Wrathful",
+            "name": "The Doerfels",
+            "customKey": "696969",
+            "customValue": "1",
             "fee": false
           },
           {
@@ -798,10 +720,13 @@
           }
         ]
       },
-      "subtitle": "We Don't Talk About Brandon",
-      "summary": "I had no idea this was one of Tina's fav songs of all time, WOW! :) Aired on ep 47 of Curry And The Keeper",
+      "subtitle": "Good Times Bad Times",
+      "summary": "Good Times Bad Times by The Doerfels",
       "keywords": [
-        "wrathodies",
+        "doerfels",
+        "them",
+        "doerfelverse",
+        "the",
         "v4vmusic"
       ],
       "categories": [
@@ -809,13 +734,43 @@
       ],
       "explicit": false,
       "language": "en",
+      "podroll": [
+        {
+          "url": "https://www.doerfelverse.com/feeds/disco-swag-album.xml",
+          "title": "Feed b2a87a4c..."
+        },
+        {
+          "url": "https://www.doerfelverse.com/feeds/bloodshot-lies-album.xml",
+          "title": "Feed a1077af6..."
+        },
+        {
+          "url": "https://www.doerfelverse.com/feeds/think-ep.xml",
+          "title": "Feed af99d1b4..."
+        },
+        {
+          "url": "https://www.doerfelverse.com/feeds/think-ep-live.xml",
+          "title": "Feed c49ec2b5..."
+        },
+        {
+          "url": "https://www.doerfelverse.com/feeds/your-chance.xml",
+          "title": "Feed 4ab3741a..."
+        },
+        {
+          "url": "https://www.doerfelverse.com/feeds/jam-with-nate.xml",
+          "title": "Feed dbfd9254..."
+        },
+        {
+          "url": "https://www.doerfelverse.com/feeds/intothedoerfelverse.xml",
+          "title": "Feed 41aace28..."
+        }
+      ],
       "paymentRecipients": [
         {
-          "address": "sirtjthewrathful@getalby.com",
+          "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
           "split": 95,
-          "name": "Sir TJ The Wrathful",
+          "name": "The Doerfels",
           "fee": false,
-          "type": "lnaddress"
+          "type": "node"
         },
         {
           "address": "steven@getalby.com",
@@ -825,13 +780,13 @@
           "type": "lnaddress"
         }
       ],
-      "feedGuid": "3197a0a6-4c7e-56ea-8469-cfb3ca0d3cdc",
-      "feedUrl": "https://www.doerfelverse.com/feeds/wrathodies.xml",
-      "imageUrl": "https://www.doerfelverse.com/art/wrathodies.png",
-      "feedId": "www-doerfelverse-com-feeds-wrathodies-xml",
-      "lastUpdated": "2026-03-04T17:14:16.625Z"
+      "feedGuid": "351d060e-2f51-5b71-8778-b4c5c84be9c1",
+      "feedUrl": "https://www.doerfelverse.com/feeds/them.xml",
+      "imageUrl": "https://www.doerfelverse.com/art/them.png",
+      "feedId": "www-doerfelverse-com-feeds-them-xml",
+      "lastUpdated": "2026-04-15T00:31:22.367Z"
     }
   ],
   "count": 1,
-  "timestamp": "2026-03-04T17:14:16.649Z"
+  "timestamp": "2026-04-15T00:31:22.391Z"
 }
