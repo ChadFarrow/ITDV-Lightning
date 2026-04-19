@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-04-15T00:31:22.384Z",
+  "timestamp": "2026-04-19T21:33:31.872Z",
   "count": 51,
   "albums": [
     {
@@ -45824,7 +45824,7 @@
               {
                 "type": "lnaddress",
                 "address": "sirtjthewrathful@getalby.com",
-                "split": 95,
+                "split": 80,
                 "name": "The Doerfels",
                 "fee": false
               },
@@ -45834,13 +45834,20 @@
                 "split": 5,
                 "name": "Sovereign Feeds",
                 "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": " chadf@getalby.com",
+                "split": 15,
+                "name": "ChadF",
+                "fee": false
               }
             ]
           },
           "paymentRecipients": [
             {
               "address": "sirtjthewrathful@getalby.com",
-              "split": 95,
+              "split": 80,
               "name": "The Doerfels",
               "fee": false,
               "type": "lnaddress"
@@ -45851,10 +45858,17 @@
               "name": "Sovereign Feeds",
               "fee": false,
               "type": "lnaddress"
+            },
+            {
+              "address": " chadf@getalby.com",
+              "split": 15,
+              "name": "ChadF",
+              "fee": false,
+              "type": "lnaddress"
             }
           ],
           "guid": "0c390019-47cf-44ec-84b3-1ba1b7a37971",
-          "feedGuid": "351d060e-2f51-5b71-8778-b4c5c84be9c1",
+          "feedGuid": "04b2dc83-13ef-532c-89a4-e27d06057e7d",
           "imageUrl": "https://www.doerfelverse.com/art/them.png"
         },
         {
@@ -45881,7 +45895,7 @@
               {
                 "type": "lnaddress",
                 "address": "sirtjthewrathful@getalby.com",
-                "split": 95,
+                "split": 80,
                 "name": "The Doerfels",
                 "fee": false
               },
@@ -45891,13 +45905,20 @@
                 "split": 5,
                 "name": "Sovereign Feeds",
                 "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": " chadf@getalby.com",
+                "split": 15,
+                "name": "ChadF",
+                "fee": false
               }
             ]
           },
           "paymentRecipients": [
             {
               "address": "sirtjthewrathful@getalby.com",
-              "split": 95,
+              "split": 80,
               "name": "The Doerfels",
               "fee": false,
               "type": "lnaddress"
@@ -45908,10 +45929,17 @@
               "name": "Sovereign Feeds",
               "fee": false,
               "type": "lnaddress"
+            },
+            {
+              "address": " chadf@getalby.com",
+              "split": 15,
+              "name": "ChadF",
+              "fee": false,
+              "type": "lnaddress"
             }
           ],
           "guid": "1d8cdc03-bd21-4ccf-a4df-77e1c873989f",
-          "feedGuid": "351d060e-2f51-5b71-8778-b4c5c84be9c1",
+          "feedGuid": "04b2dc83-13ef-532c-89a4-e27d06057e7d",
           "imageUrl": "https://www.doerfelverse.com/art/them.png"
         },
         {
@@ -45938,7 +45966,7 @@
               {
                 "type": "lnaddress",
                 "address": "sirtjthewrathful@getalby.com",
-                "split": 95,
+                "split": 80,
                 "name": "The Doerfels",
                 "fee": false
               },
@@ -45948,13 +45976,20 @@
                 "split": 5,
                 "name": "Sovereign Feeds",
                 "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": " chadf@getalby.com",
+                "split": 15,
+                "name": "ChadF",
+                "fee": false
               }
             ]
           },
           "paymentRecipients": [
             {
               "address": "sirtjthewrathful@getalby.com",
-              "split": 95,
+              "split": 80,
               "name": "The Doerfels",
               "fee": false,
               "type": "lnaddress"
@@ -45965,10 +46000,17 @@
               "name": "Sovereign Feeds",
               "fee": false,
               "type": "lnaddress"
+            },
+            {
+              "address": " chadf@getalby.com",
+              "split": 15,
+              "name": "ChadF",
+              "fee": false,
+              "type": "lnaddress"
             }
           ],
           "guid": "37db2ce4-dad8-4919-b4c9-1dfc7ed9dc27",
-          "feedGuid": "351d060e-2f51-5b71-8778-b4c5c84be9c1",
+          "feedGuid": "04b2dc83-13ef-532c-89a4-e27d06057e7d",
           "imageUrl": "https://www.doerfelverse.com/art/them.png"
         },
         {
@@ -45995,7 +46037,7 @@
               {
                 "type": "lnaddress",
                 "address": "sirtjthewrathful@getalby.com",
-                "split": 95,
+                "split": 80,
                 "name": "The Doerfels",
                 "fee": false
               },
@@ -46005,13 +46047,20 @@
                 "split": 5,
                 "name": "Sovereign Feeds",
                 "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": " chadf@getalby.com",
+                "split": 15,
+                "name": "ChadF",
+                "fee": false
               }
             ]
           },
           "paymentRecipients": [
             {
               "address": "sirtjthewrathful@getalby.com",
-              "split": 95,
+              "split": 80,
               "name": "The Doerfels",
               "fee": false,
               "type": "lnaddress"
@@ -46022,10 +46071,17 @@
               "name": "Sovereign Feeds",
               "fee": false,
               "type": "lnaddress"
+            },
+            {
+              "address": " chadf@getalby.com",
+              "split": 15,
+              "name": "ChadF",
+              "fee": false,
+              "type": "lnaddress"
             }
           ],
           "guid": "db907cbb-8f8f-4323-8e8a-93695fe98398",
-          "feedGuid": "351d060e-2f51-5b71-8778-b4c5c84be9c1",
+          "feedGuid": "04b2dc83-13ef-532c-89a4-e27d06057e7d",
           "imageUrl": "https://www.doerfelverse.com/art/them.png"
         },
         {
@@ -46052,7 +46108,7 @@
               {
                 "type": "lnaddress",
                 "address": "sirtjthewrathful@getalby.com",
-                "split": 95,
+                "split": 80,
                 "name": "The Doerfels",
                 "fee": false
               },
@@ -46062,13 +46118,20 @@
                 "split": 5,
                 "name": "Sovereign Feeds",
                 "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": " chadf@getalby.com",
+                "split": 15,
+                "name": "ChadF",
+                "fee": false
               }
             ]
           },
           "paymentRecipients": [
             {
               "address": "sirtjthewrathful@getalby.com",
-              "split": 95,
+              "split": 80,
               "name": "The Doerfels",
               "fee": false,
               "type": "lnaddress"
@@ -46079,10 +46142,17 @@
               "name": "Sovereign Feeds",
               "fee": false,
               "type": "lnaddress"
+            },
+            {
+              "address": " chadf@getalby.com",
+              "split": 15,
+              "name": "ChadF",
+              "fee": false,
+              "type": "lnaddress"
             }
           ],
           "guid": "9ac3be63-c9a3-4065-88fe-5f07006a1abe",
-          "feedGuid": "351d060e-2f51-5b71-8778-b4c5c84be9c1",
+          "feedGuid": "04b2dc83-13ef-532c-89a4-e27d06057e7d",
           "imageUrl": "https://www.doerfelverse.com/art/them.png"
         },
         {
@@ -46109,7 +46179,7 @@
               {
                 "type": "lnaddress",
                 "address": "sirtjthewrathful@getalby.com",
-                "split": 95,
+                "split": 80,
                 "name": "The Doerfels",
                 "fee": false
               },
@@ -46119,13 +46189,20 @@
                 "split": 5,
                 "name": "Sovereign Feeds",
                 "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": " chadf@getalby.com",
+                "split": 15,
+                "name": "ChadF",
+                "fee": false
               }
             ]
           },
           "paymentRecipients": [
             {
               "address": "sirtjthewrathful@getalby.com",
-              "split": 95,
+              "split": 80,
               "name": "The Doerfels",
               "fee": false,
               "type": "lnaddress"
@@ -46136,10 +46213,17 @@
               "name": "Sovereign Feeds",
               "fee": false,
               "type": "lnaddress"
+            },
+            {
+              "address": " chadf@getalby.com",
+              "split": 15,
+              "name": "ChadF",
+              "fee": false,
+              "type": "lnaddress"
             }
           ],
           "guid": "b5f23697-1027-476d-a342-7e552daaeaa4",
-          "feedGuid": "351d060e-2f51-5b71-8778-b4c5c84be9c1",
+          "feedGuid": "04b2dc83-13ef-532c-89a4-e27d06057e7d",
           "imageUrl": "https://www.doerfelverse.com/art/them.png"
         },
         {
@@ -46166,7 +46250,7 @@
               {
                 "type": "lnaddress",
                 "address": "sirtjthewrathful@getalby.com",
-                "split": 95,
+                "split": 80,
                 "name": "The Doerfels",
                 "fee": false
               },
@@ -46176,13 +46260,20 @@
                 "split": 5,
                 "name": "Sovereign Feeds",
                 "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": " chadf@getalby.com",
+                "split": 15,
+                "name": "ChadF",
+                "fee": false
               }
             ]
           },
           "paymentRecipients": [
             {
               "address": "sirtjthewrathful@getalby.com",
-              "split": 95,
+              "split": 80,
               "name": "The Doerfels",
               "fee": false,
               "type": "lnaddress"
@@ -46193,10 +46284,17 @@
               "name": "Sovereign Feeds",
               "fee": false,
               "type": "lnaddress"
+            },
+            {
+              "address": " chadf@getalby.com",
+              "split": 15,
+              "name": "ChadF",
+              "fee": false,
+              "type": "lnaddress"
             }
           ],
           "guid": "1dd32ec6-0a7a-4061-a087-8e4150b3ec23",
-          "feedGuid": "351d060e-2f51-5b71-8778-b4c5c84be9c1",
+          "feedGuid": "04b2dc83-13ef-532c-89a4-e27d06057e7d",
           "imageUrl": "https://www.doerfelverse.com/art/them.png"
         },
         {
@@ -46223,7 +46321,7 @@
               {
                 "type": "lnaddress",
                 "address": "sirtjthewrathful@getalby.com",
-                "split": 95,
+                "split": 80,
                 "name": "The Doerfels",
                 "fee": false
               },
@@ -46233,13 +46331,20 @@
                 "split": 5,
                 "name": "Sovereign Feeds",
                 "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": " chadf@getalby.com",
+                "split": 15,
+                "name": "ChadF",
+                "fee": false
               }
             ]
           },
           "paymentRecipients": [
             {
               "address": "sirtjthewrathful@getalby.com",
-              "split": 95,
+              "split": 80,
               "name": "The Doerfels",
               "fee": false,
               "type": "lnaddress"
@@ -46250,10 +46355,17 @@
               "name": "Sovereign Feeds",
               "fee": false,
               "type": "lnaddress"
+            },
+            {
+              "address": " chadf@getalby.com",
+              "split": 15,
+              "name": "ChadF",
+              "fee": false,
+              "type": "lnaddress"
             }
           ],
           "guid": "818cfc2b-1383-401a-9d69-644182d41400",
-          "feedGuid": "351d060e-2f51-5b71-8778-b4c5c84be9c1",
+          "feedGuid": "04b2dc83-13ef-532c-89a4-e27d06057e7d",
           "imageUrl": "https://www.doerfelverse.com/art/them.png"
         },
         {
@@ -46280,7 +46392,7 @@
               {
                 "type": "lnaddress",
                 "address": "sirtjthewrathful@getalby.com",
-                "split": 95,
+                "split": 80,
                 "name": "The Doerfels",
                 "fee": false
               },
@@ -46290,13 +46402,20 @@
                 "split": 5,
                 "name": "Sovereign Feeds",
                 "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": " chadf@getalby.com",
+                "split": 15,
+                "name": "ChadF",
+                "fee": false
               }
             ]
           },
           "paymentRecipients": [
             {
               "address": "sirtjthewrathful@getalby.com",
-              "split": 95,
+              "split": 80,
               "name": "The Doerfels",
               "fee": false,
               "type": "lnaddress"
@@ -46307,10 +46426,17 @@
               "name": "Sovereign Feeds",
               "fee": false,
               "type": "lnaddress"
+            },
+            {
+              "address": " chadf@getalby.com",
+              "split": 15,
+              "name": "ChadF",
+              "fee": false,
+              "type": "lnaddress"
             }
           ],
           "guid": "f07aab0b-9bd7-4f2a-8d3f-fd26011a787f",
-          "feedGuid": "351d060e-2f51-5b71-8778-b4c5c84be9c1",
+          "feedGuid": "04b2dc83-13ef-532c-89a4-e27d06057e7d",
           "imageUrl": "https://www.doerfelverse.com/art/them.png"
         },
         {
@@ -46337,7 +46463,7 @@
               {
                 "type": "lnaddress",
                 "address": "sirtjthewrathful@getalby.com",
-                "split": 95,
+                "split": 80,
                 "name": "The Doerfels",
                 "fee": false
               },
@@ -46347,13 +46473,20 @@
                 "split": 5,
                 "name": "Sovereign Feeds",
                 "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": " chadf@getalby.com",
+                "split": 15,
+                "name": "ChadF",
+                "fee": false
               }
             ]
           },
           "paymentRecipients": [
             {
               "address": "sirtjthewrathful@getalby.com",
-              "split": 95,
+              "split": 80,
               "name": "The Doerfels",
               "fee": false,
               "type": "lnaddress"
@@ -46364,10 +46497,17 @@
               "name": "Sovereign Feeds",
               "fee": false,
               "type": "lnaddress"
+            },
+            {
+              "address": " chadf@getalby.com",
+              "split": 15,
+              "name": "ChadF",
+              "fee": false,
+              "type": "lnaddress"
             }
           ],
           "guid": "0f2554df-e076-40d0-bd92-bc48c6e9a9c8",
-          "feedGuid": "351d060e-2f51-5b71-8778-b4c5c84be9c1",
+          "feedGuid": "04b2dc83-13ef-532c-89a4-e27d06057e7d",
           "imageUrl": "https://www.doerfelverse.com/art/them.png"
         },
         {
@@ -46392,12 +46532,10 @@
             "suggested": "0.00000005000",
             "recipients": [
               {
-                "type": "node",
-                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-                "split": 95,
+                "type": "lnaddress",
+                "address": "sirtjthewrathful@getalby.com",
+                "split": 80,
                 "name": "The Doerfels",
-                "customKey": "696969",
-                "customValue": "1",
                 "fee": false
               },
               {
@@ -46406,16 +46544,23 @@
                 "split": 5,
                 "name": "Sovereign Feeds",
                 "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": " chadf@getalby.com",
+                "split": 15,
+                "name": "ChadF",
+                "fee": false
               }
             ]
           },
           "paymentRecipients": [
             {
-              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-              "split": 95,
+              "address": "sirtjthewrathful@getalby.com",
+              "split": 80,
               "name": "The Doerfels",
               "fee": false,
-              "type": "node"
+              "type": "lnaddress"
             },
             {
               "address": "steven@getalby.com",
@@ -46423,10 +46568,17 @@
               "name": "Sovereign Feeds",
               "fee": false,
               "type": "lnaddress"
+            },
+            {
+              "address": " chadf@getalby.com",
+              "split": 15,
+              "name": "ChadF",
+              "fee": false,
+              "type": "lnaddress"
             }
           ],
           "guid": "c5c21628-8818-4c47-b944-23ffa7cb937f",
-          "feedGuid": "351d060e-2f51-5b71-8778-b4c5c84be9c1",
+          "feedGuid": "04b2dc83-13ef-532c-89a4-e27d06057e7d",
           "imageUrl": "https://www.doerfelverse.com/art/them.png"
         },
         {
@@ -46451,12 +46603,10 @@
             "suggested": "0.00000005000",
             "recipients": [
               {
-                "type": "node",
-                "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-                "split": 95,
+                "type": "lnaddress",
+                "address": "sirtjthewrathful@getalby.com",
+                "split": 80,
                 "name": "The Doerfels",
-                "customKey": "696969",
-                "customValue": "1",
                 "fee": false
               },
               {
@@ -46465,16 +46615,23 @@
                 "split": 5,
                 "name": "Sovereign Feeds",
                 "fee": false
+              },
+              {
+                "type": "lnaddress",
+                "address": " chadf@getalby.com",
+                "split": 15,
+                "name": "ChadF",
+                "fee": false
               }
             ]
           },
           "paymentRecipients": [
             {
-              "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-              "split": 95,
+              "address": "sirtjthewrathful@getalby.com",
+              "split": 80,
               "name": "The Doerfels",
               "fee": false,
-              "type": "node"
+              "type": "lnaddress"
             },
             {
               "address": "steven@getalby.com",
@@ -46482,14 +46639,21 @@
               "name": "Sovereign Feeds",
               "fee": false,
               "type": "lnaddress"
+            },
+            {
+              "address": " chadf@getalby.com",
+              "split": 15,
+              "name": "ChadF",
+              "fee": false,
+              "type": "lnaddress"
             }
           ],
           "guid": "78aad92d-3cde-46e0-b0b2-8e4d8e0e2c13",
-          "feedGuid": "351d060e-2f51-5b71-8778-b4c5c84be9c1",
+          "feedGuid": "04b2dc83-13ef-532c-89a4-e27d06057e7d",
           "imageUrl": "https://www.doerfelverse.com/art/them.png"
         }
       ],
-      "releaseDate": "Wed, 15 Apr 2026 00:16:52 +0000",
+      "releaseDate": "Sun, 19 Apr 2026 21:19:09 +0000",
       "link": "https://www.doerfelverse.com",
       "value": {
         "type": "lightning",
@@ -46499,7 +46663,7 @@
           {
             "type": "node",
             "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-            "split": 95,
+            "split": 80,
             "name": "The Doerfels",
             "customKey": "696969",
             "customValue": "1",
@@ -46510,6 +46674,13 @@
             "address": "steven@getalby.com",
             "split": 5,
             "name": "Sovereign Feeds",
+            "fee": false
+          },
+          {
+            "type": "lnaddress",
+            "address": " chadf@getalby.com",
+            "split": 15,
+            "name": "ChadF",
             "fee": false
           }
         ]
@@ -46561,7 +46732,7 @@
       "paymentRecipients": [
         {
           "address": "031ce2f133b570edf1c776e571e27d22a715dc6ea73956f0e79f4272d81d9dc0d5",
-          "split": 95,
+          "split": 80,
           "name": "The Doerfels",
           "fee": false,
           "type": "node"
@@ -46572,13 +46743,20 @@
           "name": "Sovereign Feeds",
           "fee": false,
           "type": "lnaddress"
+        },
+        {
+          "address": " chadf@getalby.com",
+          "split": 15,
+          "name": "ChadF",
+          "fee": false,
+          "type": "lnaddress"
         }
       ],
-      "feedGuid": "351d060e-2f51-5b71-8778-b4c5c84be9c1",
+      "feedGuid": "04b2dc83-13ef-532c-89a4-e27d06057e7d",
       "feedUrl": "https://www.doerfelverse.com/feeds/them.xml",
       "imageUrl": "https://www.doerfelverse.com/art/them.png",
       "feedId": "www-doerfelverse-com-feeds-them-xml",
-      "lastUpdated": "2026-04-15T00:31:22.367Z"
+      "lastUpdated": "2026-04-19T21:33:31.838Z"
     }
   ]
 }
