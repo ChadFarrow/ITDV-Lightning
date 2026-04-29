@@ -153,9 +153,15 @@ export default function AdminFeedManager() {
       });
 
       if (response.ok) {
-        showMessage('success', 'Pinned order saved successfully!');
+        const data = await response.json().catch(() => ({} as any));
+        if (data?.deployed) {
+          showMessage('success', 'Saved — redeploying, changes will appear in ~30s.');
+        } else {
+          showMessage('success', 'Pinned order saved successfully!');
+        }
       } else {
-        showMessage('error', 'Failed to save pinned order');
+        const errBody = await response.json().catch(() => ({} as any));
+        showMessage('error', errBody?.error || 'Failed to save pinned order');
       }
     } catch (error) {
       showMessage('error', 'Failed to save pinned order');

@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateSession } from '@/lib/admin-auth';
+import { commitFiles, isGitHubConfigured } from '@/lib/github';
 import fs from 'fs';
 import path from 'path';
 
-const PINNED_ALBUMS_FILE = path.join(process.cwd(), 'data', 'pinned-albums.json');
+const PINNED_ALBUMS_PATH = 'data/pinned-albums.json';
+const PINNED_ALBUMS_FILE = path.join(process.cwd(), PINNED_ALBUMS_PATH);
+
+// On Vercel the project filesystem is read-only — writes must go through a
+// GitHub commit so the next auto-deploy ships the new file.
+const IS_VERCEL = !!(process.env.VERCEL || process.env.VERCEL_URL);
 
 // Helper function to verify authentication
 function verifyAuth(request: NextRequest): boolean {
@@ -21,14 +27,38 @@ function readPinnedData(): { pinnedAlbums: string[]; pinnedEPs: string[]; lastUp
   }
 }
 
-// Helper function to write pinned data
-function writePinnedData(pinnedAlbums: string[], pinnedEPs: string[]): void {
+// Helper function to write pinned data — Vercel-aware (mirrors manage-feeds writeFiles).
+async function writePinnedData(
+  pinnedAlbums: string[],
+  pinnedEPs: string[]
+): Promise<{ success: boolean; error?: string; deployed?: boolean }> {
   const data = {
     pinnedAlbums,
     pinnedEPs,
     lastUpdated: new Date().toISOString(),
   };
-  fs.writeFileSync(PINNED_ALBUMS_FILE, JSON.stringify(data, null, 2));
+  const content = JSON.stringify(data, null, 2);
+
+  if (IS_VERCEL) {
+    if (!isGitHubConfigured()) {
+      return { success: false, error: 'GITHUB_TOKEN not configured on Vercel' };
+    }
+    const result = await commitFiles(
+      [{ path: PINNED_ALBUMS_PATH, content }],
+      'Update pinned albums order via admin UI'
+    );
+    if (result.success) {
+      return { success: true, deployed: true };
+    }
+    return { success: false, error: result.error };
+  }
+
+  try {
+    fs.writeFileSync(PINNED_ALBUMS_FILE, content);
+    return { success: true, deployed: false };
+  } catch (error) {
+    return { success: false, error: String(error) };
+  }
 }
 
 // GET - Get pinned albums and EPs (authenticated)
@@ -74,13 +104,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    writePinnedData(pinnedAlbums, pinnedEPs);
+    const result = await writePinnedData(pinnedAlbums, pinnedEPs);
+    if (!result.success) {
+      console.error('Error updating pinned data:', result.error);
+      return NextResponse.json(
+        { error: 'Failed to update pinned data: ' + (result.error ?? 'unknown error') },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
       pinnedAlbums,
       pinnedEPs,
       lastUpdated: new Date().toISOString(),
+      deployed: result.deployed,
     });
   } catch (error) {
     console.error('Error updating pinned data:', error);
