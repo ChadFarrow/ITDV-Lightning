@@ -566,9 +566,30 @@ export class RSSParser {
             }
           } else if (enclosureUrl) {
             url = enclosureUrl;
+
+            // When main enclosure is audio, look for video in podcast:alternateEnclosure
+            // (e.g., Them feed: mp3 main + mp4 alt for music videos)
+            const alternateEnclosures = item.getElementsByTagName('podcast:alternateEnclosure');
+            for (let j = 0; j < alternateEnclosures.length; j++) {
+              const altEnclosure = alternateEnclosures[j];
+              const altType = altEnclosure.getAttribute('type') || '';
+              const isAltVideo = altType.includes('mpegURL') ||
+                                 altType.includes('mpegurl') ||
+                                 altType.startsWith('video/');
+              if (isAltVideo) {
+                const sourceEl = altEnclosure.getElementsByTagName('podcast:source')[0];
+                if (sourceEl) {
+                  const altUrl = sourceEl.getAttribute('uri') || sourceEl.getAttribute('url');
+                  if (altUrl) {
+                    videoUrl = altUrl;
+                    break;
+                  }
+                }
+              }
+            }
           }
         }
-        
+
         // Method 2: Try link tag (Wavlake format)
         if (!url && !videoUrl) {
           const linkElement = item.getElementsByTagName('link')[0];
@@ -1373,125 +1394,33 @@ export class RSSParser {
         }
       }
       
-      // For Autumn Rust with chapters, remove videoUrl from audio tracks
-      // Only the chapter track should have videoUrl, not the audio tracks
-      // Check if chapters element exists (hasChapters is a DOM element, so check if it's truthy)
+      // For Autumn Rust with chapters, remove videoUrl from audio tracks so
+      // only the chapter track exposes a video. The full event video would
+      // otherwise leak through as a duplicate playback target.
       const hasChaptersElement = channel.getElementsByTagName('podcast:chapters')[0] || channel.getElementsByTagName('chapters')[0];
-      const titleLower = title.toLowerCase();
-      const isAutumnRust = titleLower.includes('autumn rust');
-      
-      console.log(`🔍 Autumn Rust videoUrl removal check:`);
-      console.log(`  - Title: "${title}"`);
-      console.log(`  - Title includes "autumn rust": ${isAutumnRust}`);
-      console.log(`  - Has chapters element: ${!!hasChaptersElement}`);
-      console.log(`  - Total tracks before removal: ${tracks.length}`);
-      
+      const isAutumnRust = title.toLowerCase().includes('autumn rust');
+
       if (isAutumnRust && hasChaptersElement) {
-        console.log(`🔍 Processing ${tracks.length} tracks to remove videoUrl from audio tracks`);
-        
-        // Debug: Check what tracks look like before removal
-        const tracksWithUrl = tracks.filter(t => t.url);
-        const tracksWithVideoUrl = tracks.filter(t => t.videoUrl);
-        const tracksWithBoth = tracks.filter(t => t.url && t.videoUrl);
-        const chapterTracks = tracks.filter(t => t.startTime !== undefined && t.endTime !== undefined);
-        
-        console.log(`🔍 Track analysis:`);
-        console.log(`  - Tracks with url: ${tracksWithUrl.length}`);
-        console.log(`  - Tracks with videoUrl: ${tracksWithVideoUrl.length}`);
-        console.log(`  - Tracks with both url and videoUrl: ${tracksWithBoth.length}`);
-        console.log(`  - Chapter tracks (startTime/endTime): ${chapterTracks.length}`);
-        
-        // Show sample tracks
-        if (tracksWithBoth.length > 0) {
-          console.log(`🔍 Sample tracks with both url and videoUrl:`);
-          tracksWithBoth.slice(0, 3).forEach(t => {
-            console.log(`  - "${t.title}": url=${!!t.url}, videoUrl=${t.videoUrl}, startTime=${t.startTime}, endTime=${t.endTime}`);
-          });
-        }
-        
-        let removedCount = 0;
         tracks.forEach((track: RSSTrack) => {
-          // Remove videoUrl from audio tracks (tracks with url)
-          // Keep videoUrl only for chapter tracks (tracks with startTime/endTime)
           if (track.url && track.videoUrl && !track.startTime && !track.endTime) {
-            const oldVideoUrl = track.videoUrl;
-            delete track.videoUrl; // Use delete to actually remove the property
-            removedCount++;
-            console.log(`✅ Removed videoUrl from track: "${track.title}" (was: ${oldVideoUrl})`);
+            delete track.videoUrl;
             verboseLog(`📺 Removed videoUrl from audio track: "${track.title}"`);
           }
         });
-        console.log(`✅ Removed videoUrl from ${removedCount} audio tracks`);
-        
-        // Verify removal worked
-        const tracksWithVideoUrlAfter = tracks.filter(t => t.videoUrl && t.url && !t.startTime && !t.endTime);
-        if (tracksWithVideoUrlAfter.length > 0) {
-          console.error(`❌ ERROR: ${tracksWithVideoUrlAfter.length} audio tracks still have videoUrl after removal!`);
-          tracksWithVideoUrlAfter.forEach(t => {
-            console.error(`  - "${t.title}": videoUrl=${t.videoUrl}`);
-          });
-        }
-      } else {
-        console.log(`⚠️ Skipping videoUrl removal: isAutumnRust=${isAutumnRust}, hasChaptersElement=${!!hasChaptersElement}`);
       }
       
-      // Apply track filter if specified
-      // Video-only tracks (with videoUrl but no url) and chapter tracks should always be included regardless of filter
-      // BUT: For Autumn Rust, exclude video-only tracks that aren't chapter tracks (we only want the chapter track)
+      // Apply track filter if specified.
+      // Chapter tracks (videoUrl + startTime + endTime) are always kept — the chapter
+      // markers define the relevant segment regardless of how its title reads.
+      // Everything else (audio + video-only tracks alike) is filtered by title.
       let filteredTracks = trackFilter
         ? tracks.filter((track: RSSTrack) => {
-            // Always include chapter tracks (tracks with videoUrl, startTime, and endTime)
             if (track.videoUrl && track.startTime !== undefined && track.endTime !== undefined) {
               return true;
             }
-            // For Autumn Rust, exclude video-only tracks that aren't chapter tracks
-            if (title.toLowerCase().includes('autumn rust') && track.videoUrl && !track.url) {
-              return false; // Exclude non-chapter video tracks for Autumn Rust
-            }
-            // For other albums, always include video-only tracks (tracks with videoUrl but no url)
-            if (track.videoUrl && !track.url) {
-              return true;
-            }
-            const titleLower = track.title.toLowerCase();
-            const filterLower = trackFilter.toLowerCase();
-            // Include tracks matching the filter (including [Raw Set] videos)
-            return titleLower.includes(filterLower);
+            return track.title.toLowerCase().includes(trackFilter.toLowerCase());
           })
         : tracks;
-      
-      // Keep all video tracks and CityBeach audio tracks
-      // BUT: Only apply this filter for The Satellite Spotlight (Sprouting Symphonies)
-      // For other albums like Autumn Rust, don't filter out audio tracks
-      const isSatelliteSpotlight = title.toLowerCase().includes('satellite spotlight') || 
-                                   title.toLowerCase().includes('sprouting symphonies');
-      
-      if (isSatelliteSpotlight) {
-        // Keep:
-        // - All video tracks (videos with videoUrl)
-        // - All CityBeach audio tracks (non-video tracks with "CityBeach" in title)
-        // Remove:
-        // - All non-CityBeach audio tracks (to keep only CityBeach audio and all videos)
-        filteredTracks = filteredTracks.filter((track: RSSTrack) => {
-          const titleLower = track.title.toLowerCase();
-          
-          // Keep all video tracks (any track with videoUrl)
-          if (track.videoUrl) {
-            return true; // Keep all video tracks
-          }
-          
-          // Keep all CityBeach audio tracks (non-video tracks with "CityBeach" in title)
-          if (!track.videoUrl) {
-            if (titleLower.includes('citybeach')) {
-              return true; // Keep CityBeach audio tracks
-            }
-            // Remove all non-CityBeach audio tracks
-            return false;
-          }
-          
-          return false;
-        });
-      }
-      // For other albums (like Autumn Rust), keep all filtered tracks as-is
       
       // Deduplicate CityBeach chapter tracks (remove duplicates with same startTime/endTime)
       const seenCityBeach = new Set<string>();
@@ -1530,24 +1459,6 @@ export class RSSParser {
       // Reorder: audio tracks first, then chapter tracks, then [Raw Set] videos at the bottom
       filteredTracks = [...otherTracks, ...chapterTracks, ...rawSetTracks];
 
-      // Final debug check for Autumn Rust before returning
-      if (title.toLowerCase().includes('autumn rust')) {
-        const finalAudio = filteredTracks.filter(t => t.url && !t.videoUrl);
-        const finalVideo = filteredTracks.filter(t => t.videoUrl);
-        const finalBoth = filteredTracks.filter(t => t.url && t.videoUrl);
-        console.log(`🔍 Final album state for "${title}":`);
-        console.log(`  - Total filtered tracks: ${filteredTracks.length}`);
-        console.log(`  - Audio tracks (url, no videoUrl): ${finalAudio.length}`);
-        console.log(`  - Video tracks (videoUrl): ${finalVideo.length}`);
-        console.log(`  - Tracks with both: ${finalBoth.length}`);
-        if (finalBoth.length > 0) {
-          console.log(`  ⚠️ WARNING: ${finalBoth.length} tracks still have both url and videoUrl!`);
-          finalBoth.slice(0, 3).forEach(t => {
-            console.log(`    - "${t.title}": videoUrl=${t.videoUrl}`);
-          });
-        }
-      }
-      
       const album = {
         title,
         artist,

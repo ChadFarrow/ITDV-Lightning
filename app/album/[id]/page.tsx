@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import AlbumDetailClient from './AlbumDetailClient';
+import { createSlug } from '@/lib/album-index';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
@@ -43,14 +44,6 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 async function getAlbumData(albumId: string) {
   try {
-    // Helper function to create URL slug (same as API route)
-    const createSlug = (title: string) =>
-      title.toLowerCase()
-        .replace(/[^\w\s-]/g, '')
-        .replace(/\s+/g, '-')
-        .replace(/-+/g, '-')
-        .replace(/^-+|-+$/g, '');
-
     // Normalize the album ID to match URL format
     const normalizedId = albumId.toLowerCase();
 

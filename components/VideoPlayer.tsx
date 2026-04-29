@@ -11,6 +11,7 @@ interface VideoPlayerProps {
   endTime?: number; // End time in seconds for chapter/segment playback
   seekTime?: number; // External seek time (chapter-relative if startTime/endTime are set)
   autoPlay?: boolean; // Auto-start playback when video loads
+  externalIsPlaying?: boolean; // External play/pause control (e.g., from global now playing bar)
   onEnded?: () => void;
   onTimeUpdate?: (currentTime: number) => void;
   onDurationChange?: (duration: number) => void; // Callback when video duration is available
@@ -25,6 +26,7 @@ const VideoPlayer = memo(function VideoPlayer({
   endTime,
   seekTime,
   autoPlay = false,
+  externalIsPlaying,
   onEnded,
   onTimeUpdate,
   onDurationChange,
@@ -497,6 +499,20 @@ const VideoPlayer = memo(function VideoPlayer({
     // Callbacks are stable or handled via refs
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoUrl, startTime, endTime, isMobile, connectionQuality]);
+
+  // Sync external play/pause control (e.g., from global now playing bar) to the video element
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || externalIsPlaying === undefined) return;
+
+    if (externalIsPlaying && video.paused) {
+      video.play().catch(() => {
+        // Swallow play() errors — common when video is still loading
+      });
+    } else if (!externalIsPlaying && !video.paused) {
+      video.pause();
+    }
+  }, [externalIsPlaying]);
 
   // Handle external seek requests (from global now playing bar)
   useEffect(() => {

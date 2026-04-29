@@ -15,7 +15,7 @@ interface FeedEntry {
   title?: string;
   priority?: string;
   status?: string;
-  trackFilter?: { type: string; value: number };
+  trackFilter?: string;
 }
 
 interface FeedsData {
@@ -47,19 +47,9 @@ async function regenerateCache() {
   for (const feed of activeFeeds) {
     try {
       console.log(`🔍 Parsing: ${feed.title || feed.id}`);
-      const album = await RSSParser.parseAlbumFeed(feed.originalUrl);
+      const album = await RSSParser.parseAlbumFeed(feed.originalUrl, feed.trackFilter);
 
       if (album) {
-        // Apply track filter if configured
-        if (feed.trackFilter && album.tracks) {
-          const { type, value } = feed.trackFilter;
-          if (type === 'first') {
-            album.tracks = album.tracks.slice(0, value);
-          } else if (type === 'last') {
-            album.tracks = album.tracks.slice(-value);
-          }
-        }
-
         // Add feed metadata
         const albumWithMeta = {
           ...album,

@@ -11,6 +11,7 @@ import { useLightning } from '@/contexts/LightningContext';
 import VideoPlayer from '@/components/VideoPlayer';
 import { BitcoinConnectPayment } from '@/components/BitcoinConnect';
 import type { RSSValue } from '@/lib/rss-parser';
+import { createSlug } from '@/lib/album-index';
 import dynamic from 'next/dynamic';
 import { filterPodrollItems } from '@/lib/podroll-utils';
 import confetti from 'canvas-confetti';
@@ -578,12 +579,7 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
       // Use the actual URL parameter (albumId) if available, otherwise derive from title
       // Fallback to deriving from title if params not available (e.g., during SSR)
       const slugFromId = albumId && albumId.trim() ? albumId : null;
-      const albumSlug = slugFromId || albumTitle
-        .toLowerCase()
-        .replace(/[^\w\s-]/g, '')       // Remove punctuation except spaces and hyphens
-        .replace(/\s+/g, '-')           // Replace spaces with dashes
-        .replace(/-+/g, '-')            // Replace multiple consecutive dashes with single dash
-        .replace(/^-+|-+$/g, '');       // Remove leading/trailing dashes
+      const albumSlug = slugFromId || createSlug(albumTitle);
       
       // Use refresh=1 to force RSS parsing and get video URLs (only called when videos are missing)
       const apiUrl = `/api/album/${encodeURIComponent(albumSlug)}?refresh=1`;
@@ -636,12 +632,7 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
     
     // Use albumId from URL params if available, otherwise derive from title
     const albumSlugFromId = albumId || '';
-    const albumSlugFromTitle = albumTitle
-      .toLowerCase()
-      .replace(/[^\w\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-+|-+$/g, '');
+    const albumSlugFromTitle = createSlug(albumTitle);
     
     // Check both the URL slug and the title-derived slug
     const shouldHaveVideo = albumsWithVideo.some(videoAlbum => 
@@ -759,12 +750,7 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
       setIsLoading(true);
       
       // Convert album title back to URL slug format for API call
-      const albumSlug = albumTitle
-        .toLowerCase()
-        .replace(/[^\w\s-]/g, '')       // Remove punctuation except spaces and hyphens
-        .replace(/\s+/g, '-')           // Replace spaces with dashes
-        .replace(/-+/g, '-')            // Replace multiple consecutive dashes with single dash
-        .replace(/^-+|-+$/g, '');       // Remove leading/trailing dashes
+      const albumSlug = createSlug(albumTitle);
       
       // Only refresh if explicitly requested via URL parameter
       // Don't force refresh for video albums - let the cache work
@@ -1658,6 +1644,7 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
                     endTime={playingVideoTrack.endTime} // Chapter end time in seconds
                     seekTime={videoContext.seekRequest ?? undefined} // Sync seek request from context (chapter-relative)
                     autoPlay={true} // Auto-play when video is selected
+                    externalIsPlaying={isVideoPlaying} // Sync play/pause from global now playing bar
                     onEnded={() => {
                       setPlayingVideoTrack(null);
                     }}

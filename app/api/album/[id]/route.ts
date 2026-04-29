@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { FeedManager } from '@/lib/feed-manager';
 import { RSSParser } from '@/lib/rss-parser';
+import { createSlug } from '@/lib/album-index';
 
 // Cache for individual albums to avoid repeated RSS parsing
 let albumCache: Map<string, { data: any; timestamp: number }> = new Map();
@@ -39,14 +40,6 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       albumCache.delete(albumId);
     }
     
-    // Helper function to create URL slug (same as homepage)
-    const createSlug = (title: string) =>
-      title.toLowerCase()
-        .replace(/[^\w\s-]/g, '')       // Remove punctuation except spaces and hyphens
-        .replace(/\s+/g, '-')           // Replace spaces with dashes
-        .replace(/-+/g, '-')            // Replace multiple consecutive dashes with single dash
-        .replace(/^-+|-+$/g, '');       // Remove leading/trailing dashes
-
     // PRIORITY 1: Check static albums data first (fastest, no RSS parsing needed)
     // Use index file for fast lookups instead of reading entire 1.2MB file
     let matchingStaticAlbum = null;

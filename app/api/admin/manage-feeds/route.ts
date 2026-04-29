@@ -4,6 +4,7 @@ import { RSSParser } from '@/lib/rss-parser';
 import { validateSession } from '@/lib/admin-auth';
 import { commitFiles, isGitHubConfigured } from '@/lib/github';
 import { checkFeedOnPodcastIndex } from '@/lib/podcast-index';
+import { buildAlbumIndex } from '@/lib/album-index';
 import fs from 'fs';
 import path from 'path';
 
@@ -103,56 +104,6 @@ async function writeFiles(files: { path: string; content: string }[], commitMess
       return { success: false, error: String(error) };
     }
   }
-}
-
-// Helper function to create URL slug for album index
-function createSlug(title: string): string {
-  return title.toLowerCase()
-    .replace(/[^\w\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '');
-}
-
-// Helper function to build album index data from albums array
-function buildAlbumIndex(albums: any[]): any {
-  const index: Record<string, any> = {};
-
-  albums.forEach((album: any, idx: number) => {
-    if (!album.title) return;
-
-    const title = album.title;
-    const lowerTitle = title.toLowerCase();
-    const slug = createSlug(title);
-    const simpleSlug = lowerTitle.replace(/\s+/g, '-');
-    const baseTitle = lowerTitle.split(/\s*[-–]\s*/)[0];
-    const baseSlug = createSlug(baseTitle);
-
-    const indexEntry = {
-      title: album.title,
-      artist: album.artist,
-      coverArt: album.coverArt,
-      feedId: album.feedId,
-      feedUrl: album.feedUrl,
-      index: idx
-    };
-
-    index[lowerTitle] = indexEntry;
-    index[slug] = indexEntry;
-    index[simpleSlug] = indexEntry;
-    index[baseSlug] = indexEntry;
-
-    if (album.feedId) {
-      index[album.feedId.toLowerCase()] = indexEntry;
-    }
-  });
-
-  return {
-    version: '1.0',
-    totalAlbums: albums.length,
-    indexedAt: new Date().toISOString(),
-    index: index
-  };
 }
 
 // Helper function to prepare updated album files (returns files to write)
@@ -295,8 +246,8 @@ export async function POST(request: NextRequest) {
         // Validate URL
         new URL(feedUrl);
 
-        // Parse feed to get full album data
-        const album = await RSSParser.parseAlbumFeed(feedUrl);
+        // Parse feed to get full album data (apply trackFilter from request if present)
+        const album = await RSSParser.parseAlbumFeed(feedUrl, trackFilter);
         if (!album) {
           throw new Error('Failed to parse feed');
         }
@@ -449,17 +400,20 @@ export async function PUT(request: NextRequest) {
         // Validate URL
         new URL(feedUrl);
 
-        // Re-parse feed to get updated album data
-        const album = await RSSParser.parseAlbumFeed(feedUrl);
-        if (!album) {
-          throw new Error('Failed to parse feed');
-        }
-
         // Generate ID from URL
         const id = generateIdFromUrl(feedUrl);
 
-        // Check if feed already exists in feeds.json
+        // Look up existing feed config so we can apply its trackFilter on reparse
         const existingFeedIndex = feedsData.feeds.findIndex(f => f.id === id);
+        const existingTrackFilter = existingFeedIndex >= 0
+          ? feedsData.feeds[existingFeedIndex].trackFilter
+          : undefined;
+
+        // Re-parse feed to get updated album data
+        const album = await RSSParser.parseAlbumFeed(feedUrl, existingTrackFilter);
+        if (!album) {
+          throw new Error('Failed to parse feed');
+        }
 
         if (existingFeedIndex >= 0) {
           // Update existing feed's lastUpdated timestamp and title

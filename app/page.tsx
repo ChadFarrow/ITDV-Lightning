@@ -1583,6 +1583,7 @@ export default function HomePage() {
                         startTime={currentVideo.startTime}
                         endTime={currentVideo.endTime}
                         seekTime={seekRequest || undefined}
+                        externalIsPlaying={isVideoPlaying}
                         onTimeUpdate={updateCurrentTime}
                         onDurationChange={updateDuration}
                         onPlay={resumeVideo}

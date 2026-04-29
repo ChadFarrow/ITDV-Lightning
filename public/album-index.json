@@ -1,7 +1,7 @@
 {
   "version": "1.0",
-  "totalAlbums": 51,
-  "indexedAt": "2026-04-19T21:33:31.882Z",
+  "totalAlbums": 50,
+  "indexedAt": "2026-04-29T23:18:58.432Z",
   "index": {
     "disco swag - the album": {
       "title": "Disco Swag - The Album",
@@ -1256,16 +1256,16 @@
       "artist": "The Doerfels",
       "coverArt": "https://www.doerfelverse.com/art/them.png",
       "feedId": "www-doerfelverse-com-feeds-them-xml",
-      "feedUrl": "https://www.doerfelverse.com/feeds/them.xml",
-      "index": 50
+      "feedUrl": "PRIVATE_FEED_URL",
+      "index": 48
     },
     "www-doerfelverse-com-feeds-them-xml": {
       "title": "Them",
       "artist": "The Doerfels",
       "coverArt": "https://www.doerfelverse.com/art/them.png",
       "feedId": "www-doerfelverse-com-feeds-them-xml",
-      "feedUrl": "https://www.doerfelverse.com/feeds/them.xml",
-      "index": 50
+      "feedUrl": "PRIVATE_FEED_URL",
+      "index": 48
     },
     "wrathodies": {
       "title": "Wrathodies",
