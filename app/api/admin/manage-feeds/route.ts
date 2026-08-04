@@ -5,6 +5,7 @@ import { validateSession } from '@/lib/admin-auth';
 import { commitFiles, isGitHubConfigured } from '@/lib/github';
 import { checkFeedOnPodcastIndex } from '@/lib/podcast-index';
 import { buildAlbumIndex } from '@/lib/album-index';
+import { resolveOriginalRelease } from '@/lib/album-date';
 import fs from 'fs';
 import path from 'path';
 
@@ -110,11 +111,17 @@ async function writeFiles(files: { path: string; content: string }[], commitMess
 function prepareAlbumFilesForAdd(album: any, feedUrl: string, feedId: string): { path: string; content: string }[] {
   const files: { path: string; content: string }[] = [];
 
+  // A curated originalReleaseYear in feeds.json beats the date mined from the
+  // description, so hand-corrected years survive an admin re-parse.
+  const feedsForOverride = readJsonFile<FeedsData>(FEEDS_PATH, { feeds: [], lastUpdated: '', version: 1 });
+  const overrideEntry = feedsForOverride.feeds?.find(f => f.id === feedId);
+
   // Prepare album with feed metadata
   const albumWithMeta = {
     ...album,
     feedId,
     feedUrl,
+    originalRelease: resolveOriginalRelease(album.originalRelease, overrideEntry?.originalReleaseYear),
     lastUpdated: new Date().toISOString()
   };
 

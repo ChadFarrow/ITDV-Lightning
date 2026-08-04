@@ -1,5 +1,6 @@
 import { AppError, ErrorCodes, withRetry, createErrorLogger } from './error-utils';
 import { RSSCache } from './rss-cache';
+import { extractAlbumDate, AlbumDateInfo } from './album-date';
 
 export interface RSSTrack {
   title: string;
@@ -74,6 +75,12 @@ export interface RSSAlbum {
   coverArt: string | null;
   tracks: RSSTrack[];
   releaseDate: string;
+  /**
+   * Original recorded/released date mined from the description, when stated.
+   * `releaseDate` is the feed's pubDate (when the v4v feed went up), which is
+   * often years after the music was made — prefer this for display.
+   */
+  originalRelease?: AlbumDateInfo;
   duration?: string;
   link?: string;
   funding?: RSSFunding[];
@@ -1459,13 +1466,18 @@ export class RSSParser {
       // Reorder: audio tracks first, then chapter tracks, then [Raw Set] videos at the bottom
       filteredTracks = [...otherTracks, ...chapterTracks, ...rawSetTracks];
 
+      const cleanDescription = cleanHtmlContent(description) || '';
+
       const album = {
         title,
         artist,
-        description: cleanHtmlContent(description) || '',
+        description: cleanDescription,
         coverArt,
         tracks: filteredTracks,
         releaseDate,
+        // Many descriptions state when the music was actually recorded/released,
+        // which the feed's pubDate does not tell us.
+        originalRelease: extractAlbumDate(cleanDescription) || undefined,
         link,
         funding: funding.length > 0 ? funding : undefined,
         value: value,

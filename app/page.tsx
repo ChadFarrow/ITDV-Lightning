@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { getVersionString } from '@/lib/version';
+import { getDisplayYear, type AlbumDateInfo } from '@/lib/album-date';
 import { useAudio } from '@/contexts/AudioContext';
 import { useVideo } from '@/contexts/VideoContext';
 import { useLightning } from '@/contexts/LightningContext';
@@ -92,6 +93,7 @@ interface Album {
   coverArt: string;
   tracks: Track[];
   releaseDate: string;
+  originalRelease?: AlbumDateInfo;
   feedId: string;
   feedUrl?: string;
   funding?: RSSFunding[];
@@ -1419,7 +1421,7 @@ export default function HomePage() {
                                 </div>
                                 
                                 <div className="flex items-center gap-4 text-sm text-gray-400">
-                                  <span>{new Date(album.releaseDate).getFullYear()}</span>
+                                  <span>{getDisplayYear(album)}</span>
                                   <span>{album.tracks.length} tracks</span>
                                   <span className="px-2 py-1 bg-white/10 rounded text-xs">Album</span>
                                 </div>
@@ -1475,7 +1477,7 @@ export default function HomePage() {
                                 </div>
                                 
                                 <div className="flex items-center gap-4 text-sm text-gray-400">
-                                  <span>{new Date(album.releaseDate).getFullYear()}</span>
+                                  <span>{getDisplayYear(album)}</span>
                                   <span>{album.tracks.length} tracks</span>
                                   <span className="px-2 py-1 bg-white/10 rounded text-xs">
                                     {album.tracks.length === 1 ? 'Single' : 'EP'}
@@ -1529,7 +1531,7 @@ export default function HomePage() {
                         </div>
                         
                         <div className="flex items-center gap-4 text-sm text-gray-400">
-                          <span>{new Date(album.releaseDate).getFullYear()}</span>
+                          <span>{getDisplayYear(album)}</span>
                           <span>{album.tracks.length} tracks</span>
                           <span className="px-2 py-1 bg-white/10 rounded text-xs">
                             {album.tracks.length <= 6 ? (album.tracks.length === 1 ? 'Single' : 'EP') : 'Album'}

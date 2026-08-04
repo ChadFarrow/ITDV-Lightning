@@ -4636,7 +4636,13 @@
       "imageUrl": "https://www.doerfelverse.com/art/think-ep.png",
       "feedId": "www-doerfelverse-com-feeds-think-ep-xml",
       "priority": "core",
-      "lastUpdated": "2025-12-14T16:26:12.527Z"
+      "lastUpdated": "2025-12-14T16:26:12.527Z",
+      "originalRelease": {
+        "year": 2017,
+        "kind": "released",
+        "precision": "year",
+        "source": "Think EP was originally released in 2017 under the artis"
+      }
     },
     {
       "title": "Unsound Existence (self-hosted version)",
@@ -8783,7 +8789,13 @@
       "imageUrl": "https://www.doerfelverse.com/art/your-chance.png",
       "feedId": "https-www-doerfelverse-com-feeds-your-chance-xml",
       "priority": "extended",
-      "lastUpdated": "2025-12-14T16:26:13.807Z"
+      "lastUpdated": "2025-12-14T16:26:13.807Z",
+      "originalRelease": {
+        "year": 2015,
+        "kind": "recorded",
+        "precision": "year",
+        "source": "ced with the help of our friend Anthony Picone, recorded in 2015."
+      }
     },
     {
       "title": "DFB Volume 1",
@@ -9484,7 +9496,13 @@
       "imageUrl": "https://www.doerfelverse.com/art/dfbv1.png",
       "feedId": "https-www-doerfelverse-com-feeds-dfbv1-xml",
       "priority": "extended",
-      "lastUpdated": "2025-12-14T16:26:13.847Z"
+      "lastUpdated": "2025-12-14T16:26:13.847Z",
+      "originalRelease": {
+        "year": 2007,
+        "kind": "recorded",
+        "precision": "year",
+        "source": "These were originally recorded live for a radio program in 2007 when we were al"
+      }
     },
     {
       "title": "Music From The Doerfel-Verse",
@@ -18081,7 +18099,13 @@
       "imageUrl": "https://www.doerfelverse.com/art/beware-of-banjo.png",
       "feedId": "https-www-sirtjthewrathful-com-wp-content-uploads-2023-07-beware-of-banjo-xml",
       "priority": "extended",
-      "lastUpdated": "2025-12-14T16:26:14.931Z"
+      "lastUpdated": "2025-12-14T16:26:14.931Z",
+      "originalRelease": {
+        "year": 2008,
+        "kind": "released",
+        "precision": "year",
+        "source": "In 2008, I locked mysel"
+      }
     },
     {
       "title": "Generation Gap",
@@ -18824,7 +18848,13 @@
       "imageUrl": "https://www.doerfelverse.com/art/generation-gap.png",
       "feedId": "https-www-doerfelverse-com-feeds-generation-gap-xml",
       "priority": "extended",
-      "lastUpdated": "2025-12-14T16:26:14.977Z"
+      "lastUpdated": "2025-12-14T16:26:14.977Z",
+      "originalRelease": {
+        "year": 2009,
+        "kind": "recorded",
+        "precision": "year",
+        "source": "In 2009 when Ben Doerfe"
+      }
     },
     {
       "title": "Phatty The Grasshopper",
@@ -20561,7 +20591,13 @@
       "imageUrl": "https://www.doerfelverse.com/art/dfbv2.png",
       "feedId": "https-www-doerfelverse-com-feeds-dfbv2-xml",
       "priority": "extended",
-      "lastUpdated": "2025-12-14T16:26:15.325Z"
+      "lastUpdated": "2025-12-14T16:26:15.325Z",
+      "originalRelease": {
+        "year": 2009,
+        "kind": "released",
+        "precision": "year",
+        "source": "I'm Looking For\" originally released on Patuxent Records in 2009."
+      }
     },
     {
       "title": "LNURL Testing Podcast",
@@ -31765,7 +31801,13 @@
       "imageUrl": "https://www.doerfelverse.com/art/jam-with-nate-small.gif",
       "feedId": "www-doerfelverse-com-feeds-jam-with-nate-xml",
       "priority": "extended",
-      "lastUpdated": "2025-12-14T16:26:16.160Z"
+      "lastUpdated": "2025-12-14T16:26:16.160Z",
+      "originalRelease": {
+        "year": 2025,
+        "kind": "recorded",
+        "precision": "day",
+        "source": "her with our favorite fiddling buddy, Nate Grower on Dec 2, 2025, slapped up two"
+      }
     },
     {
       "title": "Think EP LIVE!",
@@ -32524,7 +32566,13 @@
       "imageUrl": "https://www.doerfelverse.com/art/think-ep-live-2017.png",
       "feedId": "www-doerfelverse-com-feeds-think-ep-live-xml",
       "priority": "core",
-      "lastUpdated": "2025-12-14T16:26:16.161Z"
+      "lastUpdated": "2025-12-14T16:26:16.161Z",
+      "originalRelease": {
+        "year": 2017,
+        "kind": "recorded",
+        "precision": "year",
+        "source": "For this concert, we recorded audio and video, live in 2017, in Big Pine Ke"
+      }
     },
     {
       "title": "Them",
@@ -33502,7 +33550,13 @@
       "imageUrl": "https://www.doerfelverse.com/art/them.png",
       "feedId": "www-doerfelverse-com-feeds-them-xml",
       "priority": "extended",
-      "lastUpdated": "2026-04-29T23:18:58.411Z"
+      "lastUpdated": "2026-04-29T23:18:58.411Z",
+      "originalRelease": {
+        "year": 2019,
+        "kind": "released",
+        "precision": "year",
+        "source": "eased when we went by the band name, \"Fuel on Fire\" back in 2019."
+      }
     },
     {
       "title": "Wrathodies",

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { FeedManager } from '@/lib/feed-manager';
 import { RSSParser } from '@/lib/rss-parser';
 import { createSlug } from '@/lib/album-index';
+import { resolveOriginalRelease } from '@/lib/album-date';
 
 // Cache for individual albums to avoid repeated RSS parsing
 let albumCache: Map<string, { data: any; timestamp: number }> = new Map();
@@ -223,6 +224,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       ...albumData,
       feedId: matchingFeed.id,
       feedUrl: matchingFeed.originalUrl,
+      // Honour a curated originalReleaseYear on this live-parse fallback too,
+      // so it matches what the cached path serves.
+      originalRelease: resolveOriginalRelease(
+        albumData.originalRelease,
+        matchingFeed.originalReleaseYear
+      ),
       lastUpdated: matchingFeed.lastUpdated
     };
     

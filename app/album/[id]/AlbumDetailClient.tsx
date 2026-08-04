@@ -12,6 +12,7 @@ import VideoPlayer from '@/components/VideoPlayer';
 import { BitcoinConnectPayment } from '@/components/BitcoinConnect';
 import type { RSSValue } from '@/lib/rss-parser';
 import { createSlug } from '@/lib/album-index';
+import { getDisplayYear, type AlbumDateInfo } from '@/lib/album-date';
 import dynamic from 'next/dynamic';
 import { filterPodrollItems } from '@/lib/podroll-utils';
 import confetti from 'canvas-confetti';
@@ -79,6 +80,7 @@ interface Album {
   coverArt: string;
   tracks: Track[];
   releaseDate: string;
+  originalRelease?: AlbumDateInfo;
   feedId: string;
   feedUrl?: string;
   funding?: RSSFunding[];
@@ -1051,11 +1053,7 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
 
   const getReleaseYear = () => {
     if (!album) return '';
-    try {
-      return new Date(album.releaseDate).getFullYear();
-    } catch {
-      return '';
-    }
+    return getDisplayYear(album);
   };
 
   const getAlbumSlug = (albumData: Album) => {

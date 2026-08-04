@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Play, Pause, Music, Zap, Video } from 'lucide-react';
 import type { RSSValue, RSSValueRecipient } from '@/lib/rss-parser';
+import { getDisplayYear, type AlbumDateInfo } from '@/lib/album-date';
 import { useLightning } from '@/contexts/LightningContext';
 import CDNImage from '@/components/CDNImage';
 
@@ -33,6 +34,7 @@ interface Album {
   coverArt: string;
   tracks: Track[];
   releaseDate: string;
+  originalRelease?: AlbumDateInfo;
   feedId: string;
   feedUrl?: string;
   funding?: any[];
@@ -66,6 +68,7 @@ function AlbumCard({ album, isPlaying = false, onPlay, onBoostClick, className =
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
+  const displayYear = getDisplayYear(album);
 
   // Minimum swipe distance (in px)
   const minSwipeDistance = 50;
@@ -299,9 +302,9 @@ function AlbumCard({ album, isPlaying = false, onPlay, onBoostClick, className =
         
         {/* Release date and publisher indicator */}
         <div className="flex items-center justify-between mt-0.5 sm:mt-1">
-          {album.releaseDate && (
+          {displayYear && (
             <p className="text-gray-400 text-[10px] sm:text-xs">
-              {new Date(album.releaseDate).getFullYear()}
+              {displayYear}
             </p>
           )}
         </div>

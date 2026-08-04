@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowLeft } from 'lucide-react';
 import { useAudio } from '@/contexts/AudioContext';
+import { getDisplayYear, type AlbumDateInfo } from '@/lib/album-date';
 
 interface Track {
   title: string;
@@ -21,6 +22,7 @@ interface Album {
   coverArt: string;
   tracks: Track[];
   releaseDate: string;
+  originalRelease?: AlbumDateInfo;
   feedId: string;
   feedUrl?: string;
   funding?: any[];
@@ -153,13 +155,7 @@ export default function PublisherDetailClient({ publisherName, initialPublisher 
       .replace(/^-+|-+$/g, '');
   };
 
-  const getReleaseYear = (releaseDate: string) => {
-    try {
-      return new Date(releaseDate).getFullYear();
-    } catch {
-      return '';
-    }
-  };
+  const getReleaseYear = (album: Album) => getDisplayYear(album);
 
   const handlePlayAlbum = (album: Album, e: React.MouseEvent) => {
     e.preventDefault(); // Prevent navigation when clicking play button
@@ -338,8 +334,8 @@ export default function PublisherDetailClient({ publisherName, initialPublisher 
                         {album.title}
                       </h3>
                       <p className="text-xs text-gray-400 truncate">{album.artist}</p>
-                      {album.releaseDate && (
-                        <p className="text-xs text-gray-500 mt-1">{getReleaseYear(album.releaseDate)}</p>
+                      {getReleaseYear(album) && (
+                        <p className="text-xs text-gray-500 mt-1">{getReleaseYear(album)}</p>
                       )}
                     </div>
                   </Link>
