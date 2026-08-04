@@ -976,7 +976,13 @@
       "imageUrl": "https://www.doerfelverse.com/art/them.png",
       "feedId": "www-doerfelverse-com-feeds-them-xml",
       "priority": "extended",
-      "lastUpdated": "2026-04-29T23:18:58.411Z"
+      "lastUpdated": "2026-04-29T23:18:58.411Z",
+      "originalRelease": {
+        "year": 2019,
+        "kind": "released",
+        "precision": "year",
+        "source": "eased when we went by the band name, \"Fuel on Fire\" back in 2019."
+      }
     },
     {
       "title": "The Satellite Spotlight",
