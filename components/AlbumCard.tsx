@@ -68,6 +68,7 @@ function AlbumCard({ album, isPlaying = false, onPlay, onBoostClick, className =
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
+  const displayYear = getDisplayYear(album);
 
   // Minimum swipe distance (in px)
   const minSwipeDistance = 50;
@@ -301,9 +302,9 @@ function AlbumCard({ album, isPlaying = false, onPlay, onBoostClick, className =
         
         {/* Release date and publisher indicator */}
         <div className="flex items-center justify-between mt-0.5 sm:mt-1">
-          {getDisplayYear(album) && (
+          {displayYear && (
             <p className="text-gray-400 text-[10px] sm:text-xs">
-              {getDisplayYear(album)}
+              {displayYear}
             </p>
           )}
         </div>

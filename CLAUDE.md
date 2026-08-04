@@ -88,8 +88,12 @@ by editing `public/static-albums.json`, which any cache rebuild overwrites:
 
 `resolveOriginalRelease(extracted, overrideYear)` applies it, and every writer that merges feed metadata
 onto an album calls it: `scripts/regenerate-static-cache-direct.ts`, `scripts/backfill-album-dates.ts`,
-`app/api/admin/manage-feeds/route.ts` (via `prepareAlbumFilesForAdd`), and the live-parse fallback in
-`app/api/album/[id]/route.ts`. Add the call to any new writer, or curated years silently vanish there.
+`scripts/reparse-affected.ts`, `scripts/reparse-them.ts`, `app/api/admin/manage-feeds/route.ts` (via
+`prepareAlbumFilesForAdd`), and the live-parse fallback in `app/api/album/[id]/route.ts`. These writers
+replace the whole cache entry, so a writer that skips the call silently drops the curated year — add it
+to any new writer. Scripts read the overrides via `loadOriginalReleaseOverrides()` in
+`scripts/feed-overrides.ts`; it uses `fs`, which is why it lives there and not in the client-safe
+`lib/album-date.ts`.
 
 Singles are the coverage gap: 25 of the 50 entries are single-track and **none** state a date in the
 description, so they all show the feed year. Fixing those needs the override above or another data source.

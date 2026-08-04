@@ -9,6 +9,8 @@
 import fs from 'fs';
 import path from 'path';
 import { RSSParser } from '../lib/rss-parser';
+import { resolveOriginalRelease } from '../lib/album-date';
+import { loadOriginalReleaseOverrides } from './feed-overrides';
 
 interface Target {
   publicUrl: string;
@@ -49,6 +51,8 @@ const FILES = [
 ];
 
 async function main() {
+  const overrides = loadOriginalReleaseOverrides();
+
   for (const target of TARGETS) {
     console.log(`\n🔄 ${target.feedId}`);
     const album = await RSSParser.parseAlbumFeed(target.publicUrl, target.trackFilter);
@@ -72,6 +76,10 @@ async function main() {
       feedId: target.feedId,
       feedUrl: target.redactInCache ? 'PRIVATE_FEED_URL' : target.publicUrl,
       priority: 'extended',
+      // A curated originalReleaseYear in feeds.json beats the date mined from the
+      // description, so hand-corrected years survive a reparse. This replaces the
+      // whole cache entry, so without it the curated year is silently dropped.
+      originalRelease: resolveOriginalRelease(album.originalRelease, overrides[target.feedId]),
       lastUpdated: new Date().toISOString(),
     };
 

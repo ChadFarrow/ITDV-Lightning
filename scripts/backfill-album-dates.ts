@@ -15,24 +15,10 @@
 import fs from 'fs';
 import path from 'path';
 import { extractAlbumDate, resolveOriginalRelease } from '../lib/album-date';
+import { loadOriginalReleaseOverrides } from './feed-overrides';
 
 const FILES = ['public/static-albums.json', 'public/albums-static-cached.json'];
 const FEEDS_FILE = 'data/feeds.json';
-
-/** feedId -> curated originalReleaseYear, for the feeds that declare one. */
-function loadOverrides(): Record<string, number | null> {
-  const fullPath = path.join(process.cwd(), FEEDS_FILE);
-  if (!fs.existsSync(fullPath)) return {};
-
-  const feeds: any[] = JSON.parse(fs.readFileSync(fullPath, 'utf-8')).feeds || [];
-  const overrides: Record<string, number | null> = {};
-  feeds.forEach((feed) => {
-    if (Object.prototype.hasOwnProperty.call(feed, 'originalReleaseYear')) {
-      overrides[feed.id] = feed.originalReleaseYear;
-    }
-  });
-  return overrides;
-}
 
 /**
  * The dates we verified by hand when this extractor was written. The backfill
@@ -64,7 +50,7 @@ function main() {
   const authoritative = JSON.parse(fs.readFileSync(authoritativePath, 'utf-8'));
   const albums: any[] = authoritative.albums || [];
 
-  const overrides = loadOverrides();
+  const overrides = loadOriginalReleaseOverrides();
   const overrideCount = Object.keys(overrides).length;
   console.log(`📋 ${albums.length} albums in ${FILES[0]}`);
   console.log(`🔧 ${overrideCount} curated originalReleaseYear override(s) in ${FEEDS_FILE}\n`);
@@ -139,7 +125,7 @@ function main() {
 
     const data = JSON.parse(fs.readFileSync(fullPath, 'utf-8'));
     const list: any[] = data.albums || [];
-    let changed = 0;
+    let withDate = 0;
 
     for (const album of list) {
       const info = resolveOriginalRelease(
@@ -148,7 +134,7 @@ function main() {
       );
       if (info) {
         album.originalRelease = info;
-        changed++;
+        withDate++;
       } else {
         delete album.originalRelease;
       }
@@ -156,7 +142,7 @@ function main() {
 
     data.count = list.length;
     fs.writeFileSync(fullPath, JSON.stringify(data, null, 2));
-    console.log(`✅ ${file}: ${changed}/${list.length} albums given originalRelease`);
+    console.log(`✅ ${file}: ${withDate}/${list.length} albums carry originalRelease`);
   }
 
   console.log('\n🔄 Rebuilding album-index.json');

@@ -7,6 +7,8 @@
 import fs from 'fs';
 import path from 'path';
 import { RSSParser } from '../lib/rss-parser';
+import { resolveOriginalRelease } from '../lib/album-date';
+import { loadOriginalReleaseOverrides } from './feed-overrides';
 
 const PUBLIC_URL = 'https://www.doerfelverse.com/feeds/them.xml';
 const FEED_ID = 'www-doerfelverse-com-feeds-them-xml';
@@ -25,6 +27,13 @@ async function main() {
     feedId: FEED_ID,
     feedUrl: REDACTED_URL,
     priority: 'extended',
+    // A curated originalReleaseYear in feeds.json beats the date mined from the
+    // description, so hand-corrected years survive a reparse. This replaces the
+    // whole cache entry, so without it the curated year is silently dropped.
+    originalRelease: resolveOriginalRelease(
+      album.originalRelease,
+      loadOriginalReleaseOverrides()[FEED_ID]
+    ),
     lastUpdated: new Date().toISOString(),
   };
 

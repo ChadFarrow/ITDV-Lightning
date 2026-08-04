@@ -228,7 +228,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       // so it matches what the cached path serves.
       originalRelease: resolveOriginalRelease(
         albumData.originalRelease,
-        (matchingFeed as any).originalReleaseYear
+        matchingFeed.originalReleaseYear
       ),
       lastUpdated: matchingFeed.lastUpdated
     };
