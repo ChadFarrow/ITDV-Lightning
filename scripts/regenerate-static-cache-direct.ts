@@ -7,6 +7,7 @@
 import fs from 'fs';
 import path from 'path';
 import { RSSParser } from '../lib/rss-parser';
+import { resolveOriginalRelease } from '../lib/album-date';
 
 interface FeedEntry {
   id: string;
@@ -16,6 +17,8 @@ interface FeedEntry {
   priority?: string;
   status?: string;
   trackFilter?: string;
+  /** Hand-curated year that beats the date mined from the description; null suppresses it. */
+  originalReleaseYear?: number | null;
 }
 
 interface FeedsData {
@@ -56,6 +59,9 @@ async function regenerateCache() {
           feedId: feed.id,
           feedUrl: feed.originalUrl,
           priority: feed.priority,
+          // A curated originalReleaseYear in feeds.json wins over the extractor,
+          // so hand-corrected years survive this full rebuild.
+          originalRelease: resolveOriginalRelease(album.originalRelease, feed.originalReleaseYear),
           lastUpdated: new Date().toISOString()
         };
 

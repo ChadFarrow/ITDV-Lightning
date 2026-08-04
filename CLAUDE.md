@@ -80,6 +80,20 @@ is deliberately not displayed.
 Keep this module free of lookbehind and other post-ES5 regex syntax: `tsconfig` targets es5, regex syntax
 can't be down-levelled, and this module is imported by client components on the homepage.
 
+**Correcting a wrong year** — add `"originalReleaseYear"` to the feed's entry in `data/feeds.json`, never
+by editing `public/static-albums.json`, which any cache rebuild overwrites:
+- `"originalReleaseYear": 1998` forces that year;
+- `"originalReleaseYear": null` suppresses a bad auto-detected date and falls back to the pubDate year;
+- key absent leaves the extractor in charge.
+
+`resolveOriginalRelease(extracted, overrideYear)` applies it, and every writer that merges feed metadata
+onto an album calls it: `scripts/regenerate-static-cache-direct.ts`, `scripts/backfill-album-dates.ts`,
+`app/api/admin/manage-feeds/route.ts` (via `prepareAlbumFilesForAdd`), and the live-parse fallback in
+`app/api/album/[id]/route.ts`. Add the call to any new writer, or curated years silently vanish there.
+
+Singles are the coverage gap: 25 of the 50 entries are single-track and **none** state a date in the
+description, so they all show the feed year. Fixing those needs the override above or another data source.
+
 ### Video player and shuffle
 - `contexts/VideoContext.tsx` owns video play state, separate from `AudioContext`. The global now-playing bar (`components/GlobalNowPlayingBar.tsx`) reads from whichever has a current item.
 - `components/VideoPlayer.tsx` accepts `externalIsPlaying` to sync the DOM `<video>` element with `VideoContext.isPlaying` (so the bottom-bar play/pause actually drives the video).

@@ -120,6 +120,32 @@ export function extractAlbumDate(description?: string | null): AlbumDateInfo | n
 }
 
 /**
+ * Apply a hand-curated `originalReleaseYear` from a data/feeds.json entry on top
+ * of whatever the extractor found. This is how a wrong or unwanted auto-detected
+ * date gets corrected — edits made directly to public/static-albums.json are
+ * silently discarded the next time the cache is regenerated from the feeds.
+ *
+ *   "originalReleaseYear": 2017   -> force that year
+ *   "originalReleaseYear": null   -> suppress the extracted date; fall back to pubDate
+ *   (key absent)                  -> keep whatever the extractor found
+ */
+export function resolveOriginalRelease(
+  extracted: AlbumDateInfo | undefined | null,
+  overrideYear?: number | null
+): AlbumDateInfo | undefined {
+  if (overrideYear === null) return undefined;
+  if (typeof overrideYear === 'number' && !isNaN(overrideYear)) {
+    return {
+      year: overrideYear,
+      kind: 'released',
+      precision: 'year',
+      source: 'manual override (data/feeds.json)',
+    };
+  }
+  return extracted || undefined;
+}
+
+/**
  * The year to show for an album: the date stated in its description when we
  * found one, otherwise the feed's pubDate year. Returns '' if neither parses.
  */

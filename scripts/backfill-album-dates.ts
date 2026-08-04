@@ -14,9 +14,25 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { extractAlbumDate } from '../lib/album-date';
+import { extractAlbumDate, resolveOriginalRelease } from '../lib/album-date';
 
 const FILES = ['public/static-albums.json', 'public/albums-static-cached.json'];
+const FEEDS_FILE = 'data/feeds.json';
+
+/** feedId -> curated originalReleaseYear, for the feeds that declare one. */
+function loadOverrides(): Record<string, number | null> {
+  const fullPath = path.join(process.cwd(), FEEDS_FILE);
+  if (!fs.existsSync(fullPath)) return {};
+
+  const feeds: any[] = JSON.parse(fs.readFileSync(fullPath, 'utf-8')).feeds || [];
+  const overrides: Record<string, number | null> = {};
+  feeds.forEach((feed) => {
+    if (Object.prototype.hasOwnProperty.call(feed, 'originalReleaseYear')) {
+      overrides[feed.id] = feed.originalReleaseYear;
+    }
+  });
+  return overrides;
+}
 
 /**
  * The dates we verified by hand when this extractor was written. The backfill
@@ -48,11 +64,15 @@ function main() {
   const authoritative = JSON.parse(fs.readFileSync(authoritativePath, 'utf-8'));
   const albums: any[] = authoritative.albums || [];
 
-  console.log(`📋 ${albums.length} albums in ${FILES[0]}\n`);
+  const overrides = loadOverrides();
+  const overrideCount = Object.keys(overrides).length;
+  console.log(`📋 ${albums.length} albums in ${FILES[0]}`);
+  console.log(`🔧 ${overrideCount} curated originalReleaseYear override(s) in ${FEEDS_FILE}\n`);
 
   // --- Verify the extractor still behaves before touching any file ---
   const extracted = albums.map((album) => ({
     title: album.title as string,
+    feedId: album.feedId as string,
     releaseDate: album.releaseDate as string,
     info: extractAlbumDate(album.description),
   }));
@@ -89,14 +109,23 @@ function main() {
 
   console.log(`✅ extractor checks passed: ${matched.length} matches, ${MUST_NOT_MATCH.length} traps rejected\n`);
 
-  // --- Report what will change ---
+  // --- Report the resolved outcome, extractor plus any curated overrides ---
   console.log('Album                                  pubDate year -> display year');
-  console.log('-'.repeat(70));
-  matched.forEach((entry) => {
-    const info = entry.info!;
+  console.log('-'.repeat(76));
+  extracted.forEach((entry) => {
+    const hasOverride = Object.prototype.hasOwnProperty.call(overrides, entry.feedId);
+    const resolved = resolveOriginalRelease(entry.info, overrides[entry.feedId]);
+    if (!resolved && !hasOverride) return; // nothing to say about untouched albums
+
     const oldYear = new Date(entry.releaseDate).getFullYear();
-    const flag = oldYear === info.year ? '   ' : ' * ';
-    console.log(`${flag}${entry.title.padEnd(36)} ${oldYear}  ->  ${info.year}  (${info.kind})`);
+    const note = hasOverride
+      ? resolved
+        ? ' [override]'
+        : ' [override: suppressed, keeps feed year]'
+      : ` (${resolved!.kind})`;
+    const newYear = resolved ? resolved.year : oldYear;
+    const flag = oldYear === newYear ? '   ' : ' * ';
+    console.log(`${flag}${entry.title.padEnd(36)} ${oldYear}  ->  ${newYear}${note}`);
   });
 
   // --- Write both cache files (CLAUDE.md: treat them as one set) ---
@@ -113,7 +142,10 @@ function main() {
     let changed = 0;
 
     for (const album of list) {
-      const info = extractAlbumDate(album.description);
+      const info = resolveOriginalRelease(
+        extractAlbumDate(album.description),
+        overrides[album.feedId]
+      );
       if (info) {
         album.originalRelease = info;
         changed++;

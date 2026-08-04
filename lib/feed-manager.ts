@@ -9,6 +9,11 @@ export interface Feed {
   priority: 'core' | 'extended' | 'low';
   status: 'active' | 'inactive';
   trackFilter?: string; // Optional filter to only include tracks matching this string (e.g., artist name)
+  // Hand-curated release year that overrides the date mined from the album description
+  // (see lib/album-date.ts). Set to null to suppress a wrong auto-detected date and fall
+  // back to the feed's pubDate year. Editing public/static-albums.json directly does not
+  // survive a cache rebuild — correct it here instead.
+  originalReleaseYear?: number | null;
   addedAt: string;
   lastUpdated: string;
   isPrivate?: boolean; // True if feed is not indexed on Podcast Index
