@@ -248,10 +248,21 @@ resolved result — do not trust that a framework decoded it safely.
 Findings from the August 2026 audit that are understood but not yet fixed. Each needs a decision or
 an environment change rather than just code, so don't treat them as fresh discoveries.
 
-- **The old site Nostr key must be rotated.** If `NEXT_PUBLIC_SITE_NOSTR_NSEC` was ever set in Vercel,
-  that private key shipped in the client bundle and is compromised — a Nostr identity cannot be
-  rotated without abandoning it. Generate a new pair, set `SITE_NOSTR_NSEC` and
-  `NEXT_PUBLIC_SITE_NOSTR_NPUB`, and delete the old variable.
+- **The old site Nostr key is compromised; rotation is deferred by choice.** `NEXT_PUBLIC_SITE_NOSTR_NSEC`
+  was set in Vercel, so that private key shipped in every client bundle built while the code
+  referenced it, and a Nostr identity cannot be revoked. Accepted risk: it is a bot account, and the
+  exposure is impersonation only — it grants no admin access and no access to Lightning funds, which
+  go through NWC/Bitcoin Connect and separate keys.
+
+  Nothing is currently leaking: since signing moved server-side the client no longer reads that
+  variable, so Next stopped inlining it. Verified against production — 14 chunks across `/`,
+  `/boosts` and `/album/them` contain no `nsec` literal and no `NEXT_PUBLIC_SITE_NOSTR_*` reference.
+  Git history is clean too.
+
+  **Delete the stale `NEXT_PUBLIC_SITE_NOSTR_NSEC` var from Vercel when convenient** — that costs
+  nothing and is what stops the key being re-inlined if future code ever references it again. Full
+  rotation (new pair, `SITE_NOSTR_NSEC` + `NEXT_PUBLIC_SITE_NOSTR_NPUB`, plus a migration note from
+  the old key announcing the new npub) is only needed if the identity starts mattering.
 - **`/api/albums` takes ~47 seconds.** It re-parses every RSS feed on a cache miss. It works in
   production (measured: 200, 1.5MB, 46.7s) but returns 500 locally, where Postgres is not
   provisioned. It only matters as the second fallback behind `/api/albums-static-cached` — there is
