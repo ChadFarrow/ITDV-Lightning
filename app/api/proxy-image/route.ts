@@ -1,38 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  validateProxyTarget,
+  isAllowedMediaType,
+  hardeningHeadersFor,
+} from '@/lib/proxy-guard';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const imageUrl = searchParams.get('url');
-    
-    if (!imageUrl) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Missing image URL parameter' 
-      }, { status: 400 });
-    }
 
-    // Validate URL
-    let url: URL;
-    try {
-      url = new URL(imageUrl);
-    } catch {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Invalid URL format' 
-      }, { status: 400 });
-    }
-
-    // Only allow HTTPS URLs for security
-    if (url.protocol !== 'https:') {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Only HTTPS URLs are allowed' 
-      }, { status: 400 });
+    // Rejects non-HTTPS targets and anything pointing at loopback or a private
+    // network — this route fetches on the server's behalf.
+    const target = validateProxyTarget(imageUrl);
+    if (!target.ok) {
+      return NextResponse.json(
+        { success: false, error: target.error },
+        { status: target.status }
+      );
     }
 
     // Determine timeout based on file type (GIFs may be large and need more time)
-    const isGif = imageUrl.toLowerCase().includes('.gif');
+    const isGif = target.url.pathname.toLowerCase().endsWith('.gif');
     const timeoutMs = isGif ? 30000 : 15000; // 30 seconds for GIFs, 15 seconds for others
 
     // Check for conditional requests and forward them to upstream server
@@ -55,7 +44,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch the image
-    const response = await fetch(imageUrl, {
+    // Fetch the validated URL, not the raw parameter.
+    const response = await fetch(target.url, {
       headers: upstreamHeaders,
       // Add timeout - longer for GIFs to handle large files
       signal: AbortSignal.timeout(timeoutMs),
@@ -82,7 +72,19 @@ export async function GET(request: NextRequest) {
     }
 
     // Get content type and length from response
-    const contentType = response.headers.get('content-type') || 'image/jpeg';
+    const upstreamContentType = response.headers.get('content-type');
+
+    // The response is served from our own origin, so passing an upstream
+    // Content-Type through unchecked would let `?url=…/evil.html` execute
+    // script on this domain. Only actual images get past here.
+    if (!isAllowedMediaType(upstreamContentType, ['image/'])) {
+      return NextResponse.json(
+        { success: false, error: 'Upstream response is not an image' },
+        { status: 415 }
+      );
+    }
+
+    const contentType = upstreamContentType || 'image/jpeg';
     const contentLength = response.headers.get('content-length');
     const etag = response.headers.get('etag');
     const lastModified = response.headers.get('last-modified');
@@ -144,6 +146,12 @@ export async function GET(request: NextRequest) {
     headers.set('Access-Control-Allow-Methods', 'GET, HEAD');
     headers.set('X-Image-Proxy', 're.podtards.com');
     headers.set('Vary', 'Accept-Encoding');
+
+    // nosniff always; SVG additionally gets a sandbox CSP, since it is the one
+    // image type that can carry script.
+    for (const [key, value] of Object.entries(hardeningHeadersFor(contentType))) {
+      headers.set(key, value);
+    }
 
     // Stream the response instead of buffering - much faster for large files
     // This allows the browser to start rendering the image while it's still downloading

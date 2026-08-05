@@ -1,10 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateToken, createSession, validateSession, destroySession } from '@/lib/admin-auth';
+import { generateToken, validateSession, verifyPassword, ADMIN_COOKIE_NAME } from '@/lib/admin-auth';
 
-// Rate limiting: track failed attempts by IP
+/**
+ * Rate limiting: track failed attempts by IP.
+ *
+ * Best-effort only. This map lives in one serverless instance's memory, so a
+ * distributed attacker gets MAX_ATTEMPTS per instance, not per origin. It
+ * raises the cost of online guessing; it is not a hard lockout. A durable limit
+ * would need a shared store (Vercel KV / Upstash) keyed by IP.
+ */
 const failedAttempts = new Map<string, { count: number; lastAttempt: number }>();
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes
+/** Bound the map so a spray of unique source IPs can't grow it without limit. */
+const MAX_TRACKED_IPS = 10_000;
+
+/**
+ * Drop entries whose lockout has already expired; they can never limit anyone.
+ * Uses forEach rather than for..of because tsconfig targets es5, where
+ * iterating a Map needs downlevelIteration.
+ */
+function pruneExpiredAttempts(now: number): void {
+  const expired: string[] = [];
+  failedAttempts.forEach((record, ip) => {
+    if (now - record.lastAttempt > LOCKOUT_DURATION) expired.push(ip);
+  });
+  expired.forEach((ip) => failedAttempts.delete(ip));
+}
 
 function getClientIP(request: NextRequest): string {
   return request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
@@ -33,12 +55,21 @@ function isRateLimited(ip: string): { limited: boolean; remainingTime?: number }
 }
 
 function recordFailedAttempt(ip: string): void {
+  const now = Date.now();
   const record = failedAttempts.get(ip);
   if (record) {
     record.count++;
-    record.lastAttempt = Date.now();
-  } else {
-    failedAttempts.set(ip, { count: 1, lastAttempt: Date.now() });
+    record.lastAttempt = now;
+    return;
+  }
+
+  if (failedAttempts.size >= MAX_TRACKED_IPS) {
+    pruneExpiredAttempts(now);
+  }
+  // Still full after pruning means every tracked IP is actively locked out;
+  // drop this record rather than grow without bound.
+  if (failedAttempts.size < MAX_TRACKED_IPS) {
+    failedAttempts.set(ip, { count: 1, lastAttempt: now });
   }
 }
 
@@ -59,17 +90,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { password } = await request.json();
-
-    // Validate password
-    const adminPassword = process.env.ADMIN_PASSWORD;
-
-    if (!adminPassword) {
+    if (!process.env.ADMIN_PASSWORD) {
       console.error('ADMIN_PASSWORD environment variable not set');
       return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
     }
 
-    if (password !== adminPassword) {
+    const { password } = await request.json();
+
+    // Constant-time comparison — a plain `!==` leaks how much of the password
+    // matched, and how long it is, through response timing.
+    if (!(await verifyPassword(password))) {
       recordFailedAttempt(ip);
       const record = failedAttempts.get(ip);
       const attemptsLeft = MAX_ATTEMPTS - (record?.count || 0);
@@ -84,12 +114,11 @@ export async function POST(request: NextRequest) {
     clearFailedAttempts(ip);
 
     // Create session token
-    const token = generateToken();
-    createSession(token);
+    const token = await generateToken();
 
     // Set httpOnly cookie
     const response = NextResponse.json({ success: true });
-    response.cookies.set('admin-token', token, {
+    response.cookies.set(ADMIN_COOKIE_NAME, token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
@@ -109,9 +138,9 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const token = request.cookies.get('admin-token')?.value;
+    const token = request.cookies.get(ADMIN_COOKIE_NAME)?.value;
 
-    if (!validateSession(token)) {
+    if (!(await validateSession(token))) {
       return NextResponse.json({ authenticated: false }, { status: 401 });
     }
 
@@ -121,14 +150,10 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function DELETE(request: NextRequest) {
-  const token = request.cookies.get('admin-token')?.value;
-
-  if (token) {
-    destroySession(token);
-  }
-
+export async function DELETE() {
+  // Tokens are stateless and self-expiring, so logging out is just dropping
+  // the cookie — there is no server-side session to destroy.
   const response = NextResponse.json({ success: true });
-  response.cookies.delete('admin-token');
+  response.cookies.delete(ADMIN_COOKIE_NAME);
   return response;
 }

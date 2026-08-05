@@ -123,30 +123,7 @@ export default function AdminPanel() {
       const data = await response.json();
       
       if (data.success) {
-        // Also add to hardcoded list
-        try {
-          const hardcodedResponse = await fetch('/api/admin/add-to-hardcoded', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              originalUrl: newFeedUrl.trim(),
-              cdnUrl: data.feed.cdnUrl || newFeedUrl.trim(),
-              type: newFeedType
-            }),
-          });
-          
-          if (hardcodedResponse.ok) {
-            toast.success('Feed added to both managed system and hardcoded list');
-          } else {
-            toast.success('Feed added to managed system (hardcode update failed)');
-          }
-        } catch (error) {
-          console.warn('Failed to add to hardcoded list:', error);
-          toast.success('Feed added to managed system');
-        }
-        
+        toast.success('Feed added');
         setNewFeedUrl('');
         setNewFeedType('album');
         await loadFeeds();

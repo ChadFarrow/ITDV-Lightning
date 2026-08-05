@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { FeedManager, FeedsData, Feed } from '@/lib/feed-manager';
 import { RSSParser } from '@/lib/rss-parser';
-import { validateSession } from '@/lib/admin-auth';
+import { isAuthenticatedRequest } from '@/lib/admin-auth';
 import { commitFiles, isGitHubConfigured } from '@/lib/github';
 import { checkFeedOnPodcastIndex } from '@/lib/podcast-index';
 import { buildAlbumIndex } from '@/lib/album-index';
@@ -14,10 +14,6 @@ import path from 'path';
 const IS_VERCEL = !!(process.env.VERCEL || process.env.VERCEL_URL);
 
 // Helper function to verify authentication
-function verifyAuth(request: NextRequest): boolean {
-  const token = request.cookies.get('admin-token')?.value;
-  return validateSession(token);
-}
 
 // File paths for data files
 const FEEDS_PATH = 'data/feeds.json';
@@ -229,7 +225,7 @@ function generateIdFromUrl(url: string): string {
 
 // POST - Add new feed(s)
 export async function POST(request: NextRequest) {
-  if (!verifyAuth(request)) {
+  if (!(await isAuthenticatedRequest(request))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -359,7 +355,7 @@ export async function POST(request: NextRequest) {
 
 // GET - List all feeds
 export async function GET(request: NextRequest) {
-  if (!verifyAuth(request)) {
+  if (!(await isAuthenticatedRequest(request))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -376,7 +372,7 @@ export async function GET(request: NextRequest) {
 
 // PUT - Reparse existing feed(s)
 export async function PUT(request: NextRequest) {
-  if (!verifyAuth(request)) {
+  if (!(await isAuthenticatedRequest(request))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -516,7 +512,7 @@ export async function PUT(request: NextRequest) {
 
 // DELETE - Remove feed
 export async function DELETE(request: NextRequest) {
-  if (!verifyAuth(request)) {
+  if (!(await isAuthenticatedRequest(request))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

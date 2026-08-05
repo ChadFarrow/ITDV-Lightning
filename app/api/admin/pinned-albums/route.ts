@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateSession } from '@/lib/admin-auth';
+import { isAuthenticatedRequest } from '@/lib/admin-auth';
 import { commitFiles, isGitHubConfigured } from '@/lib/github';
 import fs from 'fs';
 import path from 'path';
@@ -12,10 +12,6 @@ const PINNED_ALBUMS_FILE = path.join(process.cwd(), PINNED_ALBUMS_PATH);
 const IS_VERCEL = !!(process.env.VERCEL || process.env.VERCEL_URL);
 
 // Helper function to verify authentication
-function verifyAuth(request: NextRequest): boolean {
-  const token = request.cookies.get('admin-token')?.value;
-  return validateSession(token);
-}
 
 // Helper function to read pinned data
 function readPinnedData(): { pinnedAlbums: string[]; pinnedEPs: string[]; lastUpdated: string } {
@@ -63,7 +59,7 @@ async function writePinnedData(
 
 // GET - Get pinned albums and EPs (authenticated)
 export async function GET(request: NextRequest) {
-  if (!verifyAuth(request)) {
+  if (!(await isAuthenticatedRequest(request))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -80,7 +76,7 @@ export async function GET(request: NextRequest) {
 
 // POST - Update pinned albums and EPs (authenticated)
 export async function POST(request: NextRequest) {
-  if (!verifyAuth(request)) {
+  if (!(await isAuthenticatedRequest(request))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

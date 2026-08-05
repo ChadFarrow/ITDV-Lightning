@@ -404,10 +404,23 @@ const nextConfig = {
             key: 'X-XSS-Protection',
             value: '1; mode=block',
           },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+          {
+            // This app needs none of these; denying them shrinks what a future
+            // XSS or a third-party script could reach for.
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
+          },
         ],
       },
       {
-        source: '/api/(.*)',
+        // Public read endpoints only. `/api/admin/*` is deliberately excluded:
+        // wildcard CORS on authenticated routes invites other origins to probe
+        // them, and admin responses are never meant for cross-origin readers.
+        source: '/api/((?!admin).*)',
         headers: [
           {
             key: 'Access-Control-Allow-Origin',
@@ -415,11 +428,21 @@ const nextConfig = {
           },
           {
             key: 'Access-Control-Allow-Methods',
-            value: 'GET, POST, PUT, DELETE, OPTIONS',
+            value: 'GET, HEAD, OPTIONS',
           },
           {
             key: 'Access-Control-Allow-Headers',
-            value: 'Content-Type, Authorization',
+            value: 'Content-Type, Range',
+          },
+        ],
+      },
+      {
+        // Admin responses must never be cached by a shared cache or the CDN.
+        source: '/api/admin/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, max-age=0',
           },
         ],
       },

@@ -28,25 +28,22 @@ interface Publisher {
 
 export async function GET(request: NextRequest) {
   try {
-    // Get albums data
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL ||
-                   (process.env.NODE_ENV === 'production'
-                     ? 'https://itdv-site.vercel.app'
-                     : 'http://localhost:3002');
+    // Read the static cache directly rather than HTTP-fetching our own
+    // /api/albums. The old code hardcoded a base URL — localhost:3002 in dev
+    // (the dev server runs on 3000) and itdv-site.vercel.app in production —
+    // so this endpoint returned 500 locally, and every request paid a full
+    // network round trip plus a possible cold start to reach the same file
+    // this process can just read. /api/publisher/[name] already does it this way.
+    const staticAlbumsPath = path.join(process.cwd(), 'public', 'static-albums.json');
 
-    const response = await fetch(`${baseUrl}/api/albums`, {
-      next: { revalidate: 60 }, // Cache for 1 minute
-    });
-
-    if (!response.ok) {
-      console.error('Failed to fetch albums:', response.status);
+    if (!fs.existsSync(staticAlbumsPath)) {
       return NextResponse.json(
-        { error: 'Failed to fetch albums data' },
-        { status: 500 }
+        { error: 'Album data not available' },
+        { status: 503 }
       );
     }
 
-    const data = await response.json();
+    const data = JSON.parse(fs.readFileSync(staticAlbumsPath, 'utf-8'));
     const albums: Album[] = data.albums || [];
 
     // Group albums by publisher
