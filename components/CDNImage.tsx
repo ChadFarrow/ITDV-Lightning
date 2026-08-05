@@ -41,7 +41,11 @@ export default function CDNImage({
   const [hasError, setHasError] = useState(false);
   const [currentSrc, setCurrentSrc] = useState(src);
   const [retryCount, setRetryCount] = useState(0);
-  const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
+  // A timer handle is not render state: keeping it in useState re-rendered the
+  // component on every set/clear and made it a reactive dependency, which is why
+  // the effects below had to omit it (and disable exhaustive-deps) to avoid
+  // loops. A ref sidesteps both problems.
+  const timeoutIdRef = useRef<NodeJS.Timeout | null>(null);
   const [isGif, setIsGif] = useState(false);
   const [showGif, setShowGif] = useState(false);
   const [gifLoaded, setGifLoaded] = useState(false);
@@ -320,9 +324,9 @@ export default function CDNImage({
     setIsLoading(false);
     
     // Clear timeout
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-      setTimeoutId(null);
+    if (timeoutIdRef.current) {
+      clearTimeout(timeoutIdRef.current);
+      timeoutIdRef.current = null;
     }
     
     // First try the fallback URL if provided and different
@@ -365,7 +369,9 @@ export default function CDNImage({
     // All retry attempts have failed - only now call onError and show placeholder
     setHasError(true);
     onError?.(); // Only call onError after all retries have failed
-  }, [src, currentSrc, retryCount, fallbackSrc, onError]);
+    // getOriginalUrl is itself a useCallback over [fallbackSrc], so including it
+    // costs nothing; the timeout handle is a ref now and is not reactive.
+  }, [src, currentSrc, retryCount, fallbackSrc, onError, getOriginalUrl]);
 
   const handleLoad = () => {
     setIsLoading(false);
@@ -373,9 +379,9 @@ export default function CDNImage({
     setGifLoaded(true);
     
     // Clear timeout
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-      setTimeoutId(null);
+    if (timeoutIdRef.current) {
+      clearTimeout(timeoutIdRef.current);
+      timeoutIdRef.current = null;
     }
     
     onLoad?.();
@@ -445,9 +451,9 @@ export default function CDNImage({
     setGifLoaded(false);
     
     // Clear existing timeout
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-      setTimeoutId(null);
+    if (timeoutIdRef.current) {
+      clearTimeout(timeoutIdRef.current);
+      timeoutIdRef.current = null;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src, width, height, isClient, isMobile]); // Don't include currentSrc to prevent loops
@@ -457,9 +463,9 @@ export default function CDNImage({
     if (hasError || !isLoading || !currentSrc) return;
     
     // Clear existing timeout
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-      setTimeoutId(null);
+    if (timeoutIdRef.current) {
+      clearTimeout(timeoutIdRef.current);
+      timeoutIdRef.current = null;
     }
     
     // Set timeout based on retry count and whether it's a GIF
@@ -482,7 +488,7 @@ export default function CDNImage({
       return;
     }
     
-    setTimeoutId(timeout);
+    timeoutIdRef.current = timeout;
     
     return () => {
       if (timeout) clearTimeout(timeout);

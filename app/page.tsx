@@ -500,7 +500,12 @@ export default function HomePage() {
     
     // No cache - load fresh data (but show loading state immediately)
     loadCriticalAlbums();
-  }, []); // Run only once on mount
+    // Intentionally mount-only. loadCriticalAlbums is useCallback([albums.length,
+    // loadAlbumsData]), so listing it here would re-run this initial load every
+    // time the album count changes — i.e. immediately after it sets albums,
+    // refetching in a loop. The bootstrap genuinely needs to happen once.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Static background loading
   useEffect(() => {
@@ -512,84 +517,8 @@ export default function HomePage() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Load all albums and publishers
-  const loadCriticalAlbums = useCallback(async () => {
-    try {
-      // Only show loading if we don't already have albums (from cache)
-      if (albums.length === 0) {
-        setIsLoading(true);
-        setLoadingProgress(0);
-      }
-      setError(null);
-      
-      // Load albums and update state immediately when ready
-      const allAlbums = await loadAlbumsData();
-      
-      // Only update if we got new data (avoid unnecessary re-renders)
-      if (allAlbums && allAlbums.length > 0) {
-        setAlbums(allAlbums);
-      }
-      
-      setLoadingProgress(90);
-      
-      // Preload colors for first albums for instant Now Playing screen (non-blocking)
-      const firstAlbumTitles = allAlbums.slice(0, 10).map((album: any) => album.title);
-      preloadCriticalColors(firstAlbumTitles).catch(() => {
-        // Silently handle errors
-      });
-      
-      // Load static publisher data in parallel (non-blocking)
-      fetch('/publishers.json')
-        .then(publisherResponse => {
-          if (publisherResponse.ok) {
-            return publisherResponse.json();
-          }
-          return null;
-        })
-        .then(staticPublishers => {
-          if (staticPublishers) {
-            setPublishers(staticPublishers);
-          }
-        })
-        .catch(() => {
-          // Silently handle errors
-        });
-
-      // Load pinned albums and EPs order (non-blocking)
-      fetch('/api/pinned-albums')
-        .then(pinnedResponse => {
-          if (pinnedResponse.ok) {
-            return pinnedResponse.json();
-          }
-          return null;
-        })
-        .then(pinnedData => {
-          if (pinnedData?.pinnedAlbums && Array.isArray(pinnedData.pinnedAlbums)) {
-            setPinnedAlbums(pinnedData.pinnedAlbums);
-          }
-          if (pinnedData?.pinnedEPs && Array.isArray(pinnedData.pinnedEPs)) {
-            setPinnedEPs(pinnedData.pinnedEPs);
-          }
-        })
-        .catch(() => {
-          // Silently handle errors - use default pinned order
-        });
-      
-      setLoadingProgress(100);
-      setIsLoading(false);
-      
-    } catch (error) {
-      // Only show error if we don't have cached data
-      if (albums.length === 0) {
-        setError('Failed to load albums');
-        setIsLoading(false);
-      }
-      // If we have cached data, silently fail - user already sees content
-    }
-  }, [albums.length]);
-
   // Helper function to fetch with timeout
-  const fetchWithTimeout = async (url: string, timeoutMs: number = 5000) => {
+  const fetchWithTimeout = useCallback(async (url: string, timeoutMs: number = 5000) => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -601,13 +530,17 @@ export default function HomePage() {
       clearTimeout(timeoutId);
       throw error;
     }
-  };
+  }, []);
 
   // Detect iOS PWA standalone mode (added to home screen)
   const isIOSPWA = typeof window !== 'undefined' &&
     ('standalone' in window.navigator && (window.navigator as any).standalone === true);
 
-  const loadAlbumsData = async () => {
+  // Hoisted above loadCriticalAlbums, which calls it: naming it in that
+  // useCallback's dependency array evaluates at render time, so declaring it
+  // below would throw a TDZ ReferenceError. Memoized so it does not invalidate
+  // loadCriticalAlbums on every render.
+  const loadAlbumsData = useCallback(async () => {
     try {
       // Check for cache-busting query parameter
       const urlParams = new URLSearchParams(window.location.search);
@@ -728,7 +661,84 @@ export default function HomePage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [fetchWithTimeout, isIOSPWA]);
+
+  // Load all albums and publishers
+  const loadCriticalAlbums = useCallback(async () => {
+    try {
+      // Only show loading if we don't already have albums (from cache)
+      if (albums.length === 0) {
+        setIsLoading(true);
+        setLoadingProgress(0);
+      }
+      setError(null);
+      
+      // Load albums and update state immediately when ready
+      const allAlbums = await loadAlbumsData();
+      
+      // Only update if we got new data (avoid unnecessary re-renders)
+      if (allAlbums && allAlbums.length > 0) {
+        setAlbums(allAlbums);
+      }
+      
+      setLoadingProgress(90);
+      
+      // Preload colors for first albums for instant Now Playing screen (non-blocking)
+      const firstAlbumTitles = allAlbums.slice(0, 10).map((album: any) => album.title);
+      preloadCriticalColors(firstAlbumTitles).catch(() => {
+        // Silently handle errors
+      });
+      
+      // Load static publisher data in parallel (non-blocking)
+      fetch('/publishers.json')
+        .then(publisherResponse => {
+          if (publisherResponse.ok) {
+            return publisherResponse.json();
+          }
+          return null;
+        })
+        .then(staticPublishers => {
+          if (staticPublishers) {
+            setPublishers(staticPublishers);
+          }
+        })
+        .catch(() => {
+          // Silently handle errors
+        });
+
+      // Load pinned albums and EPs order (non-blocking)
+      fetch('/api/pinned-albums')
+        .then(pinnedResponse => {
+          if (pinnedResponse.ok) {
+            return pinnedResponse.json();
+          }
+          return null;
+        })
+        .then(pinnedData => {
+          if (pinnedData?.pinnedAlbums && Array.isArray(pinnedData.pinnedAlbums)) {
+            setPinnedAlbums(pinnedData.pinnedAlbums);
+          }
+          if (pinnedData?.pinnedEPs && Array.isArray(pinnedData.pinnedEPs)) {
+            setPinnedEPs(pinnedData.pinnedEPs);
+          }
+        })
+        .catch(() => {
+          // Silently handle errors - use default pinned order
+        });
+      
+      setLoadingProgress(100);
+      setIsLoading(false);
+      
+    } catch (error) {
+      // Only show error if we don't have cached data
+      if (albums.length === 0) {
+        setError('Failed to load albums');
+        setIsLoading(false);
+      }
+      // If we have cached data, silently fail - user already sees content
+    }
+  }, [albums.length, loadAlbumsData]);
+
 
   // Also passed to every memoized AlbumCard — see handleBoostClick above.
   const playAlbum = useCallback(async (album: Album, e: React.MouseEvent | React.TouchEvent) => {

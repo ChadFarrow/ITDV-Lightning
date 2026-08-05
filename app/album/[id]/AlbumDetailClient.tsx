@@ -127,14 +127,36 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
   const [showAlbumBoostModal, setShowAlbumBoostModal] = useState(false);
   const [showAlbumSplits, setShowAlbumSplits] = useState(false);
   
+  // Mirrors of album/siteAlbums for the deferred loaders below.
+  //
+  // Those loaders are kicked off from loadAlbum via scheduleIdleTask, so they
+  // run 1.5-2s after the closure that holds them was created — reading `album`
+  // or `siteAlbums` directly there sees the value from *before* loadAlbum set
+  // them, which is usually null/[]. That silently broke related-album filtering
+  // (it matched on `album?.artist` while album was still null) and made
+  // loadPodrollAlbums' "wait 500ms then re-read siteAlbums" retry meaningless,
+  // since a captured const cannot change. Refs give them the current value
+  // without making the callbacks reactive.
+  const albumRef = useRef<Album | null>(null);
+  const siteAlbumsRef = useRef<Album[]>([]);
+
   // Request deduplication refs
   const loadingAlbumsRef = useRef(false);
   const loadingRelatedRef = useRef(false);
   const lastInitialAlbumTitleRef = useRef<string | null>(null);
   const videoLoadAttemptedRef = useRef(false);
   const loadAlbumWithRefreshCalledRef = useRef(false);
-  
-  
+
+  // Keep the mirrors current; without this they are as stale as the closures
+  // they replaced.
+  useEffect(() => {
+    albumRef.current = album;
+  }, [album]);
+
+  useEffect(() => {
+    siteAlbumsRef.current = siteAlbums;
+  }, [siteAlbums]);
+
   // Global audio context
   const { 
     playAlbum: globalPlayAlbum, 
@@ -747,6 +769,152 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
     }
   };
 
+
+  const loadSiteAlbums = useCallback(async () => {
+    // Prevent duplicate requests
+    if (loadingAlbumsRef.current) {
+      return siteAlbumsRef.current;
+    }
+    
+    try {
+      loadingAlbumsRef.current = true;
+      // Use the albums endpoint
+      const response = await fetch('/api/albums');
+      if (response.ok) {
+        const data = await response.json();
+        const albums = data.albums || [];
+        setSiteAlbums(albums);
+        return albums;
+      }
+    } catch (error) {
+      // Silently handle errors
+    } finally {
+      loadingAlbumsRef.current = false;
+    }
+    return [];
+  }, []);
+
+  const loadRelatedAlbums = useCallback(async () => {
+    // Prevent duplicate requests
+    if (loadingRelatedRef.current) {
+      return;
+    }
+    
+    loadingRelatedRef.current = true;
+    
+    try {
+      const response = await fetch('/api/albums');
+      if (response.ok) {
+        const data = await response.json();
+        const albums = data.albums || [];
+        
+        const current = albumRef.current;
+        const relatedAlbums = albums.filter((relatedAlbum: Album) => {
+          // Simple related album logic - same artist or exclude current album
+          return relatedAlbum.feedId !== current?.feedId && 
+                 (relatedAlbum.artist === current?.artist || 
+                  relatedAlbum.title.toLowerCase().includes(current?.title?.toLowerCase() || ''));
+        }).slice(0, 6);
+        
+        setRelatedAlbums(relatedAlbums);
+      }
+    } catch (error) {
+      // Silently handle errors
+    } finally {
+      loadingRelatedRef.current = false;
+    }
+    // Reads album through albumRef, so nothing here is reactive.
+  }, []);
+
+  const loadPodrollAlbums = useCallback(async () => {
+    const current = albumRef.current;
+    if (!current?.podroll || current.podroll.length === 0) return;
+    
+    try {
+      // Use site albums if already loaded, otherwise wait for them to load
+      let albums: Album[] = siteAlbumsRef.current;
+      if (albums.length === 0) {
+        // Wait a bit for the site albums to load from the parallel call.
+        // Re-read through the ref — the previous code re-read a captured const,
+        // so this retry could never observe the parallel load finishing.
+        await new Promise(resolve => setTimeout(resolve, 500));
+        albums = siteAlbumsRef.current;
+        
+        // If still empty after waiting, something went wrong - skip podroll processing
+        if (albums.length === 0) {
+          return;
+        }
+      }
+      
+      // Filter out non-music podcast feeds from podrolls
+      const filteredPodroll = filterPodrollItems(current.podroll);
+      
+      // Process all podroll items in parallel for better performance
+      const podrollPromises = filteredPodroll.map(async (podrollItem) => {
+        // Check if this podroll URL matches any album on the site
+        const matchingAlbum = albums.find(siteAlbum => 
+          siteAlbum.feedUrl === podrollItem.url
+        );
+        
+        if (matchingAlbum) {
+          // Use the site album data
+          return {
+            title: matchingAlbum.title,
+            artist: matchingAlbum.artist,
+            coverArt: matchingAlbum.coverArt,
+            url: podrollItem.url
+          };
+        } else {
+          // Try to fetch external feed data with timeout
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+            
+            const response = await fetch(`/api/test-single-feed?url=${encodeURIComponent(podrollItem.url)}`, {
+              signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            
+            if (response.ok) {
+              const data = await response.json();
+              if (data.album) {
+                return {
+                  title: data.album.title || podrollItem.title || 'Unknown Album',
+                  artist: data.album.artist || 'Unknown Artist',
+                  coverArt: data.album.coverArt || '/placeholder-episode.jpg',
+                  url: podrollItem.url
+                };
+              }
+            }
+          } catch (error) {
+            // Silently handle errors
+          }
+          
+          // Fallback to basic podroll data
+          return {
+            title: podrollItem.title || 'Unknown Album',
+            artist: 'Unknown Artist',
+            coverArt: '/placeholder-episode.jpg',
+            url: podrollItem.url
+          };
+        }
+      });
+      
+      // Wait for all podroll items to resolve (in parallel)
+      const podrollResults = await Promise.allSettled(podrollPromises);
+      const podrollData = podrollResults
+        .filter((result): result is PromiseFulfilledResult<PodrollAlbum> => result.status === 'fulfilled')
+        .map(result => result.value);
+      
+      setPodrollAlbums(podrollData);
+    } catch (error) {
+      console.error('Error loading podroll albums:', error);
+    }
+    // Reads album/siteAlbums through refs, so nothing here is reactive. Keeping
+    // this stable is what lets loadAlbum list it as a dependency without
+    // re-creating itself every time the album it just fetched lands in state.
+  }, []);
+
   const loadAlbum = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -820,144 +988,9 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
     } finally {
       setIsLoading(false);
     }
-  }, [albumTitle]);
-
-  const loadSiteAlbums = useCallback(async () => {
-    // Prevent duplicate requests
-    if (loadingAlbumsRef.current) {
-      return siteAlbums;
-    }
-    
-    try {
-      loadingAlbumsRef.current = true;
-      // Use the albums endpoint
-      const response = await fetch('/api/albums');
-      if (response.ok) {
-        const data = await response.json();
-        const albums = data.albums || [];
-        setSiteAlbums(albums);
-        return albums;
-      }
-    } catch (error) {
-      // Silently handle errors
-    } finally {
-      loadingAlbumsRef.current = false;
-    }
-    return [];
-  }, []);
-
-  const loadRelatedAlbums = useCallback(async () => {
-    // Prevent duplicate requests
-    if (loadingRelatedRef.current) {
-      return;
-    }
-    
-    loadingRelatedRef.current = true;
-    
-    try {
-      const response = await fetch('/api/albums');
-      if (response.ok) {
-        const data = await response.json();
-        const albums = data.albums || [];
-        
-        const relatedAlbums = albums.filter((relatedAlbum: Album) => {
-          // Simple related album logic - same artist or exclude current album
-          return relatedAlbum.feedId !== album?.feedId && 
-                 (relatedAlbum.artist === album?.artist || 
-                  relatedAlbum.title.toLowerCase().includes(album?.title?.toLowerCase() || ''));
-        }).slice(0, 6);
-        
-        setRelatedAlbums(relatedAlbums);
-      }
-    } catch (error) {
-      // Silently handle errors
-    } finally {
-      loadingRelatedRef.current = false;
-    }
-  }, [album]);
-
-  const loadPodrollAlbums = useCallback(async () => {
-    if (!album?.podroll || album.podroll.length === 0) return;
-    
-    try {
-      // Use site albums if already loaded, otherwise wait for them to load
-      let albums: Album[] = siteAlbums;
-      if (albums.length === 0) {
-        // Wait a bit for the site albums to load from the parallel call
-        await new Promise(resolve => setTimeout(resolve, 500));
-        albums = siteAlbums;
-        
-        // If still empty after waiting, something went wrong - skip podroll processing
-        if (albums.length === 0) {
-          return;
-        }
-      }
-      
-      // Filter out non-music podcast feeds from podrolls
-      const filteredPodroll = filterPodrollItems(album.podroll);
-      
-      // Process all podroll items in parallel for better performance
-      const podrollPromises = filteredPodroll.map(async (podrollItem) => {
-        // Check if this podroll URL matches any album on the site
-        const matchingAlbum = albums.find(siteAlbum => 
-          siteAlbum.feedUrl === podrollItem.url
-        );
-        
-        if (matchingAlbum) {
-          // Use the site album data
-          return {
-            title: matchingAlbum.title,
-            artist: matchingAlbum.artist,
-            coverArt: matchingAlbum.coverArt,
-            url: podrollItem.url
-          };
-        } else {
-          // Try to fetch external feed data with timeout
-          try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
-            
-            const response = await fetch(`/api/test-single-feed?url=${encodeURIComponent(podrollItem.url)}`, {
-              signal: controller.signal
-            });
-            clearTimeout(timeoutId);
-            
-            if (response.ok) {
-              const data = await response.json();
-              if (data.album) {
-                return {
-                  title: data.album.title || podrollItem.title || 'Unknown Album',
-                  artist: data.album.artist || 'Unknown Artist',
-                  coverArt: data.album.coverArt || '/placeholder-episode.jpg',
-                  url: podrollItem.url
-                };
-              }
-            }
-          } catch (error) {
-            // Silently handle errors
-          }
-          
-          // Fallback to basic podroll data
-          return {
-            title: podrollItem.title || 'Unknown Album',
-            artist: 'Unknown Artist',
-            coverArt: '/placeholder-episode.jpg',
-            url: podrollItem.url
-          };
-        }
-      });
-      
-      // Wait for all podroll items to resolve (in parallel)
-      const podrollResults = await Promise.allSettled(podrollPromises);
-      const podrollData = podrollResults
-        .filter((result): result is PromiseFulfilledResult<PodrollAlbum> => result.status === 'fulfilled')
-        .map(result => result.value);
-      
-      setPodrollAlbums(podrollData);
-    } catch (error) {
-      console.error('Error loading podroll albums:', error);
-    }
-  }, [album, siteAlbums]);
+    // The three deferred loaders are useCallback([]) — stable — so listing them
+    // here does not re-create loadAlbum when the album it fetched lands in state.
+  }, [albumTitle, loadSiteAlbums, loadRelatedAlbums, loadPodrollAlbums]);
 
   const handlePlayAlbum = () => {
     if (!album) return;
