@@ -146,6 +146,39 @@ When this was measured, the 49 album cards re-rendered 2254 times in six seconds
 treatment. These callbacks read only refs and setState — never state — which is what makes their empty
 dependency lists correct; keep it that way or they will capture stale values.
 
+### Hook dependency arrays — the repo keeps zero `exhaustive-deps` warnings
+`npm run build` runs lint and this repo currently reports **no** `react-hooks/exhaustive-deps`
+warnings. Keep it that way, and fix the cause rather than adding a blanket disable — three of the
+eight warnings cleared in August 2026 were reporting live stale-closure bugs, not style issues.
+
+**A callback that outlives the render that created it must read state through a ref.** This is the
+pattern that actually bit us, in two places:
+- `app/boosts/page.tsx` reads `boosts` inside the Nostr subscription's `onBoost`. That effect has no
+  dependencies deliberately — listing `boosts` would tear down and rebuild the subscription on every
+  incoming boost — so a direct read was pinned to the first render's empty array and the Helipad
+  duplicate check silently never matched.
+- `AlbumDetailClient`'s deferred loaders are scheduled through `scheduleIdleTask` and run 1.5-2s
+  later, so they saw `album` as it was *before* `loadAlbum` set it. `loadPodrollAlbums` even read
+  `siteAlbums`, waited 500ms "for the parallel call", then re-read the same captured const.
+
+  Both now mirror state into a ref (`albumRef`, `siteAlbumsRef`, `boostsRef`) kept in sync by a small
+  effect. Anything scheduled with `setTimeout`, `requestIdleCallback`, or a relay subscription needs
+  the same treatment.
+
+**Declare a callback before whatever names it in a dependency array.** Dependency arrays evaluate at
+render time, so naming a `const` declared further down throws a TDZ `ReferenceError` — this is why
+`loadAlbumsData` sits above `loadCriticalAlbums` in `app/page.tsx` and why `PublisherDetailClient`'s
+mount effect sits below its loaders. Moving them back to "read better" will break at runtime, not at
+build.
+
+**Timer handles are refs, not state** (`components/CDNImage.tsx`). Holding one in `useState`
+re-renders on every set/clear and makes it a reactive value, which is what forced the disables that
+used to live on those effects.
+
+**One disable is legitimate and stays**: the bootstrap effect in `app/page.tsx`. `loadCriticalAlbums`
+depends on `albums.length`, so listing it would re-run the initial load the moment it sets albums —
+a refetch loop. It carries an explicit comment saying so; anything similar should too.
+
 ### Video player and shuffle
 - `contexts/VideoContext.tsx` owns video play state, separate from `AudioContext`. The global now-playing bar (`components/GlobalNowPlayingBar.tsx`) reads from whichever has a current item.
 - `components/VideoPlayer.tsx` accepts `externalIsPlaying` to sync the DOM `<video>` element with `VideoContext.isPlaying` (so the bottom-bar play/pause actually drives the video).
@@ -167,6 +200,7 @@ npm install                                   # node_modules is not always prese
 ADMIN_PASSWORD=<anything> npm run dev         # without it every admin route 401s (fails closed)
 npx tsc --noEmit                              # fastest correctness check
 npm run build                                 # also runs lint; the only full type gate
+npx next lint                                 # should report zero warnings — keep it there
 ADMIN_PASSWORD=<same> ./scripts/security-smoke.sh   # 32 checks, needs dev running
 npx tsx scripts/backfill-album-dates.ts       # asserts the date extractor still agrees
 ```
