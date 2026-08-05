@@ -15,9 +15,13 @@ ITDV-Site is a Next.js web application that serves as a platform for showcasing 
 ## Important Directories
 - `/app` - Next.js pages and routes
 - `/components` - Reusable React components
+- `/contexts` - React context providers (`AudioContext`, `VideoContext`, `LightningContext`, `BitcoinConnectContext`)
+- `/hooks` - Shared hooks (`useBoostToNostr`, etc.)
 - `/lib` - Core utilities and services
-- `/public` - Static assets
+- `/public` - Static assets, including the three album cache JSONs
+- `/data` - Feed config (`feeds.json`), pinned albums, pre-optimized images
 - `/scripts` - Utility scripts for deployment and maintenance
+- `middleware.ts` - Fail-closed auth gate for `/api/admin/*`
 
 ## Code Style Guidelines
 1. Use TypeScript for type safety
@@ -152,12 +156,37 @@ dependency lists correct; keep it that way or they will capture stale values.
 **Import Task Master's development workflow commands and guidelines, treat as if import is in the main CLAUDE.md file.**
 @./.taskmaster/CLAUDE.md
 
+## Local development & verification
+
+There is no test framework in this repo. Verification is: typecheck, build, the security smoke
+script, and driving the running app. Assertions baked into the maintenance scripts stand in for unit
+tests (`scripts/backfill-album-dates.ts`, `scripts/reparse-affected.ts`).
+
+```bash
+npm install                                   # node_modules is not always present
+ADMIN_PASSWORD=<anything> npm run dev         # without it every admin route 401s (fails closed)
+npx tsc --noEmit                              # fastest correctness check
+npm run build                                 # also runs lint; the only full type gate
+ADMIN_PASSWORD=<same> ./scripts/security-smoke.sh   # 32 checks, needs dev running
+npx tsx scripts/backfill-album-dates.ts       # asserts the date extractor still agrees
+```
+
+**Do not run `npm run build` while `npm run dev` is running.** The build rewrites `.next`, and the
+live dev server then fails every request with `Cannot find module './vendor-chunks/*.js'` or serves
+`main-app.js` as `text/html`. It looks like a code bug and is not one. Stop dev first, or accept that
+you must restart it afterwards.
+
+`tsconfig` targets **es5**, which bites in two ways that compile fine in an editor and fail the build:
+iterating a `Map`/`Set` with `for..of` needs `downlevelIteration` (use `.forEach`), and post-ES5 regex
+syntax such as lookbehind cannot be down-levelled at all.
+
 ## Testing Guidelines
 1. Test on both desktop and mobile devices
 2. Verify PWA functionality
 3. Check CDN integration
 4. Validate RSS feed parsing
 5. Test audio playback across different scenarios
+6. After touching auth, the media proxies, or `/api/optimized-images`, run `scripts/security-smoke.sh`
 
 ## Performance Requirements
 1. Fast initial page load
@@ -179,3 +208,29 @@ already bitten this repo: `/api/optimized-images/[filename]` served `.env.local`
 `..%2F` (Next hands the segment over already percent-decoded, so `path.join` alone is not a defence),
 and the media proxies served attacker HTML from this origin. Validate the input and re-check the
 resolved result — do not trust that a framework decoded it safely.
+
+## Known outstanding issues
+
+Findings from the August 2026 audit that are understood but not yet fixed. Each needs a decision or
+an environment change rather than just code, so don't treat them as fresh discoveries.
+
+- **The old site Nostr key must be rotated.** If `NEXT_PUBLIC_SITE_NOSTR_NSEC` was ever set in Vercel,
+  that private key shipped in the client bundle and is compromised — a Nostr identity cannot be
+  rotated without abandoning it. Generate a new pair, set `SITE_NOSTR_NSEC` and
+  `NEXT_PUBLIC_SITE_NOSTR_NPUB`, and delete the old variable.
+- **`/api/albums` returns 500.** It needs Postgres via `lib/db.ts`, which is not provisioned. It only
+  matters as the second fallback behind `/api/albums-static-cached` (there is a third: reading the
+  static JSON from `public/` directly), so the site works. If Postgres is not coming back, that whole
+  DB path — `lib/db.ts`, `/api/albums`, `/api/admin/ensure-feed` — is dead code worth deleting.
+- **Rate limits are per-instance.** Both `/api/admin/simple-auth` and `/api/nostr/publish` count
+  attempts in a module-level `Map`, so a distributed caller gets the limit *per serverless instance*.
+  They raise the cost of guessing; they are not a hard stop. A durable limit needs Vercel KV or similar.
+- **No Content-Security-Policy.** Deliberately not added blind — a real CSP has to be iterated against
+  a preview deploy or it will break Bitcoin Connect and the relay websockets.
+- **`data/optimized-images` is ~143MB of committed GIFs**, and `.git` is ~199MB. Every clone and CI
+  checkout pays for it. Moving these to Bunny would be a real win but requires rewriting history.
+- **Three admin routes were deleted** as unreferenced and dangerous: `add-to-hardcoded` (wrote caller
+  text into `app/page.tsx`, and already broken — it targeted a `feedUrlMappings` array that no longer
+  exists), `clear-feeds` (`DELETE FROM feeds`, no caller), and `migrate-feeds` (a 503 stub). Don't
+  restore them. `admin/feeds/[id]` and `admin/feeds/[id]/refresh` are also 503 stubs, still called by
+  `components/AdminPanel.tsx`, so its remove/refresh buttons do nothing — either implement or remove.
