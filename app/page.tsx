@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, Suspense, lazy, useCallback } from 'react';
+import { useState, useEffect, useRef, Suspense, lazy, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -160,10 +160,15 @@ export default function HomePage() {
   const videoPlayerRef = useRef<HTMLDivElement>(null);
   
   // Handle boost button click from album card
-  const handleBoostClick = (album: Album) => {
+  // Stable identity matters: this is passed to every AlbumCard, which is
+  // wrapped in React.memo. Recreated inline it changes on every render, so the
+  // memo never hits and all ~50 cards re-render whenever this page does — which
+  // is roughly 4x/second while audio plays, since AudioContext publishes
+  // currentTime on every timeupdate.
+  const handleBoostClick = useCallback((album: Album) => {
     setSelectedAlbum(album);
     setShowBoostModal(true);
-  };
+  }, []);
   
   // Handle boost success
   const handleBoostSuccess = (response: any) => {
@@ -725,7 +730,8 @@ export default function HomePage() {
     }
   };
 
-  const playAlbum = async (album: Album, e: React.MouseEvent | React.TouchEvent) => {
+  // Also passed to every memoized AlbumCard — see handleBoostClick above.
+  const playAlbum = useCallback(async (album: Album, e: React.MouseEvent | React.TouchEvent) => {
     // Only prevent default/propagation for the play button, not the entire card
     e.stopPropagation();
     
@@ -796,7 +802,7 @@ export default function HomePage() {
       
       setTimeout(() => setError(null), 5000);
     }
-  };
+  }, [globalPlayAlbum]);
 
   // Helper function to get all video tracks (filtered to only show 'doerfels' and 'citybeach' videos)
   const getAllVideoTracks = useCallback(() => {
@@ -841,11 +847,26 @@ export default function HomePage() {
     });
   }, [albums]);
 
+  // Pinned position lookups. Built once per pinned-list change instead of
+  // calling Array.indexOf inside the sort comparator, which made the pinned
+  // lookup a linear scan on every one of the O(n log n) comparisons.
+  const pinnedAlbumRank = useMemo(() => {
+    const ranks = new Map<string, number>();
+    pinnedAlbums.forEach((title, i) => ranks.set(title, i));
+    return ranks;
+  }, [pinnedAlbums]);
+
+  const pinnedEPRank = useMemo(() => {
+    const ranks = new Map<string, number>();
+    pinnedEPs.forEach((title, i) => ranks.set(title, i));
+    return ranks;
+  }, [pinnedEPs]);
+
   // Helper functions for filtering and sorting
   const getFilteredAlbums = () => {
     // Filter out LNURL Testing Podcast from main page display (accessible via sidebar)
     const albumsToUse = albums.filter(album => album.title !== 'LNURL Testing Podcast');
-    
+
           // Universal sorting function that implements hierarchical order: Pinned → Albums → EPs → Singles
       const sortWithHierarchy = (albumsToSort: Album[]) => {
         return albumsToSort.sort((a, b) => {
@@ -858,8 +879,8 @@ export default function HomePage() {
           const bIsSingle = b.tracks.length === 1;
 
           // Get pinned index based on type
-          const aIndex = aIsAlbum ? pinnedAlbums.indexOf(a.title) : aIsEP ? pinnedEPs.indexOf(a.title) : -1;
-          const bIndex = bIsAlbum ? pinnedAlbums.indexOf(b.title) : bIsEP ? pinnedEPs.indexOf(b.title) : -1;
+          const aIndex = aIsAlbum ? (pinnedAlbumRank.get(a.title) ?? -1) : aIsEP ? (pinnedEPRank.get(a.title) ?? -1) : -1;
+          const bIndex = bIsAlbum ? (pinnedAlbumRank.get(b.title) ?? -1) : bIsEP ? (pinnedEPRank.get(b.title) ?? -1) : -1;
 
           // Albums come first
           if (aIsAlbum && !bIsAlbum) return -1;
@@ -921,8 +942,18 @@ export default function HomePage() {
     return sortWithHierarchy(filtered);
   };
 
-  const filteredAlbums = getFilteredAlbums();
-  const videoTracks = activeFilter === 'video' ? getAllVideoTracks() : [];
+  // Recompute only when an input actually changes. Unmemoized this filtered and
+  // sorted the full album list on every render — including the ~4 renders per
+  // second that AudioContext's currentTime updates trigger during playback.
+  const filteredAlbums = useMemo(
+    () => getFilteredAlbums(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [albums, activeFilter, publishers, pinnedAlbumRank, pinnedEPRank]
+  );
+  const videoTracks = useMemo(
+    () => (activeFilter === 'video' ? getAllVideoTracks() : []),
+    [activeFilter, getAllVideoTracks]
+  );
 
   // Handle video play
   const handlePlayVideo = (track: Track & { album: Album }) => {
