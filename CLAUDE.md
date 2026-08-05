@@ -148,22 +148,22 @@ dependency lists correct; keep it that way or they will capture stale values.
 
 ### Hook dependency arrays — the repo keeps zero `exhaustive-deps` warnings
 `npm run build` runs lint and this repo currently reports **no** `react-hooks/exhaustive-deps`
-warnings. Keep it that way, and fix the cause rather than adding a blanket disable — three of the
-eight warnings cleared in August 2026 were reporting live stale-closure bugs, not style issues.
+warnings. Keep it that way, and fix the cause rather than adding a blanket disable — several of the
+eight warnings cleared in August 2026 were reporting genuine stale-closure bugs, not style issues.
 
-**A callback that outlives the render that created it must read state through a ref.** This is the
-pattern that actually bit us, in two places:
-- `app/boosts/page.tsx` reads `boosts` inside the Nostr subscription's `onBoost`. That effect has no
-  dependencies deliberately — listing `boosts` would tear down and rebuild the subscription on every
-  incoming boost — so a direct read was pinned to the first render's empty array and the Helipad
-  duplicate check silently never matched.
-- `AlbumDetailClient`'s deferred loaders are scheduled through `scheduleIdleTask` and run 1.5-2s
-  later, so they saw `album` as it was *before* `loadAlbum` set it. `loadPodrollAlbums` even read
-  `siteAlbums`, waited 500ms "for the parallel call", then re-read the same captured const.
+**A callback that outlives the render that created it must read state through a ref.**
+`app/boosts/page.tsx` reads `boosts` inside the Nostr subscription's `onBoost`. That effect has no
+dependencies deliberately — listing `boosts` would tear down and rebuild the subscription on every
+incoming boost — so a direct read was pinned to the first render's empty array and the Helipad
+duplicate check silently never matched. It now mirrors state into `boostsRef`, kept in sync by a
+small effect. Anything scheduled with `setTimeout`, `requestIdleCallback`, or a relay subscription
+needs the same treatment.
 
-  Both now mirror state into a ref (`albumRef`, `siteAlbumsRef`, `boostsRef`) kept in sync by a small
-  effect. Anything scheduled with `setTimeout`, `requestIdleCallback`, or a relay subscription needs
-  the same treatment.
+A warning here is also worth reading as a question about whether the code should exist at all. The
+same class of bug in `AlbumDetailClient`'s deferred loaders turned out to be unreachable: they
+populated `relatedAlbums`/`podrollAlbums`, which were read only by a `getCombinedRelatedAlbums` that
+nothing called. Chasing the closure bug first, and only then checking who consumed the output, meant
+fixing ~240 lines that were then deleted outright. Check the consumer before the mechanism.
 
 **Declare a callback before whatever names it in a dependency array.** Dependency arrays evaluate at
 render time, so naming a `const` declared further down throws a TDZ `ReferenceError` — this is why
@@ -252,10 +252,13 @@ an environment change rather than just code, so don't treat them as fresh discov
   that private key shipped in the client bundle and is compromised — a Nostr identity cannot be
   rotated without abandoning it. Generate a new pair, set `SITE_NOSTR_NSEC` and
   `NEXT_PUBLIC_SITE_NOSTR_NPUB`, and delete the old variable.
-- **`/api/albums` returns 500.** It needs Postgres via `lib/db.ts`, which is not provisioned. It only
-  matters as the second fallback behind `/api/albums-static-cached` (there is a third: reading the
-  static JSON from `public/` directly), so the site works. If Postgres is not coming back, that whole
-  DB path — `lib/db.ts`, `/api/albums`, `/api/admin/ensure-feed` — is dead code worth deleting.
+- **`/api/albums` takes ~47 seconds.** It re-parses every RSS feed on a cache miss. It works in
+  production (measured: 200, 1.5MB, 46.7s) but returns 500 locally, where Postgres is not
+  provisioned. It only matters as the second fallback behind `/api/albums-static-cached` — there is
+  a third, reading `public/static-albums.json` directly — so the site never depends on it. Nothing
+  else calls it since the dead album-page loaders were removed. Treat it, `lib/db.ts` and
+  `/api/admin/ensure-feed` as a candidate for deletion if Postgres is not coming back; do not wire
+  new callers to it in the meantime.
 - **Rate limits are per-instance.** Both `/api/admin/simple-auth` and `/api/nostr/publish` count
   attempts in a module-level `Map`, so a distributed caller gets the limit *per serverless instance*.
   They raise the cost of guessing; they are not a hard stop. A durable limit needs Vercel KV or similar.
