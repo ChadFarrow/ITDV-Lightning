@@ -98,6 +98,50 @@ to any new writer. Scripts read the overrides via `loadOriginalReleaseOverrides(
 Singles are the coverage gap: 25 of the 50 entries are single-track and **none** state a date in the
 description, so they all show the feed year. Fixing those needs the override above or another data source.
 
+### Admin API is guarded in middleware, not per-route (`middleware.ts`)
+`middleware.ts` requires a valid session for every `/api/admin/*` path except `simple-auth`, so a new
+admin route is protected the moment it exists. This exists because eight of sixteen admin routes once
+shipped with no check at all — including a `DELETE FROM feeds` and a handler that wrote request text
+into `app/page.tsx`. Handlers still call `isAuthenticatedRequest` themselves; that redundancy is
+deliberate, so deleting the middleware degrades to the old per-route behaviour rather than opening
+everything. Never add a route under `/api/admin` that is meant to be public — put it elsewhere.
+
+`lib/admin-auth.ts` is Web Crypto, not `node:crypto`, specifically so middleware (Edge) and route
+handlers (Node) share one implementation. Its functions are async as a result. Two things there are
+load-bearing: comparisons use a length-tolerant constant-time helper, because `crypto.timingSafeEqual`
+throws a `RangeError` on unequal lengths and one side is always attacker-supplied; and `verifyPassword`
+compares HMACs rather than raw strings so password length doesn't leak through timing.
+
+### Media proxies must validate the upstream media type (`lib/proxy-guard.ts`)
+`/api/proxy-image`, `/api/proxy-audio` and `/api/proxy-video` fetch a caller-supplied URL and stream it
+back **from our own origin**. Passing the upstream `Content-Type` through unchecked turned
+`/api/proxy-image?url=…/evil.html` into script execution on this domain. Every proxy route must call
+`validateProxyTarget` (HTTPS only; rejects loopback, RFC1918, link-local and metadata addresses) and
+`isAllowedMediaType` before streaming, and apply `hardeningHeadersFor` — SVG is an `image/*` type that
+can carry script, so it gets a sandbox CSP. `application/octet-stream` is permitted for audio only,
+because podcast hosts commonly serve MP3s that way.
+
+`scripts/security-smoke.sh` asserts all of the above (32 checks). Run it against a dev server after
+touching auth, the proxies, or `/api/optimized-images`.
+
+### Secrets and the `NEXT_PUBLIC_` prefix
+Next inlines every `NEXT_PUBLIC_*` value into the client bundle at build time. A private key with that
+prefix is published to every visitor. The site's Nostr key was `NEXT_PUBLIC_SITE_NOSTR_NSEC` for this
+reason; signing now happens in `/api/nostr/publish` using server-only `SITE_NOSTR_NSEC`, and the client
+only ever sees the npub. `NEXT_PUBLIC_BOOSTBOX_API_KEY` is client-side by BoostBox's own design and is
+the documented exception. Before adding any `NEXT_PUBLIC_` var, ask whether you would publish its value.
+
+### Context callbacks must be memoized (`contexts/AudioContext.tsx`)
+`AudioContext` publishes `currentTime` on every `timeupdate`, so its value object is rebuilt several
+times a second during playback and every `useAudio()` consumer re-renders. That is fine as long as the
+functions it exposes keep a stable identity — consumers pass them straight into `React.memo`'d children
+(`AlbumCard` takes `onPlay`), and an unstable one silently defeats memoization across the whole grid.
+When this was measured, the 49 album cards re-rendered 2254 times in six seconds; with
+`playAlbum`/`playAlbumAndOpenNowPlaying` wrapped in `useCallback` (and the matching handlers in
+`app/page.tsx`), the same window produces 4. Anything added to the context value needs the same
+treatment. These callbacks read only refs and setState — never state — which is what makes their empty
+dependency lists correct; keep it that way or they will capture stale values.
+
 ### Video player and shuffle
 - `contexts/VideoContext.tsx` owns video play state, separate from `AudioContext`. The global now-playing bar (`components/GlobalNowPlayingBar.tsx`) reads from whichever has a current item.
 - `components/VideoPlayer.tsx` accepts `externalIsPlaying` to sync the DOM `<video>` element with `VideoContext.isPlaying` (so the bottom-bar play/pause actually drives the video).
@@ -125,7 +169,13 @@ description, so they all show the feed year. Fixing those needs the override abo
 ## Security Considerations
 1. Secure API endpoints
 2. Safe CDN usage
-3. Protected admin routes
-4. Proper environment variable handling
-5. Regular security audits
+3. Protected admin routes — enforced in `middleware.ts`, see Architecture Notes
+4. Proper environment variable handling — never `NEXT_PUBLIC_` a secret
+5. Regular security audits — `scripts/security-smoke.sh` covers the known regressions
 6. BoostBox API key is client-side (`NEXT_PUBLIC_` prefix) by design — BoostBox expects this
+
+Any route that takes a path segment or a URL from the caller is the risky shape here, and both have
+already bitten this repo: `/api/optimized-images/[filename]` served `.env.local` and `/etc/hosts` via
+`..%2F` (Next hands the segment over already percent-decoded, so `path.join` alone is not a defence),
+and the media proxies served attacker HTML from this origin. Validate the input and re-check the
+resolved result — do not trust that a framework decoded it safely.

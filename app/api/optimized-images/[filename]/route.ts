@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { Readable } from 'stream';
 
 const OPTIMIZED_DIR = path.join(process.cwd(), 'data', 'optimized-images');
 
@@ -73,12 +74,11 @@ export async function GET(
       );
     }
 
-    const fileBuffer = fs.readFileSync(filePath);
     const contentType = CONTENT_TYPES[path.extname(filename).toLowerCase()];
 
     const headers = new Headers();
     headers.set('Content-Type', contentType);
-    headers.set('Content-Length', fileBuffer.length.toString());
+    headers.set('Content-Length', stats.size.toString());
     headers.set('Cache-Control', 'public, max-age=31536000, immutable'); // 1 year, immutable
     headers.set('ETag', `"${stats.mtime.getTime()}"`);
     headers.set('X-Content-Type-Options', 'nosniff');
@@ -87,7 +87,15 @@ export async function GET(
     headers.set('X-Optimized-By', 're.podtards.com');
     headers.set('Vary', 'Accept-Encoding');
 
-    return new NextResponse(new Uint8Array(fileBuffer), {
+    // Stream rather than readFileSync: this directory holds several 20-35MB
+    // GIFs, and buffering one whole file per concurrent request is a lot of
+    // heap for a serverless instance to hold at once. Streaming also lets the
+    // browser start decoding before the file is fully read.
+    const stream = Readable.toWeb(
+      fs.createReadStream(filePath)
+    ) as unknown as ReadableStream<Uint8Array>;
+
+    return new NextResponse(stream, {
       status: 200,
       headers,
     });
