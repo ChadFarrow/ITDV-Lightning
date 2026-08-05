@@ -54,13 +54,6 @@ export default function PublisherDetailClient({ publisherName, initialPublisher 
   const [error, setError] = useState<string | null>(null);
   const { playAlbum } = useAudio();
 
-  useEffect(() => {
-    if (!initialPublisher) {
-      loadPublisher();
-    }
-    loadPublisherArtwork();
-  }, [publisherName, initialPublisher]);
-
   const loadPublisherArtwork = useCallback(async () => {
     try {
       const response = await fetch('/publishers.json');
@@ -146,6 +139,19 @@ export default function PublisherDetailClient({ publisherName, initialPublisher 
       setIsLoading(false);
     }
   }, [publisherName]);
+
+  // Declared after both loaders on purpose: naming them in the dependency array
+  // evaluates at render time, so with the effect above their `const`
+  // declarations this would throw a TDZ ReferenceError. Both are
+  // useCallback([publisherName]), so they only change when publisherName does —
+  // which is already a dependency here, meaning this still runs once per
+  // publisher rather than on every render.
+  useEffect(() => {
+    if (!initialPublisher) {
+      loadPublisher();
+    }
+    loadPublisherArtwork();
+  }, [initialPublisher, loadPublisher, loadPublisherArtwork]);
 
   const getAlbumSlug = (album: Album) => {
     return album.title

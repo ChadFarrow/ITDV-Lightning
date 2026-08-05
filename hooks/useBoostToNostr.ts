@@ -29,12 +29,57 @@ export interface UseBoostToNostrReturn {
   isSubscribed: boolean;
 }
 
+/**
+ * Ask the server to sign and publish a boost under the site's Nostr identity.
+ * The site's private key is server-only, so the browser cannot do this itself.
+ */
+async function postBoostViaServer(
+  amount: number,
+  track: TrackMetadata,
+  comment?: string
+): Promise<BoostResult> {
+  try {
+    const response = await fetch('/api/nostr/publish', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount, track, comment }),
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok || !data?.success) {
+      return {
+        event: {} as Event,
+        eventId: '',
+        success: false,
+        error: data?.error || `Publish failed (${response.status})`,
+      };
+    }
+
+    return {
+      event: data.event as Event,
+      eventId: data.eventId as string,
+      success: true,
+    };
+  } catch (error) {
+    return {
+      event: {} as Event,
+      eventId: '',
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to reach publish endpoint',
+    };
+  }
+}
+
 export function useBoostToNostr(options: UseBoostToNostrOptions = {}): UseBoostToNostrReturn {
   const [boostHistory, setBoostHistory] = useState<Event[]>([]);
   const [isPosting, setIsPosting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [isSubscribed, setIsSubscribed] = useState(false);
+  // True when boosts are signed by the server under the site identity rather
+  // than by a key held in this browser.
+  const [usesSiteIdentity, setUsesSiteIdentity] = useState(false);
   
   const serviceRef = useRef<ReturnType<typeof getBoostToNostrService>>();
   const subscriptionRef = useRef<MinimalSubscription | null>(null);
@@ -43,22 +88,22 @@ export function useBoostToNostr(options: UseBoostToNostrOptions = {}): UseBoostT
   useEffect(() => {
     serviceRef.current = getBoostToNostrService(options.relays, options.secretKey);
     
-    // Try to get site's permanent Nostr keys from environment
-    const siteNsec = process.env.NEXT_PUBLIC_SITE_NOSTR_NSEC;
+    // The site's public key is safe to ship; its private key is not. Signing
+    // under the site identity happens server-side in /api/nostr/publish — see
+    // that route for why. Here we only note whether that path is available.
     const siteNpub = process.env.NEXT_PUBLIC_SITE_NOSTR_NPUB;
 
-
-    if (siteNsec && siteNpub) {
+    if (siteNpub) {
       try {
-        // Decode the nsec to get the secret key
-        const { data: secretKey } = nip19.decode(siteNsec);
-        if (secretKey instanceof Uint8Array) {
-          serviceRef.current.setKeys(secretKey);
-          setPublicKey(siteNpub.replace('npub', ''));
+        const { type, data } = nip19.decode(siteNpub);
+        if (type === 'npub' && typeof data === 'string') {
+          setPublicKey(data);
+          setUsesSiteIdentity(true);
+        } else {
+          fallbackToUserKeys();
         }
       } catch (error) {
-        console.error('Failed to decode site Nostr keys:', error);
-        // Fall back to auto-generation or provided keys
+        console.error('Failed to decode site Nostr npub:', error);
         fallbackToUserKeys();
       }
     } else {
@@ -135,12 +180,16 @@ export function useBoostToNostr(options: UseBoostToNostrOptions = {}): UseBoostT
     setError(null);
 
     try {
-      const result = await serviceRef.current.postBoost({
-        amount,
-        track,
-        comment,
-        tags: track.artist ? [`#${track.artist.replace(/\s+/g, '')}`, `#nowplaying`] : [`#nowplaying`]
-      });
+      // Under the site identity the browser has no key to sign with — the
+      // server holds it. Anything else signs locally as before.
+      const result = usesSiteIdentity
+        ? await postBoostViaServer(amount, track, comment)
+        : await serviceRef.current.postBoost({
+            amount,
+            track,
+            comment,
+            tags: track.artist ? [`#${track.artist.replace(/\s+/g, '')}`, `#nowplaying`] : [`#nowplaying`]
+          });
 
       if (result.success) {
         // Add to history
@@ -174,7 +223,10 @@ export function useBoostToNostr(options: UseBoostToNostrOptions = {}): UseBoostT
     } finally {
       setIsPosting(false);
     }
-  }, []);
+    // usesSiteIdentity decides whether we sign here or ask the server to, so it
+    // must be a dependency — with an empty array this closure would capture the
+    // initial `false` and always try (and fail) to sign without a local key.
+  }, [usesSiteIdentity]);
 
   // Subscribe to live boosts
   const subscribeToBoosts = useCallback((trackTitle?: string, artist?: string) => {

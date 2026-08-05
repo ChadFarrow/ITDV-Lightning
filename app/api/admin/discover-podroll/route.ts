@@ -1,13 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { RSSParser } from '@/lib/rss-parser';
 import { getAllFeeds, addFeed } from '@/lib/db';
-import { validateSession } from '@/lib/admin-auth';
+import { isAuthenticatedRequest } from '@/lib/admin-auth';
 
 // Helper function to verify authentication
-function verifyAuth(request: NextRequest): boolean {
-  const token = request.cookies.get('admin-token')?.value;
-  return validateSession(token);
-}
 
 interface PodrollItem {
   url: string;
@@ -54,7 +50,7 @@ function generateFeedId(url: string): string {
 }
 
 export async function POST(request: NextRequest) {
-  if (!verifyAuth(request)) {
+  if (!(await isAuthenticatedRequest(request))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -204,7 +200,7 @@ export async function POST(request: NextRequest) {
 
 // GET endpoint to check discovery status
 export async function GET(request: NextRequest) {
-  if (!verifyAuth(request)) {
+  if (!(await isAuthenticatedRequest(request))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

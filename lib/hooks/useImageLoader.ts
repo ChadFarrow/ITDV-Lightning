@@ -91,7 +91,9 @@ export function useImageLoader({
         context: 'useImageLoader'
       }
     );
-  }, [src, maxRetries, retryDelay, timeout, onLoad, log, clearTimeout, clearImageTimeout]);
+    // `src` is not referenced here — this closure works off its own `imageSrc`
+    // argument — and `clearTimeout` is the global, not a reactive value.
+  }, [maxRetries, retryDelay, timeout, onLoad, log, clearImageTimeout]);
 
   const retry = useCallback(async () => {
     log.debug(`Retrying image load, current retry count: ${state.retryCount}`);

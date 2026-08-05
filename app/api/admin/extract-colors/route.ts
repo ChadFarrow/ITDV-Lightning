@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateSession } from '@/lib/admin-auth';
+import { isAuthenticatedRequest } from '@/lib/admin-auth';
 import sharp from 'sharp';
 import fs from 'fs/promises';
 import path from 'path';
 
 // Helper function to verify authentication
-function verifyAuth(request: NextRequest): boolean {
-  const token = request.cookies.get('admin-token')?.value;
-  return validateSession(token);
-}
 
 // Extract dominant color from image using sharp
 async function extractDominantColor(imageUrl: string): Promise<{
@@ -86,7 +82,7 @@ async function extractDominantColor(imageUrl: string): Promise<{
 }
 
 export async function POST(request: NextRequest) {
-  if (!verifyAuth(request)) {
+  if (!(await isAuthenticatedRequest(request))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

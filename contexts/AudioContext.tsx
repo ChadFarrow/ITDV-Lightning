@@ -147,7 +147,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   // Helper function to get proxied URL for audio files that need CORS
-  const getProxiedAudioUrl = (url: string): string => {
+  const getProxiedAudioUrl = useCallback((url: string): string => {
     // Proxy external audio files to avoid CORS issues
     if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
       try {
@@ -161,9 +161,9 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     }
     return url;
-  };
+  }, []);
 
-  const playTrack = (track: Track, album?: string) => {
+  const playTrack = useCallback((track: Track, album?: string) => {
     if (!audioRef.current) return;
 
     setCurrentTrack(track);
@@ -229,9 +229,13 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         ] : []
       });
     }
-  };
+  }, [getProxiedAudioUrl]);
 
-  const playAlbum = (tracks: Track[], startIndex = 0, album?: string) => {
+  // Memoized so its identity is stable across the ~4-8 re-renders per second
+  // that timeupdate causes while audio plays. Consumers pass these straight
+  // into React.memo'd children (every AlbumCard takes onPlay), so an unstable
+  // identity here silently defeats memoization across the whole album grid.
+  const playAlbum = useCallback((tracks: Track[], startIndex = 0, album?: string) => {
     if (!audioRef.current || tracks.length === 0) return;
 
     const track = tracks[startIndex];
@@ -298,20 +302,20 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         ] : []
       });
     }
-  };
+  }, [getProxiedAudioUrl]);
 
-  const playAlbumAndOpenNowPlaying = (tracks: Track[], startIndex = 0, album?: string) => {
+  const playAlbumAndOpenNowPlaying = useCallback((tracks: Track[], startIndex = 0, album?: string) => {
     playAlbum(tracks, startIndex, album);
     setIsNowPlayingOpen(true);
-  };
+  }, [playAlbum]);
 
-  const openNowPlaying = () => {
+  const openNowPlaying = useCallback(() => {
     setIsNowPlayingOpen(true);
-  };
+  }, []);
 
-  const closeNowPlaying = () => {
+  const closeNowPlaying = useCallback(() => {
     setIsNowPlayingOpen(false);
-  };
+  }, []);
 
   const pause = useCallback(() => {
     if (audioRef.current) {

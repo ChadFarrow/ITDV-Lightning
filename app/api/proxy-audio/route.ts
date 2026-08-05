@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { validateProxyTarget, isAllowedMediaType } from '@/lib/proxy-guard';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -30,17 +31,11 @@ export async function GET(request: NextRequest) {
       }
     }
     
-    // Validate URL
-    let url: URL;
-    try {
-      url = new URL(audioUrl);
-    } catch (e) {
-      return NextResponse.json({ error: 'Invalid URL format' }, { status: 400 });
-    }
-    
-    // Only allow HTTPS URLs for security
-    if (url.protocol !== 'https:') {
-      return NextResponse.json({ error: 'Only HTTPS URLs are allowed' }, { status: 400 });
+    // Rejects non-HTTPS targets and anything pointing at loopback or a private
+    // network — this route fetches on the server's behalf.
+    const target = validateProxyTarget(audioUrl);
+    if (!target.ok) {
+      return NextResponse.json({ error: target.error }, { status: target.status });
     }
 
     // Get the Range header for partial content requests (streaming)
@@ -71,7 +66,23 @@ export async function GET(request: NextRequest) {
       }, { status: response.status });
     }
 
-    const contentType = response.headers.get('content-type') || 'audio/mpeg';
+    const upstreamContentType = response.headers.get('content-type');
+
+    // Served from our own origin, so refuse anything a browser would execute.
+    // octet-stream is allowed because many podcast hosts serve MP3s that way,
+    // and video/* because m4a/mp4 audio is routinely labelled as video.
+    if (
+      !isAllowedMediaType(upstreamContentType, ['audio/', 'video/', 'application/ogg'], {
+        allowOctetStream: true,
+      })
+    ) {
+      return NextResponse.json(
+        { error: 'Upstream response is not an audio file' },
+        { status: 415 }
+      );
+    }
+
+    const contentType = upstreamContentType || 'audio/mpeg';
     const contentLength = response.headers.get('content-length');
     const contentRange = response.headers.get('content-range');
     const acceptRanges = response.headers.get('accept-ranges') || 'bytes';
@@ -86,6 +97,7 @@ export async function GET(request: NextRequest) {
         'Access-Control-Allow-Methods': 'GET, HEAD',
         'Access-Control-Allow-Headers': 'Range, Accept',
         'Accept-Ranges': acceptRanges,
+        'X-Content-Type-Options': 'nosniff',
       },
     });
 

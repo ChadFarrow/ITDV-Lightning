@@ -15,9 +15,13 @@ ITDV-Site is a Next.js web application that serves as a platform for showcasing 
 ## Important Directories
 - `/app` - Next.js pages and routes
 - `/components` - Reusable React components
+- `/contexts` - React context providers (`AudioContext`, `VideoContext`, `LightningContext`, `BitcoinConnectContext`)
+- `/hooks` - Shared hooks (`useBoostToNostr`, etc.)
 - `/lib` - Core utilities and services
-- `/public` - Static assets
+- `/public` - Static assets, including the three album cache JSONs
+- `/data` - Feed config (`feeds.json`), pinned albums, pre-optimized images
 - `/scripts` - Utility scripts for deployment and maintenance
+- `middleware.ts` - Fail-closed auth gate for `/api/admin/*`
 
 ## Code Style Guidelines
 1. Use TypeScript for type safety
@@ -98,6 +102,83 @@ to any new writer. Scripts read the overrides via `loadOriginalReleaseOverrides(
 Singles are the coverage gap: 25 of the 50 entries are single-track and **none** state a date in the
 description, so they all show the feed year. Fixing those needs the override above or another data source.
 
+### Admin API is guarded in middleware, not per-route (`middleware.ts`)
+`middleware.ts` requires a valid session for every `/api/admin/*` path except `simple-auth`, so a new
+admin route is protected the moment it exists. This exists because eight of sixteen admin routes once
+shipped with no check at all — including a `DELETE FROM feeds` and a handler that wrote request text
+into `app/page.tsx`. Handlers still call `isAuthenticatedRequest` themselves; that redundancy is
+deliberate, so deleting the middleware degrades to the old per-route behaviour rather than opening
+everything. Never add a route under `/api/admin` that is meant to be public — put it elsewhere.
+
+`lib/admin-auth.ts` is Web Crypto, not `node:crypto`, specifically so middleware (Edge) and route
+handlers (Node) share one implementation. Its functions are async as a result. Two things there are
+load-bearing: comparisons use a length-tolerant constant-time helper, because `crypto.timingSafeEqual`
+throws a `RangeError` on unequal lengths and one side is always attacker-supplied; and `verifyPassword`
+compares HMACs rather than raw strings so password length doesn't leak through timing.
+
+### Media proxies must validate the upstream media type (`lib/proxy-guard.ts`)
+`/api/proxy-image`, `/api/proxy-audio` and `/api/proxy-video` fetch a caller-supplied URL and stream it
+back **from our own origin**. Passing the upstream `Content-Type` through unchecked turned
+`/api/proxy-image?url=…/evil.html` into script execution on this domain. Every proxy route must call
+`validateProxyTarget` (HTTPS only; rejects loopback, RFC1918, link-local and metadata addresses) and
+`isAllowedMediaType` before streaming, and apply `hardeningHeadersFor` — SVG is an `image/*` type that
+can carry script, so it gets a sandbox CSP. `application/octet-stream` is permitted for audio only,
+because podcast hosts commonly serve MP3s that way.
+
+`scripts/security-smoke.sh` asserts all of the above (32 checks). Run it against a dev server after
+touching auth, the proxies, or `/api/optimized-images`.
+
+### Secrets and the `NEXT_PUBLIC_` prefix
+Next inlines every `NEXT_PUBLIC_*` value into the client bundle at build time. A private key with that
+prefix is published to every visitor. The site's Nostr key was `NEXT_PUBLIC_SITE_NOSTR_NSEC` for this
+reason; signing now happens in `/api/nostr/publish` using server-only `SITE_NOSTR_NSEC`, and the client
+only ever sees the npub. `NEXT_PUBLIC_BOOSTBOX_API_KEY` is client-side by BoostBox's own design and is
+the documented exception. Before adding any `NEXT_PUBLIC_` var, ask whether you would publish its value.
+
+### Context callbacks must be memoized (`contexts/AudioContext.tsx`)
+`AudioContext` publishes `currentTime` on every `timeupdate`, so its value object is rebuilt several
+times a second during playback and every `useAudio()` consumer re-renders. That is fine as long as the
+functions it exposes keep a stable identity — consumers pass them straight into `React.memo`'d children
+(`AlbumCard` takes `onPlay`), and an unstable one silently defeats memoization across the whole grid.
+When this was measured, the 49 album cards re-rendered 2254 times in six seconds; with
+`playAlbum`/`playAlbumAndOpenNowPlaying` wrapped in `useCallback` (and the matching handlers in
+`app/page.tsx`), the same window produces 4. Anything added to the context value needs the same
+treatment. These callbacks read only refs and setState — never state — which is what makes their empty
+dependency lists correct; keep it that way or they will capture stale values.
+
+### Hook dependency arrays — the repo keeps zero `exhaustive-deps` warnings
+`npm run build` runs lint and this repo currently reports **no** `react-hooks/exhaustive-deps`
+warnings. Keep it that way, and fix the cause rather than adding a blanket disable — three of the
+eight warnings cleared in August 2026 were reporting live stale-closure bugs, not style issues.
+
+**A callback that outlives the render that created it must read state through a ref.** This is the
+pattern that actually bit us, in two places:
+- `app/boosts/page.tsx` reads `boosts` inside the Nostr subscription's `onBoost`. That effect has no
+  dependencies deliberately — listing `boosts` would tear down and rebuild the subscription on every
+  incoming boost — so a direct read was pinned to the first render's empty array and the Helipad
+  duplicate check silently never matched.
+- `AlbumDetailClient`'s deferred loaders are scheduled through `scheduleIdleTask` and run 1.5-2s
+  later, so they saw `album` as it was *before* `loadAlbum` set it. `loadPodrollAlbums` even read
+  `siteAlbums`, waited 500ms "for the parallel call", then re-read the same captured const.
+
+  Both now mirror state into a ref (`albumRef`, `siteAlbumsRef`, `boostsRef`) kept in sync by a small
+  effect. Anything scheduled with `setTimeout`, `requestIdleCallback`, or a relay subscription needs
+  the same treatment.
+
+**Declare a callback before whatever names it in a dependency array.** Dependency arrays evaluate at
+render time, so naming a `const` declared further down throws a TDZ `ReferenceError` — this is why
+`loadAlbumsData` sits above `loadCriticalAlbums` in `app/page.tsx` and why `PublisherDetailClient`'s
+mount effect sits below its loaders. Moving them back to "read better" will break at runtime, not at
+build.
+
+**Timer handles are refs, not state** (`components/CDNImage.tsx`). Holding one in `useState`
+re-renders on every set/clear and makes it a reactive value, which is what forced the disables that
+used to live on those effects.
+
+**One disable is legitimate and stays**: the bootstrap effect in `app/page.tsx`. `loadCriticalAlbums`
+depends on `albums.length`, so listing it would re-run the initial load the moment it sets albums —
+a refetch loop. It carries an explicit comment saying so; anything similar should too.
+
 ### Video player and shuffle
 - `contexts/VideoContext.tsx` owns video play state, separate from `AudioContext`. The global now-playing bar (`components/GlobalNowPlayingBar.tsx`) reads from whichever has a current item.
 - `components/VideoPlayer.tsx` accepts `externalIsPlaying` to sync the DOM `<video>` element with `VideoContext.isPlaying` (so the bottom-bar play/pause actually drives the video).
@@ -108,12 +189,38 @@ description, so they all show the feed year. Fixing those needs the override abo
 **Import Task Master's development workflow commands and guidelines, treat as if import is in the main CLAUDE.md file.**
 @./.taskmaster/CLAUDE.md
 
+## Local development & verification
+
+There is no test framework in this repo. Verification is: typecheck, build, the security smoke
+script, and driving the running app. Assertions baked into the maintenance scripts stand in for unit
+tests (`scripts/backfill-album-dates.ts`, `scripts/reparse-affected.ts`).
+
+```bash
+npm install                                   # node_modules is not always present
+ADMIN_PASSWORD=<anything> npm run dev         # without it every admin route 401s (fails closed)
+npx tsc --noEmit                              # fastest correctness check
+npm run build                                 # also runs lint; the only full type gate
+npx next lint                                 # should report zero warnings — keep it there
+ADMIN_PASSWORD=<same> ./scripts/security-smoke.sh   # 32 checks, needs dev running
+npx tsx scripts/backfill-album-dates.ts       # asserts the date extractor still agrees
+```
+
+**Do not run `npm run build` while `npm run dev` is running.** The build rewrites `.next`, and the
+live dev server then fails every request with `Cannot find module './vendor-chunks/*.js'` or serves
+`main-app.js` as `text/html`. It looks like a code bug and is not one. Stop dev first, or accept that
+you must restart it afterwards.
+
+`tsconfig` targets **es5**, which bites in two ways that compile fine in an editor and fail the build:
+iterating a `Map`/`Set` with `for..of` needs `downlevelIteration` (use `.forEach`), and post-ES5 regex
+syntax such as lookbehind cannot be down-levelled at all.
+
 ## Testing Guidelines
 1. Test on both desktop and mobile devices
 2. Verify PWA functionality
 3. Check CDN integration
 4. Validate RSS feed parsing
 5. Test audio playback across different scenarios
+6. After touching auth, the media proxies, or `/api/optimized-images`, run `scripts/security-smoke.sh`
 
 ## Performance Requirements
 1. Fast initial page load
@@ -125,7 +232,39 @@ description, so they all show the feed year. Fixing those needs the override abo
 ## Security Considerations
 1. Secure API endpoints
 2. Safe CDN usage
-3. Protected admin routes
-4. Proper environment variable handling
-5. Regular security audits
+3. Protected admin routes — enforced in `middleware.ts`, see Architecture Notes
+4. Proper environment variable handling — never `NEXT_PUBLIC_` a secret
+5. Regular security audits — `scripts/security-smoke.sh` covers the known regressions
 6. BoostBox API key is client-side (`NEXT_PUBLIC_` prefix) by design — BoostBox expects this
+
+Any route that takes a path segment or a URL from the caller is the risky shape here, and both have
+already bitten this repo: `/api/optimized-images/[filename]` served `.env.local` and `/etc/hosts` via
+`..%2F` (Next hands the segment over already percent-decoded, so `path.join` alone is not a defence),
+and the media proxies served attacker HTML from this origin. Validate the input and re-check the
+resolved result — do not trust that a framework decoded it safely.
+
+## Known outstanding issues
+
+Findings from the August 2026 audit that are understood but not yet fixed. Each needs a decision or
+an environment change rather than just code, so don't treat them as fresh discoveries.
+
+- **The old site Nostr key must be rotated.** If `NEXT_PUBLIC_SITE_NOSTR_NSEC` was ever set in Vercel,
+  that private key shipped in the client bundle and is compromised — a Nostr identity cannot be
+  rotated without abandoning it. Generate a new pair, set `SITE_NOSTR_NSEC` and
+  `NEXT_PUBLIC_SITE_NOSTR_NPUB`, and delete the old variable.
+- **`/api/albums` returns 500.** It needs Postgres via `lib/db.ts`, which is not provisioned. It only
+  matters as the second fallback behind `/api/albums-static-cached` (there is a third: reading the
+  static JSON from `public/` directly), so the site works. If Postgres is not coming back, that whole
+  DB path — `lib/db.ts`, `/api/albums`, `/api/admin/ensure-feed` — is dead code worth deleting.
+- **Rate limits are per-instance.** Both `/api/admin/simple-auth` and `/api/nostr/publish` count
+  attempts in a module-level `Map`, so a distributed caller gets the limit *per serverless instance*.
+  They raise the cost of guessing; they are not a hard stop. A durable limit needs Vercel KV or similar.
+- **No Content-Security-Policy.** Deliberately not added blind — a real CSP has to be iterated against
+  a preview deploy or it will break Bitcoin Connect and the relay websockets.
+- **`data/optimized-images` is ~143MB of committed GIFs**, and `.git` is ~199MB. Every clone and CI
+  checkout pays for it. Moving these to Bunny would be a real win but requires rewriting history.
+- **Three admin routes were deleted** as unreferenced and dangerous: `add-to-hardcoded` (wrote caller
+  text into `app/page.tsx`, and already broken — it targeted a `feedUrlMappings` array that no longer
+  exists), `clear-feeds` (`DELETE FROM feeds`, no caller), and `migrate-feeds` (a 503 stub). Don't
+  restore them. `admin/feeds/[id]` and `admin/feeds/[id]/refresh` are also 503 stubs, still called by
+  `components/AdminPanel.tsx`, so its remove/refresh buttons do nothing — either implement or remove.

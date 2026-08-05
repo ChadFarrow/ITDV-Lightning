@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getBoostToNostrService } from '@/lib/boost-to-nostr-service';
 import { type Event } from 'nostr-tools';
 import { nip19, SimplePool } from 'nostr-tools';
@@ -618,12 +618,26 @@ function ThreadedReply({ reply, maxDepth = 3 }: { reply: ParsedReply; maxDepth?:
 export default function BoostsPage() {
 
   const [boosts, setBoosts] = useState<ParsedBoost[]>([]);
+  // Mirror of `boosts` for the long-lived Nostr subscription callback below.
+  // That callback is created once (its effect has no dependencies, so the
+  // subscription is not torn down and rebuilt on every boost), which means a
+  // direct `boosts` read there is pinned to the first render's empty array —
+  // silently disabling the Helipad duplicate check. Reading through a ref gives
+  // the callback current state without re-subscribing.
+  const boostsRef = useRef<ParsedBoost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedBoosts, setExpandedBoosts] = useState<Set<string>>(new Set());
   const [isRealTimeActive, setIsRealTimeActive] = useState(false);
   const [lastCacheTime, setLastCacheTime] = useState<number | null>(null);
   const [isHelipadPolling, setIsHelipadPolling] = useState(false);
+
+  // Keep boostsRef in step with boosts so the subscription callback reads
+  // current data. Without this the ref would be as stale as the closure it
+  // replaced.
+  useEffect(() => {
+    boostsRef.current = boosts;
+  }, [boosts]);
 
   // Handle media resource abort errors (expected when navigation happens or components unmount)
   useEffect(() => {
@@ -975,7 +989,7 @@ export default function BoostsPage() {
                   // Check if we already have this boost from webhook storage
                   // Use content hash (ignoring split differences) to match Nostr boosts
                   const boostHash = `${parsedBoost.amount || ''}-${parsedBoost.trackTitle || ''}-${parsedBoost.trackArtist || ''}-${parsedBoost.userMessage || ''}`.toLowerCase();
-                  const existingBoosts = boosts.filter(b => b.platform === 'helipad');
+                  const existingBoosts = boostsRef.current.filter(b => b.platform === 'helipad');
                   const hasDuplicate = existingBoosts.some(b => {
                     const existingHash = `${b.amount || ''}-${b.trackTitle || ''}-${b.trackArtist || ''}-${b.userMessage || ''}`.toLowerCase();
                     return existingHash === boostHash;

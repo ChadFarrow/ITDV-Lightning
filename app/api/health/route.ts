@@ -11,6 +11,25 @@ interface HealthCheck {
   responseTime?: number;
 }
 
+/**
+ * Origin to use when this route calls the app's own HTTP surface.
+ *
+ * The health check deliberately goes over HTTP rather than reading files, so it
+ * exercises the same path real traffic takes. The previous fallback was a bare
+ * localhost:3000, which does not resolve inside a serverless function — so on
+ * Vercel, with NEXT_PUBLIC_BASE_URL unset, every downstream check reported
+ * "critical" whether or not anything was actually wrong.
+ */
+function getSelfOrigin(request: Request): string {
+  if (process.env.NEXT_PUBLIC_BASE_URL) return process.env.NEXT_PUBLIC_BASE_URL;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  try {
+    return new URL(request.url).origin;
+  } catch {
+    return 'http://localhost:3000';
+  }
+}
+
 async function checkFileSystem(): Promise<HealthCheck> {
   const startTime = Date.now();
   
@@ -50,11 +69,11 @@ async function checkFileSystem(): Promise<HealthCheck> {
   }
 }
 
-async function checkParsedFeeds(): Promise<HealthCheck> {
+async function checkParsedFeeds(origin: string): Promise<HealthCheck> {
   const startTime = Date.now();
   
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/parsed-feeds`);
+    const response = await fetch(`${origin}/api/parsed-feeds`);
     
     if (!response.ok) {
       return {
@@ -108,11 +127,11 @@ async function checkParsedFeeds(): Promise<HealthCheck> {
   }
 }
 
-async function checkAlbumsAPI(): Promise<HealthCheck> {
+async function checkAlbumsAPI(origin: string): Promise<HealthCheck> {
   const startTime = Date.now();
   
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/albums`);
+    const response = await fetch(`${origin}/api/albums`);
     
     if (!response.ok) {
       return {
@@ -205,12 +224,13 @@ export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
     const detailed = url.searchParams.get('detailed') === 'true';
-    
+    const origin = getSelfOrigin(request);
+
     // Run all health checks in parallel
     const [filesystemCheck, parsedFeedsCheck, albumsCheck, dataServiceCheck] = await Promise.all([
       checkFileSystem(),
-      checkParsedFeeds(),
-      checkAlbumsAPI(),
+      checkParsedFeeds(origin),
+      checkAlbumsAPI(origin),
       checkDataService()
     ]);
 
