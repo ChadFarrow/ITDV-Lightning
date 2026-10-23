@@ -274,14 +274,12 @@ export class NWCService {
       
       const sub = this.pool.subscribeMany(
         this.relays,
-        [
-          {
-            kinds: [23195], // NWC response kind
-            authors: [this.connection!.walletPubkey],
-            '#e': [requestEvent.id],
-            since: requestEvent.created_at - 60 // Look back 60 seconds in case of timing issues
-          }
-        ],
+        {
+          kinds: [23195], // NWC response kind
+          authors: [this.connection!.walletPubkey],
+          '#e': [requestEvent.id],
+          since: requestEvent.created_at - 60 // Look back 60 seconds in case of timing issues
+        },
         {
           onevent: (event) => {
             if (!responseReceived) {
