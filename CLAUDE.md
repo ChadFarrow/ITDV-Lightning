@@ -135,6 +135,33 @@ reason; signing now happens in `/api/nostr/publish` using server-only `SITE_NOST
 only ever sees the npub. `NEXT_PUBLIC_BOOSTBOX_API_KEY` is client-side by BoostBox's own design and is
 the documented exception. Before adding any `NEXT_PUBLIC_` var, ask whether you would publish its value.
 
+### Site boost notes: `/api/nostr/publish` must wait for the relays
+When `NEXT_PUBLIC_SITE_NOSTR_NPUB` is set, `hooks/useBoostToNostr.ts` posts every boost note through
+`/api/nostr/publish` and has **no fallback** — if the route fails, no note is posted, and the browser
+only logs "Failed to create boost note". Two faults stacked here and no site note reached a relay from
+2026-08-04 to 2026-10-30, while the Helipad bot's own copy of each boost hid the gap:
+
+- `SITE_NOSTR_NSEC` was never added on Vercel when signing moved server-side, so the route answered 503.
+  It is set for Production only (Sensitive), so preview deployments cannot post as the site — on purpose.
+- The route called `postBoost`, which starts the relay publish without `await`. A Vercel function stops
+  once it has answered, so the note was signed, reported as a success, and never sent. The route now
+  signs with `BoostToNostrService.signBoost` and awaits `publishToRelays` (`lib/relay-publish.ts`),
+  which waits for each relay's `OK` (5 s) and reports success only when one accepted. Never use
+  `postBoost`'s background publish on the server.
+
+`lib/relay-publish.ts` deliberately does not use nostr-tools' relay code: since 2.25.2 its `onerror`
+calls `ws.close()`, and Node's built-in WebSocket fires `error` again at once for a socket that never
+connected, so one dead relay recursed into a stack overflow (reproduced on Node 22.16). It removes its
+handlers before closing. Its checks: `node --experimental-strip-types scripts/check-relay-publish.mjs`.
+
+**To check production without posting**, POST `{"amount":0,"track":{"title":"probe"}}` to the route:
+503 "Site Nostr identity is not configured" means the key is missing, 400 "Invalid amount" means it was
+found. To confirm a real boost, ask the relays for its event id. Do not rely on the Vercel runtime logs
+view — it returned nothing for this project, even for requests that log.
+
+Each ITDV boost produces **two** notes: one from the site key here, and one from Helipad-to-Nostr-BoostBot
+(its own key, "📱 via ITDV App"), which posts whatever the Helipad node receives.
+
 ### Context callbacks must be memoized (`contexts/AudioContext.tsx`)
 `AudioContext` publishes `currentTime` on every `timeupdate`, so its value object is rebuilt several
 times a second during playback and every `useAudio()` consumer re-renders. That is fine as long as the
@@ -259,10 +286,11 @@ an environment change rather than just code, so don't treat them as fresh discov
   `/boosts` and `/album/them` contain no `nsec` literal and no `NEXT_PUBLIC_SITE_NOSTR_*` reference.
   Git history is clean too.
 
-  **Delete the stale `NEXT_PUBLIC_SITE_NOSTR_NSEC` var from Vercel when convenient** — that costs
-  nothing and is what stops the key being re-inlined if future code ever references it again. Full
-  rotation (new pair, `SITE_NOSTR_NSEC` + `NEXT_PUBLIC_SITE_NOSTR_NPUB`, plus a migration note from
-  the old key announcing the new npub) is only needed if the identity starts mattering.
+  The stale `NEXT_PUBLIC_SITE_NOSTR_NSEC` var was **deleted from Vercel on 2026-10-30**, so the key
+  cannot be re-inlined even if future code references that name again. The same key now lives in
+  server-only `SITE_NOSTR_NSEC`. Full rotation (new pair, `SITE_NOSTR_NSEC` +
+  `NEXT_PUBLIC_SITE_NOSTR_NPUB`, plus a migration note from the old key announcing the new npub) is
+  only needed if the identity starts mattering.
 - **`/api/albums` takes ~47 seconds.** It re-parses every RSS feed on a cache miss. It works in
   production (measured: 200, 1.5MB, 46.7s) but returns 500 locally, where Postgres is not
   provisioned. It only matters as the second fallback behind `/api/albums-static-cached` — there is
