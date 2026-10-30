@@ -31,7 +31,7 @@
     "fix-all": "node scripts/fix-all-issues.js"
   },
   "dependencies": {
-    "@getalby/bitcoin-connect": "^3.10.0",
+    "@getalby/bitcoin-connect": "^3.12.3",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/core": "^2.0.1",
     "@opentelemetry/instrumentation": "^0.203.0",
