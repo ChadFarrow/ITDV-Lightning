@@ -307,6 +307,129 @@ export class BoostToNostrService {
   }
 
   /**
+   * Build and sign a boost note without publishing it. postBoost publishes it in
+   * the background, which suits the browser. /api/nostr/publish waits on
+   * lib/relay-publish.ts instead, because a Vercel function stops once it answers.
+   */
+  signBoost(options: BoostOptions): { event: Event; nevent: string } {
+    if (!this.secretKey) {
+      throw new Error('No keys configured. Call setKeys() or generateKeys() first.');
+    }
+
+    // Create initial content without nevent (we'll add it after we have the event ID)
+    let content = this.createBoostContent(options);
+
+    // Create event template
+    const eventTemplate: EventTemplate = {
+      kind: 1, // Text note
+      created_at: Math.floor(Date.now() / 1000),
+      tags: [],
+      content
+    };
+
+    // Add Fountain-style podcast tags in k/i pairs with HPM URLs
+    const hpmUrl = this.generateHPMUrl(options.track);
+    
+    console.log('🏷️ Debug track metadata for tags:', {
+      guid: options.track.guid,
+      podcastGuid: options.track.podcastGuid,
+      feedGuid: options.track.feedGuid,
+      publisherGuid: options.track.publisherGuid,
+      feedUrl: options.track.feedUrl
+    });
+    
+    if (options.track.guid) {
+      console.log('🏷️ Adding item GUID tags:', options.track.guid);
+      // k tag declares the identifier type
+      eventTemplate.tags.push(['k', 'podcast:item:guid']);
+      // i tag contains the actual identifier with URL hint
+      const itemTag = ['i', `podcast:item:guid:${options.track.guid}`];
+      if (hpmUrl) {
+        itemTag.push(hpmUrl);
+      }
+      eventTemplate.tags.push(itemTag);
+    }
+
+    if (options.track.feedGuid) {
+      console.log('🏷️ Adding podcast GUID tags:', options.track.feedGuid);
+      // k tag declares the identifier type
+      eventTemplate.tags.push(['k', 'podcast:guid']);
+      // i tag contains the actual identifier with URL hint
+      const feedTag = ['i', `podcast:guid:${options.track.feedGuid}`];
+      if (hpmUrl) {
+        feedTag.push(hpmUrl);
+      }
+      eventTemplate.tags.push(feedTag);
+    }
+
+    if (options.track.publisherGuid) {
+      // k tag declares the identifier type
+      eventTemplate.tags.push(['k', 'podcast:publisher:guid']);
+      // i tag contains the actual identifier with URL hint
+      const publisherTag = ['i', `podcast:publisher:guid:${options.track.publisherGuid}`];
+      if (hpmUrl) {
+        publisherTag.push(hpmUrl);
+      }
+      eventTemplate.tags.push(publisherTag);
+    }
+
+    // Add album art image if available
+    if (options.track.imageUrl) {
+      eventTemplate.tags.push(['image', options.track.imageUrl]);
+    }
+
+    // Debug: Log final event template with all tags before signing
+    console.log('🏷️ Final Nostr event template with all tags:', {
+      kind: eventTemplate.kind,
+      tagsCount: eventTemplate.tags.length,
+      tags: eventTemplate.tags,
+      hasGuidTags: eventTemplate.tags.some(tag => tag[0] === 'k' && tag[1] === 'podcast:item:guid'),
+      hasFeedGuidTags: eventTemplate.tags.some(tag => tag[0] === 'k' && tag[1] === 'podcast:guid'),
+      hasPublisherGuidTags: eventTemplate.tags.some(tag => tag[0] === 'k' && tag[1] === 'podcast:publisher:guid')
+    });
+
+    // Sign the event
+    const event = finalizeEvent(eventTemplate, this.secretKey);
+    
+    // Debug: Log the signed event's tags
+    console.log('🏷️ Signed Nostr event tags:', {
+      eventId: event.id,
+      finalTagsCount: event.tags.length,
+      finalTags: event.tags
+    });
+    
+    // Create the nevent identifier for this event
+    const neventData = {
+      id: event.id,
+      relays: this.relays.slice(0, 2), // Include first 2 relays as hints  
+      author: event.pubkey,
+      kind: 1
+    };
+    
+    // Encode as nevent
+    const nevent = nip19.neventEncode(neventData);
+    
+    // Verify event is properly formatted
+    console.log('🔍 Event validation:', {
+      hasId: !!event.id,
+      hasValidId: event.id && event.id.length === 64,
+      hasPubkey: !!event.pubkey,
+      hasValidPubkey: event.pubkey && event.pubkey.length === 64,
+      hasSignature: !!event.sig,
+      hasValidSignature: event.sig && event.sig.length === 128,
+      kind: event.kind,
+      tagsCount: event.tags.length
+    });
+
+    return { event, nevent };
+  }
+
+  /** The relays this service publishes to. */
+  getRelays(): string[] {
+    return this.relays.slice();
+  }
+
+  /**
    * Post a boost to Nostr
    */
   async postBoost(options: BoostOptions): Promise<BoostResult> {
@@ -330,110 +453,7 @@ export class BoostToNostrService {
     }
 
     try {
-      // Create initial content without nevent (we'll add it after we have the event ID)
-      let content = this.createBoostContent(options);
-
-      // Create event template
-      const eventTemplate: EventTemplate = {
-        kind: 1, // Text note
-        created_at: Math.floor(Date.now() / 1000),
-        tags: [],
-        content
-      };
-
-      // Add Fountain-style podcast tags in k/i pairs with HPM URLs
-      const hpmUrl = this.generateHPMUrl(options.track);
-      
-      console.log('🏷️ Debug track metadata for tags:', {
-        guid: options.track.guid,
-        podcastGuid: options.track.podcastGuid,
-        feedGuid: options.track.feedGuid,
-        publisherGuid: options.track.publisherGuid,
-        feedUrl: options.track.feedUrl
-      });
-      
-      if (options.track.guid) {
-        console.log('🏷️ Adding item GUID tags:', options.track.guid);
-        // k tag declares the identifier type
-        eventTemplate.tags.push(['k', 'podcast:item:guid']);
-        // i tag contains the actual identifier with URL hint
-        const itemTag = ['i', `podcast:item:guid:${options.track.guid}`];
-        if (hpmUrl) {
-          itemTag.push(hpmUrl);
-        }
-        eventTemplate.tags.push(itemTag);
-      }
-
-      if (options.track.feedGuid) {
-        console.log('🏷️ Adding podcast GUID tags:', options.track.feedGuid);
-        // k tag declares the identifier type
-        eventTemplate.tags.push(['k', 'podcast:guid']);
-        // i tag contains the actual identifier with URL hint
-        const feedTag = ['i', `podcast:guid:${options.track.feedGuid}`];
-        if (hpmUrl) {
-          feedTag.push(hpmUrl);
-        }
-        eventTemplate.tags.push(feedTag);
-      }
-
-      if (options.track.publisherGuid) {
-        // k tag declares the identifier type
-        eventTemplate.tags.push(['k', 'podcast:publisher:guid']);
-        // i tag contains the actual identifier with URL hint
-        const publisherTag = ['i', `podcast:publisher:guid:${options.track.publisherGuid}`];
-        if (hpmUrl) {
-          publisherTag.push(hpmUrl);
-        }
-        eventTemplate.tags.push(publisherTag);
-      }
-
-      // Add album art image if available
-      if (options.track.imageUrl) {
-        eventTemplate.tags.push(['image', options.track.imageUrl]);
-      }
-
-      // Debug: Log final event template with all tags before signing
-      console.log('🏷️ Final Nostr event template with all tags:', {
-        kind: eventTemplate.kind,
-        tagsCount: eventTemplate.tags.length,
-        tags: eventTemplate.tags,
-        hasGuidTags: eventTemplate.tags.some(tag => tag[0] === 'k' && tag[1] === 'podcast:item:guid'),
-        hasFeedGuidTags: eventTemplate.tags.some(tag => tag[0] === 'k' && tag[1] === 'podcast:guid'),
-        hasPublisherGuidTags: eventTemplate.tags.some(tag => tag[0] === 'k' && tag[1] === 'podcast:publisher:guid')
-      });
-
-      // Sign the event
-      const event = finalizeEvent(eventTemplate, this.secretKey);
-      
-      // Debug: Log the signed event's tags
-      console.log('🏷️ Signed Nostr event tags:', {
-        eventId: event.id,
-        finalTagsCount: event.tags.length,
-        finalTags: event.tags
-      });
-      
-      // Create the nevent identifier for this event
-      const neventData = {
-        id: event.id,
-        relays: this.relays.slice(0, 2), // Include first 2 relays as hints  
-        author: event.pubkey,
-        kind: 1
-      };
-      
-      // Encode as nevent
-      const nevent = nip19.neventEncode(neventData);
-      
-      // Verify event is properly formatted
-      console.log('🔍 Event validation:', {
-        hasId: !!event.id,
-        hasValidId: event.id && event.id.length === 64,
-        hasPubkey: !!event.pubkey,
-        hasValidPubkey: event.pubkey && event.pubkey.length === 64,
-        hasSignature: !!event.sig,
-        hasValidSignature: event.sig && event.sig.length === 128,
-        kind: event.kind,
-        tagsCount: event.tags.length
-      });
+      const { event, nevent } = this.signBoost(options);
 
       // Publish to relays asynchronously to avoid blocking payment flow
       console.log('📡 Publishing boost note to relays asynchronously:', this.relays);

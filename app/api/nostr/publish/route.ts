@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { nip19 } from 'nostr-tools';
 import { BoostToNostrService, type TrackMetadata } from '@/lib/boost-to-nostr-service';
+import { publishToRelays } from '@/lib/relay-publish';
 
 /**
  * Sign and publish a boost note as the site's Nostr identity.
@@ -88,8 +89,10 @@ function decodeSiteSecretKey(): Uint8Array | null {
 export async function POST(request: NextRequest) {
   const secretKey = decodeSiteSecretKey();
   if (!secretKey) {
-    // Not configured is a normal state — the client falls back to signing with
-    // the visitor's own key. Say so without leaking whether the var is malformed.
+    // The client does not fall back to another key: when NEXT_PUBLIC_SITE_NOSTR_NPUB
+    // is set, this is the only way a boost note gets posted, so a missing
+    // SITE_NOSTR_NSEC means no notes at all. Say so without leaking whether the
+    // var is unset or malformed.
     return NextResponse.json(
       { success: false, error: 'Site Nostr identity is not configured' },
       { status: 503 }
@@ -140,7 +143,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const service = new BoostToNostrService([], secretKey);
-    const result = await service.postBoost({
+    const { event } = service.signBoost({
       amount,
       track,
       comment,
@@ -149,17 +152,28 @@ export async function POST(request: NextRequest) {
         : ['#nowplaying'],
     });
 
-    if (!result.success) {
+    // Wait for the relays before answering. postBoost publishes in the background,
+    // and a Vercel function stops once it has answered, so from 2026-08-04 to
+    // 2026-10-30 every boost was signed, reported as a success, and never reached
+    // a relay. Success now means at least one relay sent its OK.
+    const published = await publishToRelays(event, service.getRelays());
+    console.log(
+      `Nostr boost ${event.id}: ${published.accepted.length} relay(s) accepted, ${published.failed.length} failed`,
+      published.failed
+    );
+
+    if (published.accepted.length === 0) {
       return NextResponse.json(
-        { success: false, error: result.error || 'Failed to publish boost' },
+        { success: false, error: 'No relay accepted the boost note' },
         { status: 502 }
       );
     }
 
     return NextResponse.json({
       success: true,
-      eventId: result.eventId,
-      event: result.event,
+      eventId: event.id,
+      event,
+      relays: published.accepted,
     });
   } catch (error) {
     console.error('Nostr publish error:', error);
