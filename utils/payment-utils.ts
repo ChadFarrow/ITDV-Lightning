@@ -2,6 +2,8 @@
  * Utility functions for Lightning payments
  */
 
+import { buildBoostagram, TLV_BOOSTAGRAM, TLV_TIP_NOTE, type BoostMetadata } from '@/lib/boostagram';
+
 interface PaymentRecipient {
   address: string;
   split: number;
@@ -11,114 +13,22 @@ interface PaymentRecipient {
   fixedAmount?: number;
 }
 
-interface BoostMetadata {
-  title?: string;
-  artist?: string;
-  album?: string;
-  imageUrl?: string;
-  podcastFeedGuid?: string;
-  podcastGuid?: string;
-  episode?: string;
-  feedUrl?: string;
-  itemGuid?: string;
-  timestamp?: number;
-  senderName?: string;
-  appName?: string;
-  url?: string;
-  publisherGuid?: string;
-  publisherUrl?: string;
-  message?: string;
-}
-
 /**
- * Create TLV records for Lightning boost payments (matching manual boost format)
+ * Records for one auto-boost keysend, as UTF-8 text keyed by TLV type: the shape WebLN
+ * keysend takes, because the wallet encodes each value itself. This used to put hex
+ * here, so every receiver got hex text instead of JSON in 7629169. It used to send only
+ * five fields as well (no feed, GUIDs or album); the shared builder gives it the same
+ * set as a manual boost, with action "auto", which BoostBox and Helipad also record.
+ * Commit 1ca4115 cut the set down after the Alby extension answered 500. The code it
+ * replaced passed an array as customRecords, which a wallet reads as TLV types 0, 1
+ * and 2. The full set as text is what the manual boost sends through the same WebLN.
  */
-function createBoostTLVRecords(metadata: BoostMetadata, recipientName?: string, amount?: number) {
-  const tlvRecords = [];
-
-  // Use the same format as manual boosts from BitcoinConnect component
-  // 7629169 - Podcast metadata JSON (bLIP-10 standard - Breez/Fountain compatible)
-  const podcastMetadata = {
-    podcast: metadata.artist || 'Unknown Artist',
-    episode: metadata.title || 'Unknown Title',
-    action: 'boost',
-    app_name: metadata.appName || 'ITDV App',
-    // Use actual feed URL from metadata, fallback to main podcast feed
-    feed: metadata.feedUrl || 'https://www.doerfelverse.com/feeds/intothedoerfelverse.xml',
-    url: metadata.feedUrl || 'https://www.doerfelverse.com/feeds/intothedoerfelverse.xml',
-    message: metadata.message || '',
-    ...(metadata.timestamp && { ts: metadata.timestamp }),
-    // Use proper feedId (lowercase 'd') for Helipad compatibility - it expects feedId not feedID
-    feedId: metadata.feedUrl === 'https://www.doerfelverse.com/feeds/bloodshot-lies-album.xml' ? "6590183" : "6590182",
-    // Add Helipad-specific GUID fields
-    ...(metadata.itemGuid && { episode_guid: metadata.itemGuid }),
-    ...(metadata.itemGuid && { remote_item_guid: metadata.itemGuid }),
-    ...(metadata.podcastFeedGuid && { remote_feed_guid: metadata.podcastFeedGuid }),
-    ...(metadata.album && { album: metadata.album }),
-    ...(amount && { value_msat_total: amount * 1000 }),
-    sender_name: metadata.senderName || 'Anonymous',
-    uuid: `boost-${Date.now()}-${Math.floor(Math.random() * 1000)}`, // Unique identifier
-    app_version: '1.0.0', // App version
-    ...(amount && { value_msat: amount * 1000 }), // Individual payment amount
-    name: recipientName || 'ITDV App' // Recipient name for split payments, app name for single payments
-  };
-  
-  tlvRecords.push({
-    type: 7629169,
-    value: Buffer.from(JSON.stringify(podcastMetadata), 'utf8').toString('hex')
-  });
-  
-  // 7629171 - Tip note/message (Lightning spec compliant) - only if custom message provided
-  if (metadata.message) {
-    tlvRecords.push({
-      type: 7629171,
-      value: Buffer.from(metadata.message, 'utf8').toString('hex')
-    });
-  }
-  
-  // 133773310 - Sphinx compatibility (JSON encoded data)
-  const sphinxData = {
-    podcast: metadata.artist || 'Unknown Artist',
-    episode: metadata.title || 'Unknown Title', 
-    action: 'boost',
-    app: metadata.appName || 'ITDV App',
-    message: metadata.message || '',
-    ...(amount && { amount: amount }),
-    sender: metadata.senderName || 'Anonymous',
-    ...(metadata.timestamp && { timestamp: metadata.timestamp })
-  };
-  
-  tlvRecords.push({
-    type: 133773310,
-    value: Buffer.from(JSON.stringify(sphinxData), 'utf8').toString('hex')
-  });
-
-  return tlvRecords;
-}
-
-/**
- * Create simplified TLV records for WebLN auto boost (smaller, more compatible)
- */
-function createSimpleWebLNTLVRecords(metadata: BoostMetadata, recipientName?: string, amount?: number) {
+function createAutoBoostRecords(metadata: BoostMetadata, recipientName: string | undefined, amountSats: number, totalSats: number) {
   const customRecords: Record<number, string> = {};
-
-  // Simple boost message (7629171 - Lightning spec compliant)
-  const message = `Auto boost: ${metadata.title || 'Unknown Track'} by ${metadata.artist || 'Unknown Artist'}`;
-  customRecords[7629171] = Buffer.from(message, 'utf8').toString('hex');
-
-  // Minimal podcast metadata (7629169 - bLIP-10 standard)
-  const podcastMetadata = {
-    podcast: metadata.artist || 'Unknown Artist',
-    episode: metadata.title || 'Unknown Title',
-    action: 'boost',
-    app_name: 'ITDV App',
-    message: '',
-    ...(amount && { value_msat: amount * 1000 }),
-    sender_name: 'Auto Boost'
-  };
-  
-  customRecords[7629169] = Buffer.from(JSON.stringify(podcastMetadata), 'utf8').toString('hex');
-
+  customRecords[TLV_TIP_NOTE] = `Auto boost: ${metadata.title || 'Unknown Track'} by ${metadata.artist || 'Unknown Artist'}`;
+  customRecords[TLV_BOOSTAGRAM] = JSON.stringify(
+    buildBoostagram(metadata, { action: 'auto', amountSats, totalSats, recipientName })
+  );
   return customRecords;
 }
 
@@ -187,8 +97,8 @@ export async function makeAutoBoostPayment({
         const paymentPromises = paymentsToMake.map(async (recipientData) => {
           const recipientAmount = (recipientData as any).fixedAmount || Math.floor((amount * recipientData.split) / totalSplit);
           
-          // Create TLV records for boost metadata - use simplified version for WebLN
-          const customRecords = boostMetadata ? createSimpleWebLNTLVRecords(boostMetadata, recipientData.name, recipientAmount) : {};
+          // Create TLV records for boost metadata
+          const customRecords = boostMetadata ? createAutoBoostRecords(boostMetadata, recipientData.name, recipientAmount, amount) : {};
           
           const response = await webln.keysend({
             destination: recipientData.address,

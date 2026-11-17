@@ -17,6 +17,7 @@ import dynamic from 'next/dynamic';
 import confetti from 'canvas-confetti';
 import PerformanceMonitor from '@/components/PerformanceMonitor';
 import { safeLocalStorage } from '@/lib/safe-storage';
+import { noteTitle } from '@/lib/boost-to-nostr-service';
 
 // Dynamic import for ControlsBar
 const ControlsBar = dynamic(() => import('@/components/ControlsBar'), {
@@ -1936,7 +1937,7 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
                 {/* Boost Button */}
                 <BitcoinConnectPayment
                   amount={trackBoostAmount}
-                  description={`Boost for "${selectedTrack.title}" by ${album?.artist}`}
+                  description={`Boost for "${noteTitle(selectedTrack.title)}" by ${album?.artist}`}
                   onSuccess={(response) => {
                     handleBoostSuccess(response);
                     setShowTrackBoostModal(false);

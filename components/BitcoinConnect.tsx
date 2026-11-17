@@ -7,6 +7,14 @@ import { useBoostToNostr } from '@/hooks/useBoostToNostr';
 import { useLightning } from '@/contexts/LightningContext';
 import { safeLocalStorage } from '@/lib/safe-storage';
 import { postToBoostBox } from '@/lib/boostbox-service';
+import {
+  buildBoostRecords,
+  buildLnurlComment,
+  toHexTlvRecords,
+  TLV_BOOSTAGRAM,
+  TLV_TIP_NOTE,
+  type BoostMetadata,
+} from '@/lib/boostagram';
 
 declare global {
   namespace JSX {
@@ -181,24 +189,7 @@ export function BitcoinConnectPayment({
   recipient?: string;
   recipients?: Array<{ address: string; split: number; name?: string; fee?: boolean; type?: string; fixedAmount?: number }>;
   enableBoosts?: boolean;
-  boostMetadata?: {
-    title?: string;
-    artist?: string;
-    album?: string;
-    imageUrl?: string;
-    podcastFeedGuid?: string;
-    podcastGuid?: string; // podcast:guid at item level
-    episode?: string;
-    feedUrl?: string;
-    itemGuid?: string;
-    timestamp?: number;
-    senderName?: string;
-    appName?: string;
-    url?: string;
-    publisherGuid?: string;
-    publisherUrl?: string;
-    message?: string; // Boostagram message
-  };
+  boostMetadata?: BoostMetadata;
 }) {
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -223,99 +214,26 @@ export function BitcoinConnectPayment({
   });
 
 
-  // Helper function to create enhanced TLV records for boosts following podcast namespace spec
-  const createBoostTLVRecords = async (recipientName?: string) => {
-    const tlvRecords = [];
-    
+  // The records for one keysend to one split recipient, as UTF-8 text keyed by TLV type:
+  // the shape WebLN keysend takes. NWC wants hex, so those paths wrap this in
+  // toHexTlvRecords. lib/boostagram.ts builds them for the manual and the auto boost.
+  const createBoostRecords = (recipientName: string, recipientAmount: number): Record<number, string> => {
     if (boostMetadata) {
-      // 7629169 - Podcast metadata JSON (bLIP-10 standard - Breez/Fountain compatible)
-      // Fixed to match working Castamatic format
-      const podcastMetadata = {
-        podcast: boostMetadata.artist || 'Unknown Artist',
-        episode: boostMetadata.title || 'Unknown Title',
+      const records = buildBoostRecords(boostMetadata, {
         action: 'boost',
-        app_name: boostMetadata.appName || 'ITDV App',
-        // Use actual feed URL from metadata for proper Helipad recognition
-        feed: boostMetadata.feedUrl || 'https://www.doerfelverse.com/feeds/intothedoerfelverse.xml',
-        url: boostMetadata.feedUrl || 'https://www.doerfelverse.com/feeds/intothedoerfelverse.xml',
-        message: boostMetadata.message || '',
-        ...(boostMetadata.timestamp && { ts: boostMetadata.timestamp }),
-        // Use proper feedId (lowercase 'd') for Helipad compatibility - it expects feedId not feedID
-        feedId: boostMetadata.feedUrl === 'https://www.doerfelverse.com/feeds/bloodshot-lies-album.xml' ? "6590183" : "6590182",
-        // Add Helipad-specific GUID fields
-        ...(boostMetadata.itemGuid && { episode_guid: boostMetadata.itemGuid }),
-        ...(boostMetadata.itemGuid && { remote_item_guid: boostMetadata.itemGuid }),
-        ...(boostMetadata.podcastFeedGuid && { remote_feed_guid: boostMetadata.podcastFeedGuid }),
-        ...(boostMetadata.album && { album: boostMetadata.album }),
-        value_msat_total: amount * 1000,
-        sender_name: boostMetadata.senderName || 'Anonymous',
-        uuid: `boost-${Date.now()}-${Math.floor(Math.random() * 1000)}`, // Unique identifier
-        app_version: '1.0.0', // App version
-        value_msat: recipients ? Math.floor((amount * 1000) / recipients.length) : amount * 1000, // Individual payment amount
-        name: recipientName || 'ITDV App' // Recipient name for split payments, app name for single payments
-      };
-      
-      // Log the exact TLV data for debugging (matching payment-utils.ts)
+        amountSats: recipientAmount,
+        totalSats: amount,
+        recipientName,
+      });
       console.log('🔍 HELIPAD DEBUG - Exact TLV 7629169 data being sent:');
-      console.log(JSON.stringify(podcastMetadata, null, 2));
-      
-      tlvRecords.push({
-        type: 7629169,
-        value: Buffer.from(JSON.stringify(podcastMetadata), 'utf8').toString('hex')
-      });
-      
-      // 7629171 - Tip note/message (Lightning spec compliant) - only if custom message provided
-      if (boostMetadata.message) {
-        tlvRecords.push({
-          type: 7629171,
-          value: Buffer.from(boostMetadata.message, 'utf8').toString('hex')
-        });
-      }
-      
-      // 133773310 - Sphinx compatibility (JSON encoded data)
-      const sphinxData = {
-        podcast: boostMetadata.artist || 'Unknown Artist',
-        episode: boostMetadata.title || 'Unknown Title', 
-        action: 'boost',
-        app: boostMetadata.appName || 'ITDV App',
-        message: boostMetadata.message || '',
-        amount: amount,
-        sender: boostMetadata.senderName || 'Anonymous',
-        ...(boostMetadata.timestamp && { timestamp: boostMetadata.timestamp })
-      };
-      
-      tlvRecords.push({
-        type: 133773310,
-        value: Buffer.from(JSON.stringify(sphinxData), 'utf8').toString('hex')
-      });
-      
-    } else {
-      // Fallback for non-boost payments - simple message
-      const message = `${description}${recipientName ? ` - ${recipientName}` : ''}`;
-      tlvRecords.push({
-        type: 7629171, // Use tip note format
-        value: Buffer.from(message, 'utf8').toString('hex')
-      });
+      console.log(records[TLV_BOOSTAGRAM]);
+      return records;
     }
-    
-    // Log total TLV record count for debugging
-    console.log(`🔍 HELIPAD DEBUG - Total TLV records created: ${tlvRecords.length}`);
-    
-    return tlvRecords;
-  };
 
-  // Helper function to convert TLV records to WebLN customRecords format  
-  const createWebLNCustomRecords = async (recipientName?: string) => {
-    const tlvRecords = await createBoostTLVRecords(recipientName);
-    const customRecords: { [key: number]: string } = {};
-    
-    tlvRecords.forEach(record => {
-      // Convert hex back to string for WebLN
-      const value = Buffer.from(record.value, 'hex').toString('utf8');
-      customRecords[record.type] = value;
-    });
-    
-    return customRecords;
+    // Fallback for non-boost payments - simple message
+    const records: Record<number, string> = {};
+    records[TLV_TIP_NOTE] = `${description}${recipientName ? ` - ${recipientName}` : ''}`;
+    return records;
   };
 
   useEffect(() => {
@@ -626,7 +544,7 @@ export function BitcoinConnectPayment({
             if (recipientData.type === 'lnaddress' || (recipientData.address && recipientData.address.includes('@'))) {
               // For Lightning addresses, resolve to invoice and pay
               console.log(`🔗 NWC resolving Lightning address: ${recipientData.address}`);
-              const comment = `Boost for "${description}" by ${recipientData.name || 'Unknown'}`;
+              const comment = buildLnurlComment(description, boostMetadata);
               
               response = await nwcService.payLightningAddress(
                 recipientData.address,
@@ -636,7 +554,7 @@ export function BitcoinConnectPayment({
             } else {
               // For node public keys, use keysend with TLV records
               console.log(`⚡ NWC sending keysend to node: ${recipientData.address}`);
-              const tlvRecords = await createBoostTLVRecords(recipientData.name || 'Recipient');
+              const tlvRecords = toHexTlvRecords(createBoostRecords(recipientData.name || 'Recipient', recipientAmount));
 
               // Direct keysend payment
               console.log('⚡ Using direct keysend payment');
@@ -733,7 +651,7 @@ export function BitcoinConnectPayment({
             // Handle different payment types
             if (recipientData.type === 'node' || (recipientData.address && recipientData.address.length === 66 && !recipientData.address.includes('@'))) {
               // Use keysend for node public keys
-              const customRecords = await createWebLNCustomRecords(recipientData.name || 'Recipient');
+              const customRecords = createBoostRecords(recipientData.name || 'Recipient', recipientAmount);
               
               // DEBUG: Log WebLN keysend data for Sovereign Feeds
               if (recipientData.name === 'Sovereign Feeds') {
@@ -776,7 +694,7 @@ export function BitcoinConnectPayment({
               
               const { LNURLService } = await import('../lib/lnurl-service');
               const amountMillisats = recipientAmount * 1000; // Convert sats to millisats
-              const comment = `Boost for "${description}" by ${recipientData.name || 'Unknown'}`;
+              const comment = buildLnurlComment(description, boostMetadata);
               
               const invoice = await LNURLService.getPaymentInvoice(
                 recipientData.address,
@@ -859,7 +777,7 @@ export function BitcoinConnectPayment({
                 if (recipientData.type === 'lnaddress' || (recipientData.address && recipientData.address.includes('@'))) {
                   // For Lightning addresses, resolve to invoice and pay
                   console.log(`🔗 NWC fallback resolving Lightning address: ${recipientData.address}`);
-                  const comment = `Boost for "${description}" by ${recipientData.name || 'Unknown'}`;
+                  const comment = buildLnurlComment(description, boostMetadata);
                   
                   response = await nwcService.payLightningAddress(
                     recipientData.address,
@@ -869,7 +787,7 @@ export function BitcoinConnectPayment({
                 } else {
                   // For node public keys, use keysend with TLV records
                   console.log(`⚡ NWC fallback sending keysend to node: ${recipientData.address}`);
-                  const tlvRecords = await createBoostTLVRecords(recipientData.name || 'Recipient');
+                  const tlvRecords = toHexTlvRecords(createBoostRecords(recipientData.name || 'Recipient', recipientAmount));
 
                   // Direct keysend payment
                   console.log('⚡ Using direct keysend payment (fallback)');

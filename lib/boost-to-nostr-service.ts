@@ -37,6 +37,25 @@ export interface TrackMetadata {
   announcementEventId?: string; // Reference to track/album announcement event
 }
 
+/**
+ * A title as it goes between the note's quotes. Some feeds put quotes in the title
+ * itself — Jam with Nate has `"Nate's got it"`, Autumn Rust has
+ * `The Doerfels - "Thank You Value-Verse!"` — and the note wrapped those in a second
+ * pair: `""Nate's got it""`. A title inside one pair of quotes loses that pair, and any
+ * straight double quote left becomes a curly one, so the note's own pair stays the only
+ * straight pair. parseBoostFromEvent (app/boosts/page.tsx) reads the title between them.
+ */
+export function noteTitle(title: string): string {
+  let text = title.trim();
+  const wrapped = /^["\u201c\u201d](.*)["\u201c\u201d]$/.exec(text);
+  if (wrapped && !/["\u201c\u201d]/.test(wrapped[1])) {
+    text = wrapped[1].trim();
+  }
+  return text.replace(/"/g, (_quote: string, offset: number) =>
+    offset === 0 || /[\s(\[{\-]/.test(text.charAt(offset - 1)) ? '\u201c' : '\u201d'
+  );
+}
+
 export interface BoostOptions {
   amount: number; // Amount in sats
   comment?: string;
@@ -261,7 +280,7 @@ export class BoostToNostrService {
     
     // Add track title in quotes
     if (track.title) {
-      content += ` • "${track.title}"`;
+      content += ` • "${noteTitle(track.title)}"`;
     }
     
     // Add artist

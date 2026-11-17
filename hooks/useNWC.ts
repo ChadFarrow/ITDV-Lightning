@@ -161,10 +161,12 @@ export function useNWC(): UseNWCReturn {
 
     setLoading(true);
     try {
-      // Add TLV record for description if provided (as array format)
+      // Add TLV record for description if provided (as array format).
+      // 7629171 is the plain-text tip note; 7629169 is bLIP-10 JSON, so plain text
+      // there makes a receiver such as Helipad fail to read the boost.
       const tlvRecords = description ? [
         {
-          "type": 7629169, // Standard message TLV record type (as number)
+          "type": 7629171, // Tip note: plain text
           "value": Buffer.from(description, 'utf8').toString('hex') // Convert to hex
         }
       ] : [];

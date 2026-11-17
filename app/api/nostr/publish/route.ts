@@ -23,6 +23,7 @@ export const dynamic = 'force-dynamic';
 
 const MAX_COMMENT_LENGTH = 500;
 const MAX_FIELD_LENGTH = 300;
+const MAX_SENDER_LENGTH = 100;
 const MAX_AMOUNT_SATS = 100_000_000; // 1 BTC — a sanity bound, not a payment check
 
 // Best-effort per-instance throttle. This endpoint posts under the site's
@@ -71,6 +72,15 @@ function cleanString(value: unknown, maxLength = MAX_FIELD_LENGTH): string | und
   if (typeof value !== 'string') return undefined;
   const trimmed = value.trim();
   return trimmed ? trimmed.slice(0, maxLength) : undefined;
+}
+
+/**
+ * cleanString on one line: line breaks and runs of spaces become one space. The note
+ * puts the sender on a line of its own, so a name with line breaks could add lines
+ * that look like the site wrote them.
+ */
+function cleanLine(value: unknown, maxLength = MAX_FIELD_LENGTH): string | undefined {
+  return cleanString(typeof value === 'string' ? value.replace(/\s+/g, ' ') : value, maxLength);
 }
 
 function decodeSiteSecretKey(): Uint8Array | null {
@@ -137,9 +147,24 @@ export async function POST(request: NextRequest) {
     feedUrl: cleanString(body?.track?.feedUrl, 500),
     publisherGuid: cleanString(body?.track?.publisherGuid),
     publisherUrl: cleanString(body?.track?.publisherUrl, 500),
+    // The note is signed by the site's key, so this is the only place that names who
+    // sent the boost. It was left out from 2026-08-04, and with it "Auto Boost", which
+    // createBoostContent uses to leave out the From: and Sent by: lines.
+    senderName: cleanLine(body?.track?.senderName, MAX_SENDER_LENGTH),
   };
 
   const comment = cleanString(body?.comment, MAX_COMMENT_LENGTH);
+
+  // An auto boost posts no Nostr note (Chad's decision, 2026-11-16). The client no
+  // longer asks, but a tab still running an older bundle sends this exact request
+  // until it reloads, so refuse it here. Both parts must match: a listener who names
+  // themselves "Auto Boost" still gets a note for a boost they send by hand.
+  if (track.senderName === 'Auto Boost' && comment && comment.indexOf('Auto boost for') === 0) {
+    return NextResponse.json(
+      { success: false, error: 'Auto boosts are not posted to Nostr' },
+      { status: 403 }
+    );
+  }
 
   try {
     const service = new BoostToNostrService([], secretKey);

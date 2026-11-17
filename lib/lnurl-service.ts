@@ -13,6 +13,7 @@ export interface LNURLResponse {
   tag: string;
   allowsNostr?: boolean;
   nostrPubkey?: string;
+  commentAllowed?: number; // LUD-12: the longest comment the service accepts
 }
 
 export interface LNURLInvoiceResponse {
@@ -192,7 +193,13 @@ export class LNURLService {
       callbackUrl.searchParams.set('amount', amountMillisats.toString());
       
       if (comment) {
-        callbackUrl.searchParams.set('comment', comment);
+        // A comment longer than commentAllowed can make the service refuse the
+        // invoice (LUD-12), so cut it to fit when the service states a limit.
+        const limit = metadata.commentAllowed;
+        const fitted = typeof limit === 'number' && limit > 0 && comment.length > limit
+          ? comment.slice(0, limit)
+          : comment;
+        callbackUrl.searchParams.set('comment', fitted);
       }
       
       const response = await fetch(callbackUrl.toString());
