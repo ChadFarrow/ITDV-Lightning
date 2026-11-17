@@ -50,7 +50,7 @@ function parseBoostFromEvent(event: Event): ParsedBoost | null {
   try {
     // Notes since 2026-11-17 use the shared format (lib/boost-note.ts), which starts
     // "⚡ Boost ⚡". Older notes have no header and go through the reader below,
-    // which stays as it was: a kind 1 cannot be edited, so every old layout remains.
+    // which must stay: a kind 1 cannot be edited, so every old layout remains.
     const note = parseBoostNote(event.content);
     if (note) {
       // The amount tag is the number the sentence's <N> comes from (format rule 22).
@@ -81,7 +81,22 @@ function parseBoostFromEvent(event: Event): ParsedBoost | null {
 
     // Extract track info from content
     const titleMatch = event.content.match(/"([^"]+)"/);
-    const trackTitle = titleMatch ? titleMatch[1] : undefined;
+    let trackTitle = titleMatch ? titleMatch[1] : undefined;
+    // The title as the note text writes it; the message clean-up below removes this.
+    let titleInNote = trackTitle;
+    // Some feed titles carry their own quotes, and the old writer put a second pair
+    // around them: '⚡ 25 sats • "CityBeach - "Hey, You're Up!"" by …'. The match above
+    // stops at the first inner quote, so the card showed "CityBeach - " and the rest of
+    // the title went into the message. Every old note's first line is
+    // '⚡ N sats • "<title>" by <artist>', so take the title from the quote after the
+    // bullet to the last quote before " by ". Only a title that holds a quote changes;
+    // the card puts the title in its own quotes, so it goes through noteTitle as the
+    // new reader's does.
+    const lineTitle = event.content.split('\n')[0].match(/•\s*"(.*)"\s+by\s/);
+    if (lineTitle && lineTitle[1].indexOf('"') !== -1) {
+      titleInNote = lineTitle[1];
+      trackTitle = noteTitle(titleInNote);
+    }
 
     // Look for track artist after "by" (but not "Sent by")
     let trackArtist: string | undefined;
@@ -113,8 +128,8 @@ function parseBoostFromEvent(event: Event): ParsedBoost | null {
     userMessage = userMessage.replace(/⚡\s*[\d.]+[MkK]?\s*sats/, '').trim();
     // Remove bullet point that comes after the amount
     userMessage = userMessage.replace(/^•\s*/, '').trim();
-    if (trackTitle) {
-      userMessage = userMessage.replace(new RegExp(`"${trackTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`, 'g'), '').trim();
+    if (titleInNote) {
+      userMessage = userMessage.replace(new RegExp(`"${titleInNote.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`, 'g'), '').trim();
     }
     if (trackArtist) {
       userMessage = userMessage.replace(new RegExp(`by\\s+${trackArtist.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g'), '').trim();
