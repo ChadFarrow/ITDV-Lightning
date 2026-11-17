@@ -20,6 +20,7 @@ import {
   type BoostMetadata,
 } from '../lib/boostagram';
 import { BoostToNostrService, noteTitle, type TrackMetadata } from '../lib/boost-to-nostr-service';
+import { boostSentence, parseBoostNote } from '../lib/boost-note';
 
 let checks = 0;
 function fail(message: string): never {
@@ -167,20 +168,58 @@ equal(noteTitle('"A" and "B"'), '“A” and “B”', 'two quoted parts are not
 equal(noteTitle('Sing For You'), 'Sing For You', 'plain title unchanged');
 equal(noteTitle("That's An Iso, 'Unbelievable!'"), "That's An Iso, 'Unbelievable!'", 'single quotes unchanged');
 
+// The shared format (pc20-boost-notes.md on PC20-Nostr main). "vector N" is that
+// document's test vector N, with ITDV's names where its own are a podcast's.
+equal(boostSentence({ who: 'rev.hodl', sats: 121, what: 'Sing For You', artist: 'The Doerfels', where: 'ITDV music playlist', app: 'BoostMeBitch' }),
+  'rev.hodl boosted 121 sats to Sing For You by The Doerfels from ITDV music playlist via BoostMeBitch', 'the format document\'s own example');
+equal(boostSentence({ who: 'ChadF', sats: 100, what: 'Disco Swag - The Album', artist: 'The Doerfels', where: 'Disco Swag - The Album', app: 'Fountain' }),
+  'ChadF boosted 100 sats to Disco Swag - The Album by The Doerfels via Fountain', 'vector 16: an album boost says by, and no from');
+equal(boostSentence({ sats: 100, what: 'Episode 146', where: 'Homegrown Hits', app: 'Fountain' }),
+  'Boosted 100 sats to Episode 146 from Homegrown Hits via Fountain', 'vector 2: no sender name');
+equal(boostSentence({ who: 'ChadF', sats: 100, what: 'Kurtis', artist: 'kurtis', where: 'Night Drive', app: 'Fountain' }),
+  'ChadF boosted 100 sats to Kurtis from Night Drive via Fountain', 'vector 6: no by when the artist repeats the title');
+equal(boostSentence({ who: 'ChadF', sats: 3333, what: 'T', app: 'Fountain' }), 'ChadF boosted 3333 sats to T via Fountain', 'vector 8: digits only');
+equal(boostSentence({ who: 'ChadF', sats: 100, what: 'Episode\n146', where: 'Homegrown  Hits ', app: 'Fountain' }),
+  'ChadF boosted 100 sats to Episode 146 from Homegrown Hits via Fountain', 'vector 10: names are one line');
+equal(boostSentence({ who: 'boostmebitch.com user', sats: 100, what: 'Episode 146', where: 'Homegrown Hits', app: 'BoostMeBitch' }),
+  'boostmebitch.com user boosted 100 sats to Episode 146 from Homegrown Hits via BoostMeBitch', 'vector 17: a default sender name prints as it is');
+equal(boostSentence({ who: 'ChadF', sats: 100, what: 'Episode 146', where: 'Homegrown Hits' }),
+  'ChadF boosted 100 sats to Episode 146 from Homegrown Hits', 'vector 18: no app, no via');
+equal(boostSentence({ who: 'Anonymous', sats: 50, what: 'If I Promise(Demo)', artist: 'Unknown Artist', where: 'Shuffle All', app: 'ITDV App' }),
+  'Anonymous boosted 50 sats to If I Promise(Demo) via ITDV App', 'placeholders are not names: no "by Unknown Artist", no "from Shuffle All"');
+equal(boostSentence({ who: 'x'.repeat(300), sats: 1, what: 'T' }), `${'x'.repeat(120)} boosted 1 sats to T`, 'rule 8: a name is cut to 120');
+
 const secretKey = generateSecretKey();
 const service = new BoostToNostrService([], secretKey);
-const noteFor = (track: TrackMetadata, comment?: string, amount = 500) => service.signBoost({ amount, track, comment }).event.content;
+const signFor = (track: TrackMetadata, comment?: string, amount = 500) => service.signBoost({ amount, track, comment }).event;
+const noteFor = (track: TrackMetadata, comment?: string, amount = 500) => signFor(track, comment, amount).content;
 
+const trackNote = signFor({ title: '"Nate\'s got it"', artist: 'The Doerfels', album: 'Jam with Nate', senderName: 'rev.hodl', appName: 'ITDV App', guid: 'item-guid', feedGuid: 'feed-guid' }, 'great fiddle', 121);
 equal(
-  noteFor({ title: '"Nate\'s got it"', artist: 'The Doerfels', album: 'Jam with Nate', senderName: 'ChadF' }),
-  '⚡ 500 sats • "Nate\'s got it" by The Doerfels\nFrom: Jam with Nate\n\nSent by: ChadF\n\n🎧 https://itdv.podtards.com/album/jam-with-nate#nates-got-it',
-  'track boost note: one pair of quotes, album, sender'
+  trackNote.content,
+  '⚡ Boost ⚡\n\ngreat fiddle\n\nrev.hodl boosted 121 sats to "Nate\'s got it" by The Doerfels from Jam with Nate via ITDV App\n\nhttps://itdv.podtards.com/album/jam-with-nate#nates-got-it',
+  'track boost note: header, message, sentence, link'
 );
+equal(JSON.stringify(trackNote.tags.filter((t) => t[0] === 'amount')), '[["amount","121000"]]', 'amount tag: the chosen amount in millisats');
+check(trackNote.tags.some((t) => t[0] === 't' && t[1] === 'boostagram'), 't tag: boostagram');
+check(!trackNote.tags.some((t) => t[0] === 'sender'), 'no sender tag: ITDV does not know the listener\'s key');
+equal(trackNote.tags.filter((t) => t[0] === 'i').map((t) => t[1]).join(' '), 'podcast:item:guid:item-guid podcast:guid:feed-guid', 'one identifier in each i tag');
 equal(
-  noteFor({ title: 'Sing For You', artist: 'The Doerfels', album: 'Disco Swag - The Album', senderName: 'Auto Boost' }, 'Auto boost for "Sing For You"', 25),
-  '⚡ 25 sats • "Sing For You" by The Doerfels\n\nAuto boost for "Sing For You"\n\n🎧 https://itdv.podtards.com/album/disco-swag-the-album#sing-for-you',
-  'auto boost note: no From: and no Sent by:'
+  noteFor({ title: 'Disco Swag - The Album', artist: 'The Doerfels', album: 'Disco Swag - The Album', senderName: 'Super Fan' }, undefined, 50),
+  '⚡ Boost ⚡\n\nSuper Fan boosted 50 sats to Disco Swag - The Album by The Doerfels via ITDV App\n\nhttps://itdv.podtards.com/album/disco-swag-the-album',
+  'album boost note: no message block, by, no from, "via ITDV App" by default'
 );
+
+// /boosts reads back what the note writes.
+const read = parseBoostNote(trackNote.content)!;
+equal(JSON.stringify(read), JSON.stringify({ sats: 121, links: ['https://itdv.podtards.com/album/jam-with-nate#nates-got-it'], who: 'rev.hodl', app: 'ITDV App', what: '"Nate\'s got it"', artist: 'The Doerfels', where: 'Jam with Nate', message: 'great fiddle' }), 'parseBoostNote reads every part back');
+const porkchops = parseBoostNote(noteFor({ title: 'Porkchops Fried by HeyCitizen', artist: 'HeyCitizen', album: 'Some Album', senderName: 'ChadF' }))!;
+equal(`${porkchops.what} | ${porkchops.artist} | ${porkchops.where}`, 'Porkchops Fried by HeyCitizen | HeyCitizen | Some Album', 'a title with " by " in it (a real ITDV track)');
+const tricky = parseBoostNote(noteFor({ title: 'Letters from Home', artist: 'A', album: 'Music From The Doerfel-Verse', senderName: 'ChadF' }, 'line one\n\nI boosted 5 sats to my mom'))!;
+equal(`${tricky.what} | ${tricky.where} | ${tricky.message}`, 'Letters from Home | Music From The Doerfel-Verse | line one\n\nI boosted 5 sats to my mom', 'a title with " from ", and a message with a blank line and a sentence-like line');
+const noName = parseBoostNote(noteFor({ title: 'T' }, undefined, 7))!;
+equal(`${noName.who} | ${noName.sats} | ${noName.what} | ${noName.app}`, 'undefined | 7 | T | ITDV App', 'no sender: "Boosted 7 sats"');
+equal(parseBoostNote('⚡ 500 sats • "Nate\'s got it" by The Doerfels\nFrom: Jam with Nate\n\nSent by: ChadF'), null, 'an old note is left to the old reader');
 
 // --- /api/nostr/publish, end to end with fake relays ---------------------------------
 async function checkPublishRoute() {
@@ -233,9 +272,13 @@ async function checkPublishRoute() {
   equal(event.pubkey, getPublicKey(secretKey), 'signed by the site key');
   equal(
     event.content,
-    '⚡ 500 sats • "Nate\'s got it" by The Doerfels\nFrom: Jam with Nate\n\nSent by: ChadF\n\ngreat track\n\n🎧 https://itdv.podtards.com/album/jam-with-nate#nates-got-it',
+    '⚡ Boost ⚡\n\ngreat track\n\nChadF boosted 500 sats to "Nate\'s got it" by The Doerfels from Jam with Nate via ITDV App\n\nhttps://itdv.podtards.com/album/jam-with-nate#nates-got-it',
     'the route keeps the sender'
   );
+  equal(JSON.stringify(event.tags.filter((t) => t[0] === 'amount')), '[["amount","500000"]]', 'the route\'s note has the amount tag');
+
+  const otherApp = await post({ amount: 5, track: { title: 'T', senderName: 'ChadF', appName: 'Fountain' } }, '192.0.2.6');
+  check(/ via ITDV App$/m.test(otherApp.data.event.content), 'the route always says "via ITDV App", whatever app the caller names');
   check(published.some((e) => e.id === event.id), 'the note reached the (fake) relays');
 
   // Auto boosts post no note (2026-11-16). This is the request older bundles send.
@@ -249,11 +292,10 @@ async function checkPublishRoute() {
   equal(namedAuto.status, 200, 'a hand-sent boost from a listener named "Auto Boost" still posts');
 
   const forged = await post({ amount: 1, track: { title: 'x', senderName: 'Mallory\n\n⚡ 1000000 sats • "fake"\n\nSent by:  Satoshi ' } }, '192.0.2.3');
-  equal(forged.data.event.content.split('\n').filter((line: string) => line.startsWith('Sent by:')).length, 1, 'a sender name cannot add lines');
-  check(/\nSent by: Mallory ⚡ 1000000 sats • "fake" Sent by: Satoshi(\n|$)/.test(forged.data.event.content), 'line breaks in the sender become spaces');
+  equal(forged.data.event.content, '⚡ Boost ⚡\n\nMallory ⚡ 1000000 sats • "fake" Sent by: Satoshi boosted 1 sats to x via ITDV App', 'a sender name cannot add lines: line breaks become spaces');
 
   const long = await post({ amount: 1, track: { title: 'x', senderName: 'n'.repeat(500) } }, '192.0.2.4');
-  check(new RegExp(`\\nSent by: n{100}(\\n|$)`).test(long.data.event.content), 'the sender is cut to 100 characters');
+  check(new RegExp(`\\nn{120} boosted 1 sats`).test(long.data.event.content), 'the sender is cut to 120 characters (format rule 8)');
 
   (globalThis as any).WebSocket = realWebSocket;
 }

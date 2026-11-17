@@ -3,7 +3,7 @@
  * Posts boost metadata to a BoostBox instance (tardbox.com)
  */
 
-import { feedTitleOf, type BoostAction, type BoostMetadata } from '@/lib/boostagram';
+import { appNameOf, feedTitleOf, senderNameOf, type BoostAction, type BoostMetadata } from '@/lib/boostagram';
 
 export async function postToBoostBox(
   amount: number,
@@ -27,8 +27,8 @@ export async function postToBoostBox(
     value_msat_total: valueMsat,
     timestamp: new Date().toISOString(),
     message: boostMetadata.message || '',
-    app_name: 'ITDV App',
-    sender_name: boostMetadata.senderName || 'Anonymous',
+    app_name: appNameOf(boostMetadata),
+    sender_name: senderNameOf(boostMetadata),
     feed_guid: boostMetadata.podcastFeedGuid || '',
     // The feed title, as in the TLV `podcast`: the album, not the artist.
     feed_title: feedTitleOf(boostMetadata),

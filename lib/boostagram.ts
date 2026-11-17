@@ -32,6 +32,12 @@ export const TLV_BOOSTAGRAM = 7629169;
 export const TLV_TIP_NOTE = 7629171;
 export const TLV_SPHINX = 133773310;
 
+/** The app_name every ITDV boost sends. The note's "via" must say the same (note rule 7). */
+export const APP_NAME = 'ITDV App';
+
+/** The sender_name when the listener gives none. The note prints it too (note rule 1). */
+export const DEFAULT_SENDER = 'Anonymous';
+
 export interface BoostMetadata {
   title?: string;
   artist?: string;
@@ -49,6 +55,22 @@ export interface BoostMetadata {
   publisherGuid?: string;
   publisherUrl?: string;
   message?: string; // Boostagram message
+  /**
+   * True when the boost is for the whole album. The album boosts still send track 1's
+   * item GUID in the boostagram, as before; the note leaves it out, because its
+   * podcast:item:guid tag says which item was boosted.
+   */
+  boostsAlbum?: boolean;
+}
+
+/** The sender_name this boost's payment carries. The note uses the same string. */
+export function senderNameOf(meta: BoostMetadata): string {
+  return meta.senderName || DEFAULT_SENDER;
+}
+
+/** The app_name this boost's payment carries. The note's "via" uses the same string. */
+export function appNameOf(meta: BoostMetadata): string {
+  return meta.appName || APP_NAME;
 }
 
 /** bLIP-10 actions this app sends. An auto boost is "auto", as in StableKraft. */
@@ -91,7 +113,7 @@ export function buildBoostagram(meta: BoostMetadata, payment: BoostPayment): Rec
     podcast: feedTitleOf(meta),
     episode: meta.title || 'Unknown Title',
     action: payment.action,
-    app_name: meta.appName || 'ITDV App',
+    app_name: appNameOf(meta),
   };
   if (meta.feedUrl) {
     record.feed = meta.feedUrl;
@@ -107,7 +129,7 @@ export function buildBoostagram(meta: BoostMetadata, payment: BoostPayment): Rec
   if (meta.podcastFeedGuid) record.remote_feed_guid = meta.podcastFeedGuid;
   if (album) record.album = album;
   record.value_msat_total = payment.totalSats * 1000;
-  record.sender_name = meta.senderName || 'Anonymous';
+  record.sender_name = senderNameOf(meta);
   record.uuid = `boost-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
   record.app_version = '1.0.0';
   record.value_msat = payment.amountSats * 1000;
@@ -132,10 +154,10 @@ export function buildBoostRecords(meta: BoostMetadata, payment: BoostPayment): R
     podcast: feedTitleOf(meta),
     episode: meta.title || 'Unknown Title',
     action: payment.action,
-    app: meta.appName || 'ITDV App',
+    app: appNameOf(meta),
     message: meta.message || '',
     amount: payment.totalSats,
-    sender: meta.senderName || 'Anonymous',
+    sender: senderNameOf(meta),
   };
   if (meta.timestamp) sphinx.timestamp = meta.timestamp;
   records[TLV_SPHINX] = JSON.stringify(sphinx);

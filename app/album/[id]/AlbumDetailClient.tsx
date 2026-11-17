@@ -1772,6 +1772,7 @@ export default function AlbumDetailClient({ albumTitle, initialAlbum }: AlbumDet
                     senderName: senderName?.trim() || 'Super Fan',
                     message: boostMessage?.trim() || undefined,
                     itemGuid: album.tracks?.[0]?.guid,
+                    boostsAlbum: true,
                     podcastGuid: album.tracks?.[0]?.podcastGuid,
                     podcastFeedGuid: album.feedGuid,
                     feedUrl: album.feedUrl,
