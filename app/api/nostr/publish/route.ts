@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { nip19 } from 'nostr-tools';
 import { BoostToNostrService, type TrackMetadata } from '@/lib/boost-to-nostr-service';
 import { publishToRelays } from '@/lib/relay-publish';
+import { APP_NAME } from '@/lib/boostagram';
+import { MAX_NAME_LENGTH } from '@/lib/boost-note';
 
 /**
  * Sign and publish a boost note as the site's Nostr identity.
@@ -23,7 +25,8 @@ export const dynamic = 'force-dynamic';
 
 const MAX_COMMENT_LENGTH = 500;
 const MAX_FIELD_LENGTH = 300;
-const MAX_SENDER_LENGTH = 100;
+// The shared note format caps every name at 120 (pc20-boost-notes.md rule 8).
+const MAX_SENDER_LENGTH = MAX_NAME_LENGTH;
 const MAX_AMOUNT_SATS = 100_000_000; // 1 BTC — a sanity bound, not a payment check
 
 // Best-effort per-instance throttle. This endpoint posts under the site's
@@ -151,6 +154,9 @@ export async function POST(request: NextRequest) {
     // sent the boost. It was left out from 2026-08-04, and with it "Auto Boost", which
     // createBoostContent uses to leave out the From: and Sent by: lines.
     senderName: cleanLine(body?.track?.senderName, MAX_SENDER_LENGTH),
+    // Every boost this route signs comes from the ITDV app, so the note's "via" is
+    // that app_name, and a caller cannot put another app's name under the site key.
+    appName: APP_NAME,
   };
 
   const comment = cleanString(body?.comment, MAX_COMMENT_LENGTH);

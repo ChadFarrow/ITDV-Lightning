@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { getBoostToNostrService } from '@/lib/boost-to-nostr-service';
+import { getBoostToNostrService, noteTitle } from '@/lib/boost-to-nostr-service';
+import { parseBoostNote } from '@/lib/boost-note';
 import { type Event } from 'nostr-tools';
 import { nip19, SimplePool } from 'nostr-tools';
 import Link from 'next/link';
@@ -47,6 +48,33 @@ interface ParsedReply {
 
 function parseBoostFromEvent(event: Event): ParsedBoost | null {
   try {
+    // Notes since 2026-11-17 use the shared format (lib/boost-note.ts), which starts
+    // "⚡ Boost ⚡". Older notes have no header and go through the reader below,
+    // which stays as it was: a kind 1 cannot be edited, so every old layout remains.
+    const note = parseBoostNote(event.content);
+    if (note) {
+      // The amount tag is the number the sentence's <N> comes from (format rule 22).
+      const amountTag = event.tags.find(tag => tag[0] === 'amount' && /^\d+$/.test(tag[1] || ''));
+      return {
+        id: event.id,
+        author: event.pubkey,
+        authorNpub: nip19.npubEncode(event.pubkey),
+        authorName: event.pubkey.substring(0, 8) + '...',
+        content: event.content,
+        userMessage: note.message,
+        amount: amountTag ? String(Math.floor(Number(amountTag[1]) / 1000)) : String(note.sats),
+        // The card puts the title in its own quotes; some feed titles carry a pair.
+        trackTitle: note.what ? noteTitle(note.what) : undefined,
+        trackArtist: note.artist,
+        trackAlbum: note.who, // the card shows this field as "Sent by:"
+        timestamp: event.created_at,
+        tags: event.tags,
+        url: note.links[0],
+        isFromHelipad: event.tags.some(tag => tag[0] === 't' && tag[1] === 'helipad'),
+        platform: event.tags.some(tag => tag[0] === 't' && tag[1] === 'helipad') ? 'helipad' : 'nostr'
+      };
+    }
+
     // Extract amount from content (looking for "⚡ X sats")
     const amountMatch = event.content.match(/⚡\s*([\d.]+[MkK]?)\s*sats/);
     const amount = amountMatch ? amountMatch[1] : undefined;

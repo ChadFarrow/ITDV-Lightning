@@ -8,8 +8,10 @@ import { useLightning } from '@/contexts/LightningContext';
 import { safeLocalStorage } from '@/lib/safe-storage';
 import { postToBoostBox } from '@/lib/boostbox-service';
 import {
+  appNameOf,
   buildBoostRecords,
   buildLnurlComment,
+  senderNameOf,
   toHexTlvRecords,
   TLV_BOOSTAGRAM,
   TLV_TIP_NOTE,
@@ -296,8 +298,13 @@ export function BitcoinConnectPayment({
         album: boostMetadata.album,
         url: boostMetadata.url,
         imageUrl: boostMetadata.imageUrl,
-        senderName: boostMetadata.senderName,
-        guid: boostMetadata.itemGuid, // Map itemGuid to guid
+        // The note names the sender and the app with the strings the payment
+        // carried (pc20-boost-notes.md rules 1 and 7), defaults included.
+        senderName: senderNameOf(boostMetadata),
+        appName: appNameOf(boostMetadata),
+        // An album boost's metadata holds track 1's item GUID; the note's item tag
+        // would then say track 1 was boosted.
+        guid: boostMetadata.boostsAlbum ? undefined : boostMetadata.itemGuid,
         podcastGuid: boostMetadata.podcastGuid,
         feedGuid: boostMetadata.podcastFeedGuid, // Map podcastFeedGuid to feedGuid
         feedUrl: boostMetadata.feedUrl,

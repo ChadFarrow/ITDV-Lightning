@@ -164,12 +164,37 @@ reads must be added to the route too.
 `contexts/AudioContext.tsx` pays the splits and posts to BoostBox, and does not call the route. The route
 also answers 403 to the request that older bundles sent (sender "Auto Boost" and a comment that starts
 "Auto boost for"), because an open tab keeps its old code until it reloads. Remove that check once no old
-bundle can be open. The "Auto Boost" branch in `createBoostContent` is kept only for that old shape.
+bundle can be open.
 
-`parseBoostFromEvent` in `app/boosts/page.tsx` reads the note text back for the /boosts page. Change it
-in the same commit as any change to `createBoostContent`. It removes the second line when that line
-starts with `From: `. Titles go through `noteTitle` (`lib/boost-to-nostr-service.ts`), because some feed
-titles carry their own quotes and the note wraps the title in quotes again (`""Nate's got it""`).
+**The note uses the shared boost note format** since 2026-11-17: `pc20-boost-notes.md` on
+ChadFarrow/PC20-Nostr `main` (PR #51). `lib/boost-note.ts` writes it and reads it back:
+
+```
+⚡ Boost ⚡
+
+<message>
+
+<sender> boosted <N> sats to <track> by <artist> from <album> via ITDV App
+
+<link>
+```
+
+- `<sender>` and `ITDV App` are the strings the payment carried (`senderNameOf`/`appNameOf` in
+  `lib/boostagram.ts`), defaults included: an unnamed track boost says "Anonymous", an album boost
+  "Super Fan". The route always signs "via ITDV App", whatever app the caller names.
+- An album boost says "to <album> by <artist>" with no "from". Its metadata sets `boostsAlbum`, so the
+  note leaves out the `podcast:item:guid` of track 1 that the album boost's boostagram still sends.
+- Placeholders ("Unknown Artist", "Unknown Album", "Shuffle All") are not printed as names.
+- Tags add `["amount", <msats>]` and `["t", "boostagram"]`. There is no `sender` tag: the site does not
+  know the listener's key.
+
+`parseBoostFromEvent` in `app/boosts/page.tsx` reads notes back for the /boosts page. A note that starts
+`⚡ Boost ⚡` goes to `parseBoostNote`; any other note goes to the old reader, which must stay, because a
+kind 1 cannot be edited and every old layout is still on the relays. Change the writer and the reader in
+the same commit. The sentence is plain text, so `parseBoostNote` splits it by rule: "via" from the end,
+the last " by ", then the first " from " after it ("Porkchops Fried by HeyCitizen" is a real track). Its
+limits are in its comment. The card prints the title in its own quotes, so it goes through `noteTitle`,
+which also keeps the LNURL comment from doubling a feed's quotes (`""Nate's got it""`).
 
 **To check production without posting**, POST `{"amount":0,"track":{"title":"probe"}}` to the route:
 503 "Site Nostr identity is not configured" means the key is missing, 400 "Invalid amount" means it was
@@ -353,9 +378,8 @@ an environment change rather than just code, so don't treat them as fresh discov
   restore them. `admin/feeds/[id]` and `admin/feeds/[id]/refresh` are also 503 stubs, still called by
   `components/AdminPanel.tsx`, so its remove/refresh buttons do nothing — either implement or remove.
 - **Boost gaps left open on 2026-11-16** (the boost metadata fix, see Architecture Notes):
-  - An album boost's note puts the album title where a track title goes and has no "From:" line. The
-    note sentence has no album form, and a new sentence waits on the shared note format that
-    pc20-nostr is drafting. An album boost also sends track 1's item GUID.
+  - An album boost's boostagram (TLV and BoostBox) still sends track 1's item GUID, which Helipad uses
+    to name the boost. Its note no longer does (2026-11-17).
   - The home page and Now Playing boosts pay node splits only, so Lightning-address splits get nothing
     from them. The album page's track boost pays both.
   - The NWC fallback loop in `BitcoinConnect.tsx` ignores `fixedAmount`, so it skips the 2-sat
@@ -364,3 +388,5 @@ an environment change rather than just code, so don't treat them as fresh discov
   - Each split's boostagram gets its own `uuid`, so a receiver cannot group the splits of one boost.
   - /boosts shows "Auto boost for" as the message of the auto-boost notes posted before 2026-11-16 (the
     parser removes the title).
+  - /boosts merges cards with the same title, artist and message (`deduplicateBoosts`) and ignores the
+    sender, so two listeners who boost one track with the same message (or none) show as one card.

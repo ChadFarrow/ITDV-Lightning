@@ -11,6 +11,8 @@ import {
 import { getZapReceiptService, type ZapReceipt } from './zap-receipt-service';
 import { LNURLService } from './lnurl-service';
 import { WebLNService } from './webln-service';
+import { boostNoteContent, boostSentence } from './boost-note';
+import { APP_NAME } from './boostagram';
 
 /**
  * Service for posting track boosts to Nostr
@@ -26,6 +28,7 @@ export interface TrackMetadata {
   timestamp?: number; // Current playback position in seconds
   duration?: number; // Total track duration in seconds
   senderName?: string; // Name of the person sending the boost
+  appName?: string; // The boostagram's app_name; the note says "via" it
   // Podcast-specific metadata (matching RSS parser property names)
   guid?: string; // Standard item GUID
   podcastGuid?: string; // podcast:guid at item level
@@ -38,12 +41,13 @@ export interface TrackMetadata {
 }
 
 /**
- * A title as it goes between the note's quotes. Some feeds put quotes in the title
- * itself — Jam with Nate has `"Nate's got it"`, Autumn Rust has
- * `The Doerfels - "Thank You Value-Verse!"` — and the note wrapped those in a second
- * pair: `""Nate's got it""`. A title inside one pair of quotes loses that pair, and any
- * straight double quote left becomes a curly one, so the note's own pair stays the only
- * straight pair. parseBoostFromEvent (app/boosts/page.tsx) reads the title between them.
+ * A title as it goes between quotes in text that adds its own pair: the LNURL comment
+ * "Boost for "<title>" by …". Some feeds put quotes in the title itself — Jam with
+ * Nate has `"Nate's got it"`, Autumn Rust has `The Doerfels - "Thank You Value-Verse!"`
+ * — and the text wrapped those in a second pair: `""Nate's got it""`. A title inside one
+ * pair of quotes loses that pair, and any straight double quote left becomes a curly
+ * one. The boost note used it too until 2026-11-17; the shared format prints the title
+ * as the feed has it, without quotes of its own.
  */
 export function noteTitle(title: string): string {
   let text = title.trim();
@@ -269,45 +273,23 @@ export class BoostToNostrService {
    */
   private createBoostContent(options: BoostOptions): string {
     const { amount, comment, track } = options;
-    
-    // Get HPM site URL
+
+    // The shared format (lib/boost-note.ts). Since 2026-11-17; app/boosts/page.tsx
+    // reads it back, and keeps its old reader for the notes written before.
     const hpmUrl = this.generateHPMUrl(track);
-    
-    let content = '';
-    
-    // Start with boost amount
-    content = `⚡ ${amount} sats`;
-    
-    // Add track title in quotes
-    if (track.title) {
-      content += ` • "${noteTitle(track.title)}"`;
-    }
-    
-    // Add artist
-    if (track.artist) {
-      content += ` by ${track.artist}`;
-    }
-    
-    // Add album on new line if different from title (skip for auto boosts and Shuffle All)
-    if (track.album && track.album !== track.title && track.senderName !== 'Auto Boost' && track.album !== 'Shuffle All') {
-      content += `\nFrom: ${track.album}`;
-    }
-    
-    // Add sender name if provided (skip for auto boosts)
-    if (track.senderName && track.senderName !== 'Auto Boost') {
-      content += `\n\nSent by: ${track.senderName}`;
-    }
-    
-    // Add user comment if provided
-    if (comment) {
-      content += `\n\n${comment}`;
-    }
-    
-    // Add HPM site URL
-    if (hpmUrl) {
-      content += `\n\n🎧 ${hpmUrl}`;
-    }
-    
+    let content = boostNoteContent({
+      message: comment,
+      sentence: boostSentence({
+        who: track.senderName,
+        sats: amount,
+        what: track.title,
+        artist: track.artist,
+        where: track.album,
+        app: track.appName || APP_NAME,
+      }),
+      links: hpmUrl ? [hpmUrl] : [],
+    });
+
     // Add nevent reference to announcement if available (like Fountain does)
     if (track.announcementEventId) {
       // Create nevent from the announcement event ID
@@ -316,12 +298,10 @@ export class BoostToNostrService {
         relays: this.relays.slice(0, 2),
         kind: 1
       });
-      
+
       content += `\n\nnostr:${announcementNevent}`;
     }
 
-    // Structured metadata is included in the Nostr tags, not in the content
-    
     return content;
   }
 
@@ -396,6 +376,11 @@ export class BoostToNostrService {
     if (options.track.imageUrl) {
       eventTemplate.tags.push(['image', options.track.imageUrl]);
     }
+
+    // The shared format's required tags: the chosen amount in millisats (the number
+    // the sentence's <N> comes from) and the topic that finds boost notes.
+    eventTemplate.tags.push(['amount', String(Math.floor(options.amount) * 1000)]);
+    eventTemplate.tags.push(['t', 'boostagram']);
 
     // Debug: Log final event template with all tags before signing
     console.log('🏷️ Final Nostr event template with all tags:', {

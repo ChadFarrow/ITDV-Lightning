@@ -2118,6 +2118,7 @@ export default function HomePage() {
                   senderName: senderName?.trim() || 'Super Fan',
                   message: boostMessage?.trim() || undefined,
                   itemGuid: selectedAlbum.tracks?.[0]?.guid,
+                  boostsAlbum: true,
                   podcastGuid: selectedAlbum.tracks?.[0]?.podcastGuid,
                   podcastFeedGuid: selectedAlbum.feedGuid,
                   feedUrl: selectedAlbum.feedUrl,
