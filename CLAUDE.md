@@ -160,6 +160,12 @@ that is not on that list never reaches `createBoostContent`. When signing moved 
 the "Auto Boost" sender that hides the "From:" line. Fixed on 2026-11-16. A new field that the note text
 reads must be added to the route too.
 
+**Auto boosts post no Nostr note** (Chad's decision, 2026-11-16). `triggerAutoBoost` in
+`contexts/AudioContext.tsx` pays the splits and posts to BoostBox, and does not call the route. The route
+also answers 403 to the request that older bundles sent (sender "Auto Boost" and a comment that starts
+"Auto boost for"), because an open tab keeps its old code until it reloads. Remove that check once no old
+bundle can be open. The "Auto Boost" branch in `createBoostContent` is kept only for that old shape.
+
 `parseBoostFromEvent` in `app/boosts/page.tsx` reads the note text back for the /boosts page. Change it
 in the same commit as any change to `createBoostContent`. It removes the second line when that line
 starts with `From: `. Titles go through `noteTitle` (`lib/boost-to-nostr-service.ts`), because some feed
@@ -171,9 +177,10 @@ found. To confirm a real boost, ask the relays for its event id. Do not rely on 
 view — it returned nothing for this project, even for requests that log.
 
 Each ITDV boost produces **two** notes: one from the site key here, and one from Helipad-to-Nostr-BoostBot
-(its own key, "📱 via ITDV App"), which posts whatever the Helipad node receives. Since 2026-11-16 an auto
-boost sends action `auto`, not `boost`. BoostBot's default send rules post `boost` only, so by default an
-auto boost gets the site note alone. Helipad still lists auto boosts with the boosts (clock icon).
+(its own key, "📱 via ITDV App"), which posts whatever the Helipad node receives. An auto boost gets no site
+note (above), and since 2026-11-16 it sends action `auto`, not `boost`. BoostBot's default send rules post
+`boost` only, so by default an auto boost gets no Nostr note at all. Helipad still lists auto boosts with
+the boosts (clock icon).
 
 ### Boost payment records (`lib/boostagram.ts`)
 The manual boost (`components/BitcoinConnect.tsx`) and the auto boost (`utils/payment-utils.ts`) build
@@ -355,4 +362,5 @@ an environment change rather than just code, so don't treat them as fresh discov
     "ITDV Site Metadata" payment.
   - `lib/nwc-service.ts` `payKeysend` reads an amount of 1,000,000 or more as msats.
   - Each split's boostagram gets its own `uuid`, so a receiver cannot group the splits of one boost.
-  - /boosts shows "Auto boost for" as the message of an auto boost (the parser removes the title).
+  - /boosts shows "Auto boost for" as the message of the auto-boost notes posted before 2026-11-16 (the
+    parser removes the title).

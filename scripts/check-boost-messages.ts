@@ -238,8 +238,15 @@ async function checkPublishRoute() {
   );
   check(published.some((e) => e.id === event.id), 'the note reached the (fake) relays');
 
+  // Auto boosts post no note (2026-11-16). This is the request older bundles send.
+  const before = published.length;
   const auto = await post({ amount: 25, comment: 'Auto boost for "Sing For You"', track: { title: 'Sing For You', artist: 'The Doerfels', album: 'Disco Swag - The Album', senderName: 'Auto Boost' } }, '192.0.2.2');
-  check(!/From:|Sent by:/.test(auto.data.event.content), 'the route keeps "Auto Boost", so the auto boost note has no From: or Sent by:');
+  equal(auto.status, 403, 'the route refuses an auto boost note');
+  equal(auto.data.error, 'Auto boosts are not posted to Nostr', 'the refusal says why');
+  equal(published.length, before, 'no auto boost note reaches a relay');
+
+  const namedAuto = await post({ amount: 25, comment: 'love this one', track: { title: 'Sing For You', artist: 'The Doerfels', senderName: 'Auto Boost' } }, '192.0.2.5');
+  equal(namedAuto.status, 200, 'a hand-sent boost from a listener named "Auto Boost" still posts');
 
   const forged = await post({ amount: 1, track: { title: 'x', senderName: 'Mallory\n\n⚡ 1000000 sats • "fake"\n\nSent by:  Satoshi ' } }, '192.0.2.3');
   equal(forged.data.event.content.split('\n').filter((line: string) => line.startsWith('Sent by:')).length, 1, 'a sender name cannot add lines');

@@ -3,9 +3,7 @@
 import React, { createContext, useContext, useState, useRef, useEffect, useCallback } from 'react';
 import { toast } from '@/components/Toast';
 import { makeAutoBoostPayment } from '@/utils/payment-utils';
-import { useBoostToNostr } from '@/hooks/useBoostToNostr';
 import { postToBoostBox } from '@/lib/boostbox-service';
-import { noteTitle } from '@/lib/boost-to-nostr-service';
 
 interface Track {
   title: string;
@@ -114,11 +112,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Auto Boost state - hardcoded to 25 sats for testing
   const [isAutoBoostEnabled, setIsAutoBoostEnabled] = useState(false);
   const [autoBoostAmount, setAutoBoostAmount] = useState(25);
-
-  // Initialize Nostr boost system for auto boosts
-  const { postBoost, generateKeys, publicKey } = useBoostToNostr({ 
-    autoGenerateKeys: typeof window !== 'undefined'
-  });
 
   // Initialize audio element
   useEffect(() => {
@@ -584,39 +577,9 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       });
 
       if (paymentResult.success) {
-        // Post to Nostr after successful Lightning payment
-        try {
-          const trackMetadata = {
-            title: track.title,
-            artist: track.artist,
-            album: track.album || (currentAlbum !== 'Shuffle All' ? currentAlbum : undefined) || undefined, // Use track's actual album, avoid 'Shuffle All'
-            url: track.album ? `https://itdv.podtards.com/album/${encodeURIComponent(track.album)}#${encodeURIComponent(track.title || '')}` : 'https://itdv.podtards.com',
-            imageUrl: track.imageUrl || track.image,
-            timestamp: Math.floor(currentTime),
-            duration: duration ? Math.floor(duration) : undefined,
-            senderName: 'Auto Boost',
-            guid: track.guid,
-            podcastGuid: track.podcastGuid,
-            feedGuid: track.feedGuid,
-            feedUrl: track.feedUrl,
-            publisherGuid: track.publisherGuid,
-            publisherUrl: track.publisherUrl
-          };
-
-          const nostrResult = await postBoost(
-            autoBoostAmount,
-            trackMetadata,
-            `Auto boost for "${noteTitle(track.title || 'Unknown Song')}"` // Identify auto boost in Nostr
-          );
-
-          if (nostrResult.success) {
-            console.log('✅ Auto boost posted to Nostr:', nostrResult.eventId);
-          } else {
-            console.warn('⚠️ Auto boost Nostr post failed:', nostrResult.error);
-          }
-        } catch (nostrError) {
-          console.warn('⚠️ Auto boost Nostr post failed:', nostrError);
-        }
+        // An auto boost posts no Nostr note (Chad's decision, 2026-11-16). The payment
+        // and its metadata still go to every split and to BoostBox, so Helipad still
+        // lists it. /api/nostr/publish also refuses the request that older bundles send.
 
         // Post to BoostBox (fire-and-forget)
         postToBoostBox(autoBoostAmount, boostMetadata, 'auto').catch(err =>
@@ -633,7 +596,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       console.error('Auto boost failed:', error);
       toast.error(`Auto boost failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-  }, [autoBoostAmount, currentAlbum, currentTime, duration, postBoost]);
+  }, [autoBoostAmount, currentAlbum, currentTime]);
 
   // Handle track ended event - needs to be after nextTrack is declared
   useEffect(() => {

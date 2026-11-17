@@ -155,6 +155,17 @@ export async function POST(request: NextRequest) {
 
   const comment = cleanString(body?.comment, MAX_COMMENT_LENGTH);
 
+  // An auto boost posts no Nostr note (Chad's decision, 2026-11-16). The client no
+  // longer asks, but a tab still running an older bundle sends this exact request
+  // until it reloads, so refuse it here. Both parts must match: a listener who names
+  // themselves "Auto Boost" still gets a note for a boost they send by hand.
+  if (track.senderName === 'Auto Boost' && comment && comment.indexOf('Auto boost for') === 0) {
+    return NextResponse.json(
+      { success: false, error: 'Auto boosts are not posted to Nostr' },
+      { status: 403 }
+    );
+  }
+
   try {
     const service = new BoostToNostrService([], secretKey);
     const { event } = service.signBoost({
