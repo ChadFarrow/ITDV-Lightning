@@ -191,7 +191,9 @@ ChadFarrow/PC20-Nostr `main` (PR #51). `lib/boost-note.ts` writes it and reads i
 `parseBoostFromEvent` in `app/boosts/page.tsx` reads notes back for the /boosts page. A note that starts
 `⚡ Boost ⚡` goes to `parseBoostNote`; any other note goes to the old reader, which must stay, because a
 kind 1 cannot be edited and every old layout is still on the relays. Change the writer and the reader in
-the same commit. The sentence is plain text, so `parseBoostNote` splits it by rule: "via" from the end,
+the same commit. The old writer put its own quotes around a feed title that already carried a pair
+(`⚡ 25 sats • "CityBeach - "Hey, You're Up!"" by …`), so the old reader takes such a title from the first
+line, up to the last quote before " by ", and passes it through `noteTitle` (fixed 2026-11-17; 11 notes). The sentence is plain text, so `parseBoostNote` splits it by rule: "via" from the end,
 the last " by ", then the first " from " after it ("Porkchops Fried by HeyCitizen" is a real track). Its
 limits are in its comment. The card prints the title in its own quotes, so it goes through `noteTitle`,
 which also keeps the LNURL comment from doubling a feed's quotes (`""Nate's got it""`).
