@@ -1,12 +1,15 @@
 /**
  * BoostBox integration service
- * Posts boost/stream metadata to a BoostBox instance (tardbox.com)
+ * Posts boost metadata to a BoostBox instance (tardbox.com)
  */
+
+import { feedTitleOf, type BoostAction, type BoostMetadata } from '@/lib/boostagram';
 
 export async function postToBoostBox(
   amount: number,
-  boostMetadata: Record<string, any>,
-  action: 'boost' | 'stream' = 'boost'
+  boostMetadata: BoostMetadata,
+  // The same action as the keysend's TLV: an auto boost is "auto" in both.
+  action: BoostAction = 'boost'
 ): Promise<{ id: string; url: string; desc: string } | null> {
   const url = process.env.NEXT_PUBLIC_BOOSTBOX_URL;
   const apiKey = process.env.NEXT_PUBLIC_BOOSTBOX_API_KEY;
@@ -27,7 +30,8 @@ export async function postToBoostBox(
     app_name: 'ITDV App',
     sender_name: boostMetadata.senderName || 'Anonymous',
     feed_guid: boostMetadata.podcastFeedGuid || '',
-    feed_title: boostMetadata.artist || '',
+    // The feed title, as in the TLV `podcast`: the album, not the artist.
+    feed_title: feedTitleOf(boostMetadata),
     item_guid: boostMetadata.itemGuid || '',
     item_title: boostMetadata.title || '',
     publisher_guid: boostMetadata.publisherGuid || '',

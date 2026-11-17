@@ -154,13 +154,45 @@ calls `ws.close()`, and Node's built-in WebSocket fires `error` again at once fo
 connected, so one dead relay recursed into a stack overflow (reproduced on Node 22.16). It removes its
 handlers before closing. Its checks: `node --experimental-strip-types scripts/check-relay-publish.mjs`.
 
+The route rebuilds the track from the request field by field (`cleanString`/`cleanLine`), so a field
+that is not on that list never reaches `createBoostContent`. When signing moved server-side on
+2026-08-04 the list left out `senderName`: every site note lost its "Sent by:" line, and auto boosts lost
+the "Auto Boost" sender that hides the "From:" line. Fixed on 2026-11-16. A new field that the note text
+reads must be added to the route too.
+
+`parseBoostFromEvent` in `app/boosts/page.tsx` reads the note text back for the /boosts page. Change it
+in the same commit as any change to `createBoostContent`. It removes the second line when that line
+starts with `From: `. Titles go through `noteTitle` (`lib/boost-to-nostr-service.ts`), because some feed
+titles carry their own quotes and the note wraps the title in quotes again (`""Nate's got it""`).
+
 **To check production without posting**, POST `{"amount":0,"track":{"title":"probe"}}` to the route:
 503 "Site Nostr identity is not configured" means the key is missing, 400 "Invalid amount" means it was
 found. To confirm a real boost, ask the relays for its event id. Do not rely on the Vercel runtime logs
 view — it returned nothing for this project, even for requests that log.
 
 Each ITDV boost produces **two** notes: one from the site key here, and one from Helipad-to-Nostr-BoostBot
-(its own key, "📱 via ITDV App"), which posts whatever the Helipad node receives.
+(its own key, "📱 via ITDV App"), which posts whatever the Helipad node receives. Since 2026-11-16 an auto
+boost sends action `auto`, not `boost`. BoostBot's default send rules post `boost` only, so by default an
+auto boost gets the site note alone. Helipad still lists auto boosts with the boosts (clock icon).
+
+### Boost payment records (`lib/boostagram.ts`)
+The manual boost (`components/BitcoinConnect.tsx`) and the auto boost (`utils/payment-utils.ts`) build
+their keysend records here: bLIP-10 JSON in TLV 7629169, the message in 7629171, Sphinx in 133773310.
+They kept two copies until 2026-11-16, and the copies drifted. The file header records each field choice
+and the reason; read it before you add, rename or drop a field. In short:
+
+- `podcast` is the feed title, which for an ITDV album is the album. `guid` is the feed GUID.
+- `remote_feed_guid`/`remote_item_guid` stay on purpose: Helipad names the song from them, and BoostBot
+  builds its lnbeats link from `remote_feed_guid`. There is no `feedID`: the old numbers were wrong.
+- `value_msat` is the one split's amount; `value_msat_total` is the whole boost.
+- An auto boost is action `auto`, in the TLV and in BoostBox (`postToBoostBox(..., 'auto')`).
+- WebLN `keysend({ customRecords })` takes **text** values; the wallet encodes them. NWC `pay_keysend`
+  takes hex, through `toHexTlvRecords`. The auto boost once put hex into WebLN, so receivers got hex text.
+- A Lightning-address split is paid through LNURL-pay. `buildLnurlComment` adds the sender and the
+  message, and `lib/lnurl-service.ts` cuts the comment to the LUD-12 `commentAllowed` length.
+
+`npx tsx scripts/check-boost-messages.ts` asserts the records, the LNURL comment, the note text and the
+publish route (with fake relays and a throwaway key). Run it after you touch any of these files.
 
 ### Context callbacks must be memoized (`contexts/AudioContext.tsx`)
 `AudioContext` publishes `currentTime` on every `timeupdate`, so its value object is rebuilt several
@@ -230,7 +262,10 @@ npm run build                                 # also runs lint; the only full ty
 npx next lint                                 # should report zero warnings — keep it there
 ADMIN_PASSWORD=<same> ./scripts/security-smoke.sh   # 32 checks, needs dev running
 npx tsx scripts/backfill-album-dates.ts       # asserts the date extractor still agrees
+npx tsx scripts/check-boost-messages.ts       # boost records, LNURL comment, note text, publish route
 ```
+
+`security-smoke.sh` takes the base URL as its first argument (default `http://localhost:3000`).
 
 **Do not run `npm run build` while `npm run dev` is running.** The build rewrites `.next`, and the
 live dev server then fails every request with `Cannot find module './vendor-chunks/*.js'` or serves
@@ -310,3 +345,14 @@ an environment change rather than just code, so don't treat them as fresh discov
   exists), `clear-feeds` (`DELETE FROM feeds`, no caller), and `migrate-feeds` (a 503 stub). Don't
   restore them. `admin/feeds/[id]` and `admin/feeds/[id]/refresh` are also 503 stubs, still called by
   `components/AdminPanel.tsx`, so its remove/refresh buttons do nothing — either implement or remove.
+- **Boost gaps left open on 2026-11-16** (the boost metadata fix, see Architecture Notes):
+  - An album boost's note puts the album title where a track title goes and has no "From:" line. The
+    note sentence has no album form, and a new sentence waits on the shared note format that
+    pc20-nostr is drafting. An album boost also sends track 1's item GUID.
+  - The home page and Now Playing boosts pay node splits only, so Lightning-address splits get nothing
+    from them. The album page's track boost pays both.
+  - The NWC fallback loop in `BitcoinConnect.tsx` ignores `fixedAmount`, so it skips the 2-sat
+    "ITDV Site Metadata" payment.
+  - `lib/nwc-service.ts` `payKeysend` reads an amount of 1,000,000 or more as msats.
+  - Each split's boostagram gets its own `uuid`, so a receiver cannot group the splits of one boost.
+  - /boosts shows "Auto boost for" as the message of an auto boost (the parser removes the title).

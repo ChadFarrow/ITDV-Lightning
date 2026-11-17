@@ -239,10 +239,14 @@ export async function POST(request: NextRequest) {
       });
     }
     
-    // Post the boost to Nostr
+    // Post the boost to Nostr. This branch does not run today: the server-side service
+    // has no key, so the route returns above. If a key is ever added, note that
+    // postBoost publishes in the background, which a Vercel function cuts off — use
+    // signBoost + publishToRelays as /api/nostr/publish does.
     console.log('🚀 Posting Helipad boost to Nostr...');
     const boostResult = await boostService.postBoost({
-      amount: mappedBoostData.value_msat,
+      // The note says "⚡ N sats"; Helipad sends millisats.
+      amount: Math.floor(mappedBoostData.value_msat / 1000),
       track: trackMetadata,
       comment: mappedBoostData.message,
       tags: ['#helipad', '#boost', '#podcast']

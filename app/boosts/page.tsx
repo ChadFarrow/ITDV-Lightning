@@ -94,8 +94,14 @@ function parseBoostFromEvent(event: Event): ParsedBoost | null {
     if (trackAlbum) {
       userMessage = userMessage.replace(new RegExp(`Sent\\s+by:?\\s*${trackAlbum.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'gi'), '').trim();
     }
-    // Remove "From: [album name] " prefix - keep only the user's actual message
-    userMessage = userMessage.replace(/^From:\s*.*?\s+([A-Z][a-z]+)/, '$1').trim();
+    // Remove the note's album line. createBoostContent puts it on the second line as
+    // "From: {album}", so remove exactly that line. The capital-letter guess that was
+    // here kept a word of the album: "From: Jam with Nate" left "Nate" in front of the
+    // message, and a Now Playing boost in shuffle now has this line too.
+    const albumLine = event.content.split('\n')[1];
+    if (albumLine && albumLine.indexOf('From: ') === 0) {
+      userMessage = userMessage.replace(albumLine, '').trim();
+    }
     userMessage = userMessage.replace(/🎧\s*https?:\/\/[^\s]+/, '').trim();
     userMessage = userMessage.replace(/nostr:[a-zA-Z0-9]+/, '').trim();
     userMessage = userMessage.replace(/\n+/g, ' ').trim();

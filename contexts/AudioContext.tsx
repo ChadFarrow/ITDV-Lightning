@@ -5,6 +5,7 @@ import { toast } from '@/components/Toast';
 import { makeAutoBoostPayment } from '@/utils/payment-utils';
 import { useBoostToNostr } from '@/hooks/useBoostToNostr';
 import { postToBoostBox } from '@/lib/boostbox-service';
+import { noteTitle } from '@/lib/boost-to-nostr-service';
 
 interface Track {
   title: string;
@@ -605,7 +606,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           const nostrResult = await postBoost(
             autoBoostAmount,
             trackMetadata,
-            `Auto boost for "${track.title}"` // Identify auto boost in Nostr
+            `Auto boost for "${noteTitle(track.title || 'Unknown Song')}"` // Identify auto boost in Nostr
           );
 
           if (nostrResult.success) {
@@ -618,7 +619,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
 
         // Post to BoostBox (fire-and-forget)
-        postToBoostBox(autoBoostAmount, boostMetadata, 'stream').catch(err =>
+        postToBoostBox(autoBoostAmount, boostMetadata, 'auto').catch(err =>
           console.warn('BoostBox auto-boost post failed:', err)
         );
 

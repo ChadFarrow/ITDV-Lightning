@@ -864,7 +864,8 @@ const NowPlayingScreen: React.FC<NowPlayingScreenProps> = ({ isOpen, onClose }) 
                 boostMetadata={{
                   title: currentTrack?.title || 'Unknown Song',
                   artist: currentTrack?.artist || currentAlbum || 'Unknown Artist',
-                  album: currentAlbum || 'Unknown Album',
+                  // In shuffle, currentAlbum is the playlist name; the feed is the track's own album.
+                  album: (currentAlbum === 'Shuffle All' ? currentTrack?.album : currentAlbum) || 'Unknown Album',
                   episode: currentTrack?.title,
                   url: currentAlbum ? `https://itdv.podtards.com/album/${encodeURIComponent(currentAlbum)}#${encodeURIComponent(currentTrack?.title || '')}` : 'https://itdv.podtards.com',
                   appName: 'ITDV App',
