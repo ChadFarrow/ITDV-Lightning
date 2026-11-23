@@ -125,8 +125,23 @@ back **from our own origin**. Passing the upstream `Content-Type` through unchec
 can carry script, so it gets a sandbox CSP. `application/octet-stream` is permitted for audio only,
 because podcast hosts commonly serve MP3s that way.
 
-`scripts/security-smoke.sh` asserts all of the above (32 checks). Run it against a dev server after
+`scripts/security-smoke.sh` asserts all of the above (34 checks). Run it against a dev server after
 touching auth, the proxies, or `/api/optimized-images`.
+
+### Next is pinned to 15.5.28 on purpose (`package.json`)
+Next 15.5.29 (its fix for GHSA-pc58-hwjq-p385) strips `content-length`, `content-encoding` and
+`transfer-encoding` from **every** route-handler response. `/api/proxy-audio` then answered a Range
+request with a chunked 206 and no `Content-Length`, where production on 15.4.8 sent one (measured
+2026-11-23). Typecheck, lint and build stay green; only a running build shows it, so the last two checks
+of `security-smoke.sh` assert the 206's `Content-Length` and `Content-Range`. 15.5.28 already has the
+critical and high Next fixes. The three moderates it leaves open do not apply here: two are for
+self-hosted Next (this site runs on Vercel), and one is for Edge-runtime route handlers that set
+cookies (there are none). Move past 15.5.28 only to a version on which `security-smoke.sh` passes
+against `next start`.
+
+`overrides.next.postcss` lifts the `postcss` that Next 15 pins (8.4.31) to the patched 8.5 line. The
+compiled CSS was byte-identical with and without it. Drop the override when Next itself ships
+postcss ≥ 8.5.23 (Next 16 does).
 
 ### Secrets and the `NEXT_PUBLIC_` prefix
 Next inlines every `NEXT_PUBLIC_*` value into the client bundle at build time. A private key with that
@@ -294,12 +309,16 @@ ADMIN_PASSWORD=<anything> npm run dev         # without it every admin route 401
 npx tsc --noEmit                              # fastest correctness check
 npm run build                                 # also runs lint; the only full type gate
 npx next lint                                 # should report zero warnings — keep it there
-ADMIN_PASSWORD=<same> ./scripts/security-smoke.sh   # 32 checks, needs dev running
+ADMIN_PASSWORD=<same> ./scripts/security-smoke.sh   # 34 checks, needs dev (or next start) running
 npx tsx scripts/backfill-album-dates.ts       # asserts the date extractor still agrees
 npx tsx scripts/check-boost-messages.ts       # boost records, LNURL comment, note text, publish route
 ```
 
 `security-smoke.sh` takes the base URL as its first argument (default `http://localhost:3000`).
+After a Next upgrade, run it against `npm run build && next start`, not only dev (see "Next is pinned").
+
+`backfill-album-dates.ts` rewrites the `indexedAt` timestamp in `public/album-index.json` on every run.
+When that is its only change, revert the file rather than commit it.
 
 **Do not run `npm run build` while `npm run dev` is running.** The build rewrites `.next`, and the
 live dev server then fails every request with `Cannot find module './vendor-chunks/*.js'` or serves

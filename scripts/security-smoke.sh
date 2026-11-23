@@ -28,6 +28,20 @@ check() {
   fi
 }
 
+# check_header <want> <desc> <header-name> <curl args...>
+# Asserts one response header matches the wanted value, a bash glob (empty = header missing).
+check_header() {
+  local want="$1" desc="$2" name="$3"; shift 3
+  local got
+  got="$(curl -sS -o /dev/null -D - "$@" | tr -d '\r' | grep -i "^$name:" | head -1 | cut -d' ' -f2-)"
+  # shellcheck disable=SC2053 # unquoted right side on purpose: it is a glob
+  if [ -n "$got" ] && [[ "$got" == $want ]]; then
+    printf '  ok    %-58s %s\n' "$desc" "$got"; pass=$((pass + 1))
+  else
+    printf '  FAIL  %-58s want %s got %s\n' "$desc" "$want" "${got:-<missing>}"; fail=$((fail + 1))
+  fi
+}
+
 echo "== path traversal (/api/optimized-images) must not escape the directory"
 for p in '..%2F..%2Fpackage.json' '..%2f..%2f.env.local' '..%2F..%2Fdata%2Ffeeds.json' \
          '..%2F..%2F..%2F..%2F..%2F..%2Fetc%2Fhosts' '..%5C..%5Cpackage.json' '.env.local'; do
@@ -67,6 +81,15 @@ check 403 "proxy-audio refuses localhost" "$BASE/api/proxy-audio?url=https://loc
 echo "== legitimate media still flows"
 check 200 "real album art proxies" "$BASE/api/proxy-image?url=https://www.doerfelverse.com/art/them.png"
 check 206 "real audio streams with Range" -r 0-1024 \
+  "$BASE/api/proxy-audio?url=https://www.doerfelverse.com/tracks/disco-swag.mp3"
+
+# Next 15.5.29 (GHSA-pc58-hwjq-p385 fix) strips Content-Length from every route-handler
+# response, so the proxied 206 went out chunked with no length. Production on 15.4.8 sent it.
+# Next 15.5.28 keeps it. Bump past 15.5.28 only once these two checks pass on the new version.
+echo "== proxied range responses keep their framing headers"
+check_header "1025" "audio 206 carries Content-Length" content-length -r 0-1024 \
+  "$BASE/api/proxy-audio?url=https://www.doerfelverse.com/tracks/disco-swag.mp3"
+check_header "bytes 0-1024/*" "audio 206 carries Content-Range" content-range -r 0-1024 \
   "$BASE/api/proxy-audio?url=https://www.doerfelverse.com/tracks/disco-swag.mp3"
 
 echo

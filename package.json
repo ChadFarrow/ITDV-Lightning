@@ -53,7 +53,7 @@
     "fast-xml-parser": "^5.2.5",
     "hls.js": "^1.6.7",
     "lucide-react": "^0.294.0",
-    "next": "15.4.8",
+    "next": "15.5.28",
     "next-pwa": "^5.6.0",
     "node-fetch": "^2.7.0",
     "nostr-tools": "^2.25.2",
@@ -67,18 +67,22 @@
     "typescript": "^5",
     "url": "^0.11.4",
     "util": "^0.12.5",
-    "xml2js": "^0.6.2",
-    "xmldom": "^0.6.0"
+    "xml2js": "^0.6.2"
   },
   "devDependencies": {
-    "@capacitor/android": "^7.4.2",
-    "@capacitor/cli": "^7.4.2",
-    "@capacitor/core": "^7.4.2",
+    "@capacitor/android": "^7.6.10",
+    "@capacitor/cli": "^7.6.10",
+    "@capacitor/core": "^7.6.10",
     "@types/canvas-confetti": "^1.9.0",
     "eslint": "^8",
     "eslint-config-next": "^14.0.4",
     "sharp": "^0.34.3",
     "task-master-ai": "^0.22.0"
+  },
+  "overrides": {
+    "next": {
+      "postcss": "^8.5.23"
+    }
   },
   "buildTime": "2025-07-30T00:17:52.716Z",
   "engines": {
