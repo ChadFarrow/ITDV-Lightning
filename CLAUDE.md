@@ -243,6 +243,29 @@ and the reason; read it before you add, rename or drop a field. In short:
 `npx tsx scripts/check-boost-messages.ts` asserts the records, the LNURL comment, the note text and the
 publish route (with fake relays and a throwaway key). Run it after you touch any of these files.
 
+### /boosts sources (`app/boosts/page.tsx`)
+The page (Doerfel-Pad) merges three sources. They are read in the browser.
+
+- **The site's own boost notes** (`NEXT_PUBLIC_SITE_NOSTR_NPUB`, the 200 newest): album boosts from this app.
+- **Boostr Bot notes** (since 2026-11-24). Boostr_Bot (`adab4ccd…0649`, Chad's BoostBox Nostr bot) is a 1%
+  split (`boostr@getalby.com`) in the Into The Doerfel-Verse podcast feed and posts each boostagram it
+  receives as a kind 1. The page reads only notes with `["i","podcast:guid:41aace28-8679-5ef1-9958-75cf76c2b5f0"]`
+  (Chad: the bot is in no other ITDV feed), all of them, paged with `until`
+  (`BoostToNostrService.fetchAllUserBoosts`). The live subscription takes all of the bot's notes, and
+  `parseBoostrNote` drops the other shows. `lib/boostr-note.ts` reads the text; its layout is boostbox's
+  `->note-content` (ChadFarrow/boostbox `src/boostbox/boostagram.clj`), so change the two together. The
+  split is only on the livestream item and Ep 74 and later (2026-09-16 on), so older episodes' boosts never
+  reach the bot.
+- **TJ's Helipad webhook** (`/api/helipad-webhook` into Postgres, read by `/api/helipad-boosts`): every boost
+  TJ's node receives, albums included. TJ entered it in his Helipad; it requires `HELIPAD_AUTH_TOKEN` as a
+  Bearer token (a POST without it gets 401). On 2026-11-24 the store held 0 rows. Helipad sends only new
+  boosts; old ones come back only from a Helipad CSV export.
+
+A Helipad record that is the same boost as a Boostr card is hidden (Chad: "check for duplicates and hide
+them"): same total sats, same message, at most 600 s apart, and not a stream (`sameBoost` in
+`lib/boost-dedupe.ts`). The localStorage cache is `boosts_cache_v2`; bump it again when the card fields change.
+`npx tsx scripts/check-boostr-notes.ts` covers the reader, the dedupe and the backfill paging.
+
 ### Context callbacks must be memoized (`contexts/AudioContext.tsx`)
 `AudioContext` publishes `currentTime` on every `timeupdate`, so its value object is rebuilt several
 times a second during playback and every `useAudio()` consumer re-renders. That is fine as long as the
@@ -410,5 +433,6 @@ an environment change rather than just code, so don't treat them as fresh discov
   - Each split's boostagram gets its own `uuid`, so a receiver cannot group the splits of one boost.
   - /boosts shows "Auto boost for" as the message of the auto-boost notes posted before 2026-11-16 (the
     parser removes the title).
-  - /boosts merges cards with the same title, artist and message (`deduplicateBoosts`) and ignores the
-    sender, so two listeners who boost one track with the same message (or none) show as one card.
+  - /boosts merges site and Helipad cards with the same title, artist and message (`deduplicateBoosts`,
+    `lib/boost-dedupe.ts`) and ignores the sender, so two listeners who boost one track with the same
+    message (or none) show as one card. Boostr Bot cards are exempt: they are keyed by event id.

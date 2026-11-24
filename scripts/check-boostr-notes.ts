@@ -4,13 +4,15 @@
 //
 // It covers lib/boostr-note.ts (the reader for Boostr_Bot's kind 1 notes) against the 31 real
 // ITDV notes in scripts/fixtures/boostr-itdv-notes.json, saved from the relays on 2026-11-24,
-// and lib/boost-dedupe.ts (which cards /boosts hides as duplicates).
+// lib/boost-dedupe.ts (which cards /boosts hides as duplicates) and the backfill in
+// BoostToNostrService.fetchAllUserBoosts, with a fake relay pool.
 // Nothing leaves this process.
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { BOOSTR_BOT_PUBKEY, ITDV_PODCAST_I_TAG, parseBoostrNote } from '../lib/boostr-note';
 import { deduplicateBoosts, type DedupeInput } from '../lib/boost-dedupe';
+import { BoostToNostrService } from '../lib/boost-to-nostr-service';
 
 let checks = 0;
 function fail(message: string): never {
@@ -136,6 +138,38 @@ function checkDedupe() {
   equal(ordered.map(b => b.id).join(','), 's1,e1,s2', 'the input order is kept');
 }
 
-checkReader();
-checkDedupe();
-console.log(`✅ ${checks} checks passed`);
+async function checkBackfill() {
+  // A fake pool: serves the fixtures newest first, `limit` at a time, below `until`.
+  const filters: Array<Record<string, unknown>> = [];
+  const sorted = fixtures.slice().sort((a, b) => b.created_at - a.created_at);
+  const service = new BoostToNostrService(['wss://fake.example']);
+  (service as unknown as { pool: unknown }).pool = {
+    querySync: async (_relays: string[], filter: { limit: number; until?: number }) => {
+      filters.push(filter as unknown as Record<string, unknown>);
+      const below = sorted.filter(e => filter.until === undefined || e.created_at <= filter.until);
+      const page = below.slice(0, filter.limit);
+      return page.concat(page.slice(0, 1)); // a relay can repeat an event; the result must not
+    },
+  };
+
+  const all = await service.fetchAllUserBoosts(BOOSTR_BOT_PUBKEY, [ITDV_PODCAST_I_TAG], 10);
+  equal(all.length, 31, 'backfill returns every note once');
+  equal(all[0].created_at, sorted[0].created_at, 'newest first');
+  equal(all[30].created_at, sorted[30].created_at, 'down to the oldest');
+  equal(filters.length, 4, 'pages of 10: 10, 10, 10, 1');
+  equal(JSON.stringify(filters[0]),
+    JSON.stringify({ kinds: [1], authors: [BOOSTR_BOT_PUBKEY], '#i': [ITDV_PODCAST_I_TAG], limit: 10 }),
+    'first page: no until, the ITDV tag');
+  equal(filters[1].until, sorted[9].created_at - 1, 'next page starts below the oldest event seen');
+
+  const capped = await service.fetchAllUserBoosts(BOOSTR_BOT_PUBKEY, [ITDV_PODCAST_I_TAG], 10, 2);
+  equal(capped.length, 20, 'maxPages caps the pages');
+}
+
+async function main() {
+  checkReader();
+  checkDedupe();
+  await checkBackfill();
+  console.log(`✅ ${checks} checks passed`);
+}
+main().catch(e => fail(String(e && e.stack || e)));
