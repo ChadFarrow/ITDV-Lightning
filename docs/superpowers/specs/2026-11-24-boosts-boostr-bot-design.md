@@ -31,7 +31,10 @@ boosts come back when his webhook works again. A boost that both sources carry s
 Filter `{kinds:[1], authors:[bot], '#i':['podcast:guid:41aace28-8679-5ef1-9958-75cf76c2b5f0']}`,
 on the relays `BoostToNostrService` already uses (they include relay.fountain.fm and
 chadf.nostr1.com, which held all 31 notes; primal held 14). The live subscription gets the same
-filter. The `#i` filter keeps the bot's notes for other shows off the page.
+filter. The `#i` filter keeps the bot's notes for other shows off the page: only the ITDV podcast
+notes show (Chad, 2026-11-24). The page loads every such note the bot has (backfill, Chad
+2026-11-24): no `since`, paged with `until`. On 2026-11-24 the bot had 318 notes, 31 of them ITDV,
+and every one of the 31 carries the `i` tag.
 
 **Reader.** A new `lib/boostr-note.ts`, client-safe and ES5-regex-safe like `lib/boost-note.ts`.
 `parseBoostFromEvent` sends a note from the bot's pubkey to it before the `⚡ Boost ⚡` prefix check,
