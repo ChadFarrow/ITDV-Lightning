@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { constantTimeEquals } from '@/lib/admin-auth';
 import { addHelipadRecord, StoreUnavailableError } from '@/lib/helipad-storage';
 import { getItdvFeedIndex } from '@/lib/itdv-feeds';
+import { serverLog } from '@/lib/server-log';
 import { normalizeRecord, type HelipadRecord, type RecordSource } from '@/lib/stream-records';
 
 // Helipad webhook: two senders post Helipad records here, and the token says which one.
@@ -34,7 +35,7 @@ function sourceFor(header: string | null): RecordSource | null {
 
 function logLine(source: RecordSource | 'none', action: unknown, result: string) {
   const a = typeof action === 'number' && isFinite(action) ? String(action) : '-';
-  console.log(`helipad-webhook source=${source} action=${a} result=${result}`);
+  serverLog(`helipad-webhook source=${source} action=${a} result=${result}`);
 }
 
 export async function POST(request: NextRequest) {

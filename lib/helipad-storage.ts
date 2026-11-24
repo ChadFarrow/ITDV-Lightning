@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import { db, sql } from '@vercel/postgres';
 import { neonConfig } from '@neondatabase/serverless';
+import { serverError } from './server-log';
 import {
   assignPaymentKey,
   LIVE_WINDOW_SECONDS,
@@ -56,10 +57,27 @@ export interface StoredHelipadBoost {
 }
 
 /** The database could not be reached or refused the query. Routes answer 503. */
+/**
+ * A readable reason for a driver failure. The WebSocket path (db.connect()) rejects with an
+ * ErrorEvent, not an Error: String() of it is "[object Object]", and its text is in `.error` or
+ * `.message`. Only messages are read, never the object, which can hold the connection settings.
+ */
+export function describeError(reason: unknown): string {
+  if (reason instanceof Error) return reason.message || reason.name;
+  if (reason && typeof reason === 'object') {
+    const event = reason as { error?: unknown; message?: unknown; type?: unknown };
+    if (event.error instanceof Error && event.error.message) return event.error.message;
+    if (typeof event.message === 'string' && event.message) return event.message;
+    if (typeof event.type === 'string' && event.type) return `${event.type} event`;
+    return 'unknown error object';
+  }
+  return String(reason);
+}
+
 export class StoreUnavailableError extends Error {
   readonly reason: unknown;
   constructor(reason: unknown) {
-    super(`Helipad store unavailable: ${reason instanceof Error ? reason.message : String(reason)}`);
+    super(`Helipad store unavailable: ${describeError(reason)}`);
     this.name = 'StoreUnavailableError';
     this.reason = reason;
     // tsconfig targets es5, where a subclass of Error loses its prototype without this.
@@ -154,7 +172,7 @@ async function guarded<T>(label: string, run: () => Promise<T>): Promise<T> {
     return await run();
   } catch (error) {
     if (error instanceof StoreUnavailableError) throw error;
-    console.error(`helipad-store ${label} failed: ${error instanceof Error ? error.message : String(error)}`);
+    serverError(`helipad-store ${label} failed: ${describeError(error)}`);
     throw new StoreUnavailableError(error);
   }
 }

@@ -6,6 +6,7 @@ import fs from 'fs';
 import path from 'path';
 import { ITDV_PODCAST_GUID } from './boostr-note';
 import { buildItdvFeedIndex, type ItdvFeedIndex } from './stream-records';
+import { serverError } from './server-log';
 
 export const ITDV_PODCAST_TITLE = 'Into The Doerfel-Verse';
 
@@ -20,7 +21,7 @@ export function getItdvFeedIndex(): ItdvFeedIndex {
     const list = Array.isArray(raw) ? raw : raw.albums;
     if (Array.isArray(list)) albums = list.map((a: { feedGuid?: string; title?: string }) => ({ feedGuid: a.feedGuid, title: a.title }));
   } catch (error) {
-    console.error(`itdv-feeds: static-albums.json unreadable, matching the podcast feed only: ${error instanceof Error ? error.message : String(error)}`);
+    serverError(`itdv-feeds: static-albums.json unreadable, matching the podcast feed only: ${error instanceof Error ? error.message : String(error)}`);
   }
   cached = buildItdvFeedIndex(albums, ITDV_PODCAST_GUID, ITDV_PODCAST_TITLE);
   return cached;

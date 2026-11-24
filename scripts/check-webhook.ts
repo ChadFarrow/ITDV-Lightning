@@ -9,13 +9,14 @@
 
 import { spawnSync } from 'node:child_process';
 import { NextRequest } from 'next/server';
-import { sql } from '@vercel/postgres';
+import { db, sql } from '@vercel/postgres';
 // Static imports only: a dynamic import() would load the driver's ESM build beside this file's
 // CJS one, and the two copies do not share the local proxy config.
 import { POST } from '../app/api/helipad-webhook/route';
 import { GET as getStreams } from '../app/api/streams/route';
 import { GET as getBoosts } from '../app/api/helipad-boosts/route';
 import { ITDV_PODCAST_GUID } from '../lib/boostr-note';
+import { describeError, StoreUnavailableError } from '../lib/helipad-storage';
 
 let checks = 0;
 function fail(message: string): never {
@@ -45,8 +46,19 @@ function assertLocal() {
   if (!process.env.LOCAL_NEON_PROXY) fail('set LOCAL_NEON_PROXY (see scripts/local-db.md)');
 }
 
-// Every console line the routes write, so the body check can read them.
+// Production builds strip every console.* call (next.config.js `removeConsole`), so a server line
+// that must reach Vercel's logs is written with process.stdout/stderr.write (lib/server-log.ts).
+// `logged` keeps console calls apart, swallowed, to prove the routes make none; `written` is
+// what reaches stdout and stderr.
 const logged: string[] = [];
+const written: string[] = [];
+for (const stream of [process.stdout, process.stderr]) {
+  const original = stream.write.bind(stream) as (chunk: unknown, ...rest: unknown[]) => boolean;
+  (stream as unknown as { write: (chunk: unknown, ...rest: unknown[]) => boolean }).write = (chunk, ...rest) => {
+    written.push(...String(chunk).split('\n').filter(Boolean));
+    return original(chunk, ...rest);
+  };
+}
 (['log', 'info', 'warn', 'error'] as const).forEach(level => {
   const original = console[level].bind(console);
   console[level] = (...args: unknown[]) => {
@@ -94,7 +106,18 @@ async function storeDownMode() {
   equal(streams.status, 503, 'storeDown: /api/streams answers 503');
   const boosts = await getBoosts(new NextRequest('http://localhost/api/helipad-boosts'));
   equal(boosts.status, 503, 'storeDown: /api/helipad-boosts answers 503');
-  check(!logged.some(line => line.includes(CANARY)), 'storeDown: no log line carries the request body');
+  check(!logged.concat(written).some(line => line.includes(CANARY)), 'storeDown: no log line carries the request body');
+  check(written.some(line => /^helipad-webhook source=tj-helipad action=1 result=503$/.test(line)), 'storeDown: the webhook logs result=503 where production keeps it');
+  const storeLine = written.find(line => /^helipad-store \S+ failed: /.test(line)) || '';
+  check(storeLine !== '', 'storeDown: the store logs why it failed where production keeps it');
+  check(!storeLine.includes('[object Object]'), `storeDown: the reason is readable, not [object Object] (${storeLine})`);
+  check(logged.length === 0, `storeDown: nothing goes through console.*, which production strips (${logged.length})`);
+  // Production's insert runs on db.connect() (WebSocket), whose failure is an ErrorEvent, not an
+  // Error; String() of it is "[object Object]".
+  const wsError: unknown = await db.connect().then(client => { client.release(); return null; }, (error: unknown) => error);
+  check(wsError !== null && !(wsError instanceof Error), 'storeDown: a WebSocket failure is not an Error');
+  check(/ECONNREFUSED/.test(describeError(wsError)), `storeDown: describeError reads the event (${describeError(wsError)})`);
+  check(/ECONNREFUSED/.test(new StoreUnavailableError(wsError).message), 'storeDown: StoreUnavailableError names the cause');
   process.stdout.write(`✅ ${checks} store-down checks passed\n`);
   process.exit(0);
 }
@@ -183,10 +206,11 @@ async function main() {
   }
 
   // log lines
-  check(!logged.some(line => line.includes(CANARY)), 'logs: no log line carries the sender or the message');
-  check(logged.some(line => /^helipad-webhook source=tj-helipad action=1 result=stored$/.test(line)), 'logs: one summary line per stored request');
-  check(logged.some(line => /^helipad-webhook source=none action=\S+ result=401$/.test(line)), 'logs: a refused request logs result=401');
-  check(logged.some(line => /^helipad-webhook source=tj-helipad action=1 result=dropped$/.test(line)), 'logs: a non-ITDV record logs result=dropped');
+  check(!logged.concat(written).some(line => line.includes(CANARY)), 'logs: no log line carries the sender or the message');
+  check(written.some(line => /^helipad-webhook source=tj-helipad action=1 result=stored$/.test(line)), 'logs: one summary line per stored request');
+  check(written.some(line => /^helipad-webhook source=none action=\S+ result=401$/.test(line)), 'logs: a refused request logs result=401');
+  check(written.some(line => /^helipad-webhook source=tj-helipad action=1 result=dropped$/.test(line)), 'logs: a non-ITDV record logs result=dropped');
+  check(logged.length === 0, `logs: the routes write nothing through console.*, which production strips (${logged.length})`);
 
   // storeDown: a second process whose driver points at a closed port.
   {
@@ -194,7 +218,7 @@ async function main() {
       env: { ...process.env, LOCAL_NEON_PROXY: '127.0.0.1:1' }, encoding: 'utf8', timeout: 60000,
     });
     check(child.status === 0, `storeDown: child process passed\n${child.stdout}${child.stderr}`);
-    checks += 5;
+    checks += 12;
   }
 
   process.stdout.write(`✅ ${checks} checks passed\n`);

@@ -216,7 +216,10 @@ which also keeps the LNURL comment from doubling a feed's quotes (`""Nate's got 
 **To check production without posting**, POST `{"amount":0,"track":{"title":"probe"}}` to the route:
 503 "Site Nostr identity is not configured" means the key is missing, 400 "Invalid amount" means it was
 found. To confirm a real boost, ask the relays for its event id. Do not rely on the Vercel runtime logs
-view — it returned nothing for this project, even for requests that log.
+for this route: `next.config.js` sets `compiler.removeConsole` for production, so every `console.*` call is
+deleted from the build and logs nothing on Vercel (found 2026-11-24). A server line that must reach the
+logs uses `serverLog`/`serverError` from `lib/server-log.ts`, which write to the process streams; the
+Helipad webhook and its store do.
 
 Each ITDV boost produces **two** notes: one from the site key here, and one from Helipad-to-Nostr-BoostBot
 (its own key, "📱 via ITDV App"), which posts whatever the Helipad node receives. An auto boost gets no site
@@ -269,6 +272,9 @@ The page (Doerfel-Pad) merges three sources. They are read in the browser.
   the boostagram's `guid` or `remote_feed_guid`, else the exact title); any other show answers 200
   `stored:false`, so the sender does not retry. The route writes one log line per request
   (`helipad-webhook source=… action=… result=…`) and never the body: it carries listener names and messages.
+  A store failure also logs its reason (`helipad-store <op> failed: …`, through `describeError`: the WebSocket
+  path fails with an ErrorEvent, not an Error). Both use `lib/server-log.ts`, because production strips
+  `console.*` (see "To check production without posting").
   A store failure answers 503 on all three routes, so the page can tell "no rows" from "store down".
 
 **The Streams tab** (since 2026-11-24, `components/StreamsTab.tsx`) shows one row per listener and episode,
