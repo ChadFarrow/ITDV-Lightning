@@ -32,6 +32,18 @@
       "index": 105, "time": 1793364240, "value_msat": 5000, "value_msat_total": 5000, "action": 1,
       "sender": "Sam", "app": "Fountain", "message": "", "podcast": "Homegrown Hits", "episode": "HGH 400",
       "tlv": "keysend:{not json"
+    },
+    "rssPaymentStream": {
+      "index": 201, "time": 1793364030, "value_msat": 35000, "value_msat_total": 100000, "action": 1,
+      "sender": "ChadF", "app": "Castamatic", "message": "", "podcast": "Into The Doerfel-Verse", "episode": "Ep 83 - Jon Ross",
+      "custom_key": null, "custom_value": null,
+      "tlv": "{\"id\":\"rssPayment1\",\"action\":\"STREAM\",\"split\":0.35,\"group\":\"group-1\",\"message\":null,\"link\":\"https://fountain.fm/episode/example\",\"app_name\":\"Castamatic\",\"sender_id\":\"sender-1\",\"sender_name\":\"ChadF\",\"recipient_address\":\"tj@example.com\",\"value_msat\":35000,\"value_usd\":0.02,\"value_msat_total\":100000,\"timestamp\":\"2026-11-24T12:00:00.000Z\",\"feed_guid\":\"41aace28-8679-5ef1-9958-75cf76c2b5f0\",\"feed_title\":\"Into The Doerfel-Verse\",\"item_guid\":\"ep83-guid\",\"item_title\":\"Ep 83 - Jon Ross\",\"publisher_guid\":null,\"publisher_title\":null,\"remote_item_guid\":null,\"remote_feed_guid\":null,\"remote_publisher_guid\":null}"
+    },
+    "rssGuestSong": {
+      "index": 202, "time": 1793364030, "value_msat": 35000, "value_msat_total": 100000, "action": 1,
+      "sender": "ChadF", "app": "Castamatic", "message": "", "podcast": "Into The Doerfel-Verse", "episode": "Ep 83 - Jon Ross",
+      "custom_key": null, "custom_value": null,
+      "tlv": "{\"id\":\"rssPayment1\",\"action\":\"STREAM\",\"split\":0.35,\"group\":\"group-1\",\"message\":null,\"link\":\"https://fountain.fm/episode/example\",\"app_name\":\"Castamatic\",\"sender_id\":\"sender-1\",\"sender_name\":\"ChadF\",\"recipient_address\":\"tj@example.com\",\"value_msat\":35000,\"value_usd\":0.02,\"value_msat_total\":100000,\"timestamp\":\"2026-11-24T12:00:00.000Z\",\"feed_guid\":\"41aace28-8679-5ef1-9958-75cf76c2b5f0\",\"feed_title\":\"Into The Doerfel-Verse\",\"item_guid\":\"ep83-guid\",\"item_title\":\"Ep 83 - Jon Ross\",\"publisher_guid\":null,\"publisher_title\":null,\"remote_item_guid\":\"guest-song-item\",\"remote_feed_guid\":\"00000000-0000-4000-8000-0000000000aa\",\"remote_publisher_guid\":null}"
     }
   }
 }

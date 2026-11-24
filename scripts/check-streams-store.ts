@@ -104,6 +104,10 @@ async function main() {
       created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW())`;
   await sql`INSERT INTO helipad_boosts (boost_index, value_msat, value_msat_total, action, sender, app, message, podcast, episode, boost_time, timestamp)
             VALUES (7, 50000, 50000, 2, 'OldTimer', 'Fountain', 'old boost', 'Into The Doerfel-Verse', 'Ep 70', ${T0 - 90000}, ${(T0 - 90000) * 1000})`;
+  // Old stream and auto rows: the old page showed them with a stream badge.
+  await sql`INSERT INTO helipad_boosts (boost_index, value_msat, value_msat_total, action, sender, app, message, podcast, episode, boost_time, timestamp)
+            VALUES (8, 1000, 10000, 1, 'OldStreamer', 'Fountain', '', 'Into The Doerfel-Verse', 'Ep 70', ${T0 - 90000}, ${(T0 - 90000) * 1000}),
+                   (9, 1000, 10000, 4, 'OldAuto', 'Fountain', '', 'Into The Doerfel-Verse', 'Ep 70', ${T0 - 90000}, ${(T0 - 90000) * 1000})`;
 
   const columns = async () => (await sql`SELECT column_name FROM information_schema.columns WHERE table_name = 'helipad_boosts'`).rows.map(r => r.column_name as string);
   const count = async () => Number((await sql`SELECT count(*)::int AS n FROM helipad_boosts`).rows[0].n);
@@ -120,6 +124,22 @@ async function main() {
     check(boosts.some(b => b.sender === 'OldTimer'), 'legacyRowIsBoost: the old row is in the boost list');
     const rows = await store.getStreamSummary({ limit: 50, offset: 0, nowSeconds: T0 });
     check(!rows.some(r => r.listener === 'OldTimer'), 'legacyRowIsBoost: the old row is not a stream');
+    // Anti-goal: a stream never appears as a boost card. Old stream and auto rows have no payment
+    // key, so they cannot be counted in the Streams tab either; they are left out of both.
+    check(!boosts.some(b => b.sender === 'OldStreamer' || b.sender === 'OldAuto'), 'legacyStreamNotBoost: old stream and auto rows are not boost cards');
+    equal(await store.getHelipadBoostsCount(), 1, 'legacyStreamNotBoost: the boost count leaves them out');
+  }
+  await sql`DELETE FROM helipad_boosts`;
+
+  // tsConflictStore: identity no longer holds ts, so the store must hand each candidate's
+  // playback_ts to assignPaymentKey. Same listener, item and total, two sources, 30 s apart,
+  // ts 60 and 120: two payments. A third record with no ts joins the first.
+  {
+    const a = await store.addHelipadRecord(record({ source: 'tj-helipad', index: 601, value: 1000, sender: 'Tess', app: 'X', ...ep83, total: 10000, ts: 60, time: T0 }));
+    const b = await store.addHelipadRecord(record({ source: 'boostbot', index: 601, value: 1000, sender: 'Tess', app: 'X', ...ep83, total: 10000, ts: 120, time: T0 + 30 }));
+    check(a.paymentKey !== b.paymentKey, 'tsConflictStore: ts 60 and ts 120 are two payments');
+    const c = await store.addHelipadRecord(record({ source: 'boostbot', index: 602, value: 1000, sender: 'Tess', app: 'X', ...ep83, total: 10000, ts: 0, time: T0 + 40, customValue: '9' }));
+    equal(c.paymentKey, a.paymentKey, 'tsConflictStore: a record with no ts joins the oldest open payment');
   }
   await sql`DELETE FROM helipad_boosts`;
 

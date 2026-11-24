@@ -105,7 +105,7 @@ function runKeys(items: NormalizedRecord[]): string[] {
   return items.map(n => {
     const candidates = seen.filter(c => c.identity === n.identity);
     const key = assignPaymentKey(n, candidates, () => `key-${++next}`);
-    seen.push({ paymentKey: key, source: n.source, recipient: n.recipient, time: n.time, identity: n.identity });
+    seen.push({ paymentKey: key, source: n.source, recipient: n.recipient, time: n.time, playbackTs: n.playbackTs, identity: n.identity });
     return key;
   });
 }
@@ -160,6 +160,67 @@ function albumRecord(source: 'tj-helipad' | 'boostbot', customValue: string | nu
   const t = 1793364000;
   const keys = runKeys([albumRecord('tj-helipad', '4', t, 300), albumRecord('boostbot', null, t + 121, 300)]);
   check(keys[0] !== keys[1], 'outsideWindow: 121 s apart is two payments');
+}
+
+// rssPayment: a Lightning-address payment (rss::payment). Helipad fetches the x-rss-payment header
+// and stores its JSON as tlv (helipad src/metadata.rs fetch_rss_payment). That JSON names the feed
+// `feed_guid` and the item `item_guid`, has an ISO `timestamp` and no `ts`. Shape taken from
+// BoostBot's real capture (Helipad-to-Nostr-BoostBot lib/fixtures.ts INCOMING_TLV).
+{
+  const b = parseBoostagram(records.rssPaymentStream.tlv);
+  equal(b?.feedGuid, ITDV_PODCAST_GUID, 'rssPayment: feed_guid is the feed guid when guid is missing');
+  equal(b?.itemGuid, 'ep83-guid', 'rssPayment: item_guid is the item guid');
+  equal(b?.ts, undefined, 'rssPayment: no ts');
+  const n = normalizeRecord(records.rssPaymentStream, 'tj-helipad', index, NOW);
+  equal(n?.feedGuid, ITDV_PODCAST_GUID, 'rssPayment: matched to the ITDV podcast by its guid');
+  const guest = normalizeRecord(records.rssGuestSong, 'tj-helipad', index, NOW);
+  check(guest !== null, 'rssPayment: a guest song inside an ITDV episode is kept (the ITDV feed_guid decides)');
+  equal(guest?.showTitle, 'Into The Doerfel-Verse', 'rssPayment: the guest song row is the ITDV episode');
+}
+
+// lnAndKeysendOnePayment: TJ's Lightning-address record has no ts; Chad's keysend split of the same
+// payment has one. They are one payment.
+{
+  const ln = normalizeRecord(records.rssPaymentStream, 'tj-helipad', index, NOW);
+  const keysend = normalizeRecord(records.podcastStream, 'boostbot', index, NOW);
+  if (!ln || !keysend) fail('lnAndKeysendOnePayment: fixtures are not ITDV');
+  equal(ln.identity, keysend.identity, 'lnAndKeysendOnePayment: the same identity on both transports');
+  const keys = runKeys([keysend, ln]);
+  equal(keys[0], keys[1], 'lnAndKeysendOnePayment: one payment key');
+}
+
+// tsConflict: two records that both carry a ts, and differ in it, are two payments even when the
+// rest matches and they arrive within the window from different sources.
+{
+  const t = 1793364000;
+  const keys = runKeys([albumRecord('tj-helipad', '4', t, 60), albumRecord('boostbot', null, t + 30, 120)]);
+  check(keys[0] !== keys[1], 'tsConflict: ts 60 and ts 120 are two payments');
+  const same = runKeys([albumRecord('tj-helipad', '4', t, 60), albumRecord('boostbot', null, t + 30, 0)]);
+  equal(same[0], same[1], 'tsConflict: a record with no ts can join a payment that has one');
+}
+
+// oldestJoin: per-minute payments with no ts from two sources, where Chad's split arrives 86 s after
+// TJ's. Each record joins the oldest open payment in the window, so 2 payments stay 2.
+{
+  const t = 1793364000;
+  const keys = runKeys([
+    albumRecord('tj-helipad', '4', t, 0),
+    albumRecord('tj-helipad', '4', t + 60, 0),
+    albumRecord('boostbot', null, t + 86, 0),
+    albumRecord('boostbot', null, t + 146, 0),
+  ]);
+  equal(new Set(keys).size, 2, `oldestJoin: four records of two payments give two keys (${keys.join(',')})`);
+  equal(keys[2], keys[0], 'oldestJoin: the first late split joins the first payment');
+  equal(keys[3], keys[1], 'oldestJoin: the second late split joins the second payment');
+}
+
+// tsSanitize: the store keeps ts in an INTEGER and totals in BIGINT columns. A fractional ts is
+// floored; a ts too large for a playback position (a millisecond epoch) counts as missing; a
+// fractional total from the boostagram is floored.
+{
+  equal(parseBoostagram('{"ts":12.5}')?.ts, 12, 'tsSanitize: a fractional ts is floored');
+  equal(parseBoostagram('{"ts":1764000000000}')?.ts, undefined, 'tsSanitize: a millisecond epoch is not a playback position');
+  equal(parseBoostagram('{"value_msat_total":1000.7}')?.valueMsatTotal, 1000, 'tsSanitize: a fractional total is floored');
 }
 
 console.log(`✅ ${checks} checks passed`);

@@ -98,6 +98,7 @@ export interface PaymentCandidate {
   source: RecordSource;
   recipient: string;
   time: number;
+  playbackTs: number | null;
 }
 
 export interface StreamSummaryRow {
@@ -137,17 +138,23 @@ export function parseBoostagram(tlv: string | undefined | null): Boostagram | nu
   }
   if (!raw || typeof raw !== 'object') return null;
   const o = raw as Record<string, unknown>;
-  const ts = num(o.ts);
+  // The store keeps ts in an INTEGER column: a fractional ts is floored, and a value too large for a
+  // playback position (a millisecond epoch) counts as missing, like 0.
+  const rawTs = num(o.ts);
+  const ts = rawTs !== undefined ? Math.floor(rawTs) : undefined;
+  const total = num(o.value_msat_total);
   return {
-    feedGuid: str(o.guid),
+    // A keysend boostagram (bLIP-10) names the feed `guid`. A Lightning-address payment's
+    // x-rss-payment JSON, which Helipad stores as tlv, names it `feed_guid` and has no ts.
+    feedGuid: str(o.guid) || str(o.feed_guid),
     remoteFeedGuid: str(o.remote_feed_guid),
     itemGuid: str(o.episode_guid) || str(o.item_guid),
     episode: str(o.episode),
     podcast: str(o.podcast),
     senderName: str(o.sender_name),
     appName: str(o.app_name),
-    valueMsatTotal: num(o.value_msat_total),
-    ts: ts !== undefined && ts > 0 ? ts : undefined,
+    valueMsatTotal: total !== undefined ? Math.floor(total) : undefined,
+    ts: ts !== undefined && ts > 0 && ts <= 2147483647 ? ts : undefined,
   };
 }
 
@@ -204,6 +211,11 @@ function recipientOf(r: HelipadRecord): string {
   return `${r.custom_key == null ? '' : r.custom_key}:${r.custom_value || ''}`;
 }
 
+/**
+ * What every record of one listener payment shares. The playback position (ts) is not part of it:
+ * a Lightning-address record (x-rss-payment) has none while the keysend splits of the same payment
+ * do. assignPaymentKey uses ts instead to keep apart two payments that both carry one.
+ */
 export function paymentIdentity(n: NormalizedRecord): string {
   return [
     n.feedGuid ? key(n.feedGuid) : key(n.showTitle),
@@ -211,7 +223,6 @@ export function paymentIdentity(n: NormalizedRecord): string {
     key(n.listener),
     key(n.app),
     n.value_msat_total == null ? '' : String(n.value_msat_total),
-    n.playbackTs == null ? '' : String(n.playbackTs),
   ].join('|');
 }
 
@@ -251,27 +262,30 @@ export function normalizeRecord(
 
 /**
  * The payment key for a record, given the stored records with the same identity. A record joins
- * the nearest payment within PAYMENT_WINDOW_SECONDS that has no record yet from the same source
- * and recipient; a repeat of source and recipient is the next payment. Otherwise a new key.
+ * the oldest payment that has a record within PAYMENT_WINDOW_SECONDS and is still open to it:
+ * - no record yet from the same source and recipient (a repeat is the next payment), and
+ * - no record with another playback position, when both know one.
+ * Otherwise a new key. The oldest, not the nearest: with a split that arrives up to ~90 s late,
+ * the nearest open payment is often the next one, and a session would count one payment too many.
  */
 export function assignPaymentKey(
   n: NormalizedRecord,
   candidates: PaymentCandidate[],
   newKey: () => string,
 ): string {
-  const taken: Record<string, boolean> = {};
-  const nearest: Record<string, number> = {};
+  const closed: Record<string, boolean> = {};
+  const inWindow: Record<string, boolean> = {};
+  const oldest: Record<string, number> = {};
   candidates.forEach(c => {
-    const distance = Math.abs(c.time - n.time);
-    if (c.source === n.source && c.recipient === n.recipient) taken[c.paymentKey] = true;
-    if (distance <= PAYMENT_WINDOW_SECONDS && (nearest[c.paymentKey] === undefined || distance < nearest[c.paymentKey])) {
-      nearest[c.paymentKey] = distance;
-    }
+    if (c.source === n.source && c.recipient === n.recipient) closed[c.paymentKey] = true;
+    if (n.playbackTs != null && c.playbackTs != null && c.playbackTs !== n.playbackTs) closed[c.paymentKey] = true;
+    if (Math.abs(c.time - n.time) <= PAYMENT_WINDOW_SECONDS) inWindow[c.paymentKey] = true;
+    if (oldest[c.paymentKey] === undefined || c.time < oldest[c.paymentKey]) oldest[c.paymentKey] = c.time;
   });
   let best: string | null = null;
-  Object.keys(nearest).forEach(k => {
-    if (taken[k]) return;
-    if (best === null || nearest[k] < nearest[best]) best = k;
+  Object.keys(inWindow).forEach(k => {
+    if (closed[k]) return;
+    if (best === null || oldest[k] < oldest[best]) best = k;
   });
   return best === null ? newKey() : best;
 }

@@ -282,14 +282,19 @@ built from Helipad action 1 (stream) and 4 (auto) records; every other action go
 listener payment arrives as several records: one per split on TJ's node, one on Chad's node, and one per
 sent split when Chad is the listener. They arrive up to about 90 s apart (BoostBot measured 86 s, and a
 minute bucket once split one boost in two). So `lib/stream-records.ts` gives each record a payment key. A
-record joins the nearest payment with the same identity (feed, item, listener, app, `value_msat_total`,
-playback `ts`; a `ts` of 0 counts as missing) within 120 s, unless that payment already has a record from
-the same source and recipient (`custom_key:custom_value`, or the sent split's destination); then it starts a
-new payment. `lib/helipad-storage.ts` inserts in one transaction under `pg_advisory_xact_lock(hashtext(identity))`,
+record joins the oldest payment with the same identity (feed, item, listener, app, `value_msat_total`) that
+has a record within 120 s, unless that payment already has a record from the same source and recipient
+(`custom_key:custom_value`, or the sent split's destination) or a record with another playback `ts` (when
+both carry one; 0 counts as missing); then it starts a new payment. The oldest, not the nearest: a split
+that arrives ~90 s late would otherwise join the next minute's payment and count one too many. `ts` is
+not in the identity because a Lightning-address record has none: Helipad stores that payment's
+`x-rss-payment` JSON as `tlv`, which names the feed `feed_guid` and the item `item_guid` (helipad
+`src/metadata.rs`), while the keysend splits of the same payment carry `guid`, `episode_guid` and `ts`. `lib/helipad-storage.ts` inserts in one transaction under `pg_advisory_xact_lock(hashtext(identity))`,
 so splits that arrive together share one key, and the summary counts each payment once
 (`DISTINCT ON (payment_key)`). A resent record is matched by source, Helipad index, and sent or received:
 Helipad numbers its sent and received records in two tables. Stream and auto rows keep no raw `tlv`. Rows
-stored before 2026-11-24 have no `kind` and count as boosts. The open tab is kept in localStorage
+stored before 2026-11-24 have no `kind`: those with action 2 or 5 count as boosts, and old stream (1) and
+auto (4) rows show nowhere (no payment key, and a stream is never a boost card). The open tab is kept in localStorage
 `boosts_tab_v1`.
 
 A Helipad record that is the same boost as a Boostr card is hidden (Chad: "check for duplicates and hide

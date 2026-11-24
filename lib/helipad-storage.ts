@@ -215,7 +215,7 @@ export async function addHelipadRecord(n: NormalizedRecord): Promise<{ stored: t
         // Every record of each payment that has a record inside the window: a payment that already
         // holds this source and recipient, even from a record outside the window, is taken.
         const found = await client.query(
-          `SELECT payment_key, source, recipient, boost_time FROM helipad_boosts
+          `SELECT payment_key, source, recipient, boost_time, playback_ts FROM helipad_boosts
            WHERE identity = $1 AND payment_key IN (
              SELECT payment_key FROM helipad_boosts
              WHERE identity = $1 AND abs(boost_time - $2) <= $3 AND payment_key IS NOT NULL)`,
@@ -226,6 +226,7 @@ export async function addHelipadRecord(n: NormalizedRecord): Promise<{ stored: t
           source: row.source,
           recipient: row.recipient,
           time: Number(row.boost_time),
+          playbackTs: row.playback_ts == null ? null : Number(row.playback_ts),
         }));
         paymentKey = assignPaymentKey(n, candidates, () => randomUUID());
       }
@@ -290,7 +291,9 @@ export async function getHelipadBoosts(limit: number = 50): Promise<StoredHelipa
              custom_key, custom_value, payment_info, timestamp, stored_at::text AS stored_at,
              source, payment_key
       FROM helipad_boosts
-      WHERE kind = 'boost' OR kind IS NULL
+      -- Rows stored before kinds existed count by their action: an old stream (1) or auto boost (4)
+      -- is never a boost card, and has no payment key for the Streams tab either.
+      WHERE kind = 'boost' OR (kind IS NULL AND coalesce(action, 0) NOT IN (1, 4))
       ORDER BY timestamp DESC
       LIMIT ${limit}`;
     return result.rows.map(row => ({
@@ -368,7 +371,7 @@ export async function getStreamSummary(opts: { limit: number; offset: number; no
 /** How many boosts the boost list can show (streams and auto boosts excluded). */
 export async function getHelipadBoostsCount(): Promise<number> {
   return guarded('count boosts', async () => {
-    const result = await sql`SELECT count(*)::int AS count FROM helipad_boosts WHERE kind = 'boost' OR kind IS NULL`;
+    const result = await sql`SELECT count(*)::int AS count FROM helipad_boosts WHERE kind = 'boost' OR (kind IS NULL AND coalesce(action, 0) NOT IN (1, 4))`;
     return Number(result.rows[0]?.count ?? 0);
   });
 }
