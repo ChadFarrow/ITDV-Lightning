@@ -125,7 +125,7 @@ back **from our own origin**. Passing the upstream `Content-Type` through unchec
 can carry script, so it gets a sandbox CSP. `application/octet-stream` is permitted for audio only,
 because podcast hosts commonly serve MP3s that way.
 
-`scripts/security-smoke.sh` asserts all of the above (35 checks). Run it against a dev server after
+`scripts/security-smoke.sh` asserts all of the above (40 checks with the Helipad webhook ones). Run it against a dev server after
 touching auth, the proxies, or `/api/optimized-images`.
 
 ### Next is pinned to 15.5.28 on purpose (`package.json`)
@@ -216,7 +216,10 @@ which also keeps the LNURL comment from doubling a feed's quotes (`""Nate's got 
 **To check production without posting**, POST `{"amount":0,"track":{"title":"probe"}}` to the route:
 503 "Site Nostr identity is not configured" means the key is missing, 400 "Invalid amount" means it was
 found. To confirm a real boost, ask the relays for its event id. Do not rely on the Vercel runtime logs
-view — it returned nothing for this project, even for requests that log.
+for this route: `next.config.js` sets `compiler.removeConsole` for production, so every `console.*` call is
+deleted from the build and logs nothing on Vercel (found 2026-11-24). A server line that must reach the
+logs uses `serverLog`/`serverError` from `lib/server-log.ts`, which write to the process streams; the
+Helipad webhook and its store do.
 
 Each ITDV boost produces **two** notes: one from the site key here, and one from Helipad-to-Nostr-BoostBot
 (its own key, "📱 via ITDV App"), which posts whatever the Helipad node receives. An auto boost gets no site
@@ -256,17 +259,50 @@ The page (Doerfel-Pad) merges three sources. They are read in the browser.
   `->note-content` (ChadFarrow/boostbox `src/boostbox/boostagram.clj`), so change the two together. The
   split is only on the livestream item and Ep 74 and later (2026-09-16 on), so older episodes' boosts never
   reach the bot.
-- **TJ's Helipad webhook** (`/api/helipad-webhook` into Postgres, read by `/api/helipad-boosts`): every boost
-  TJ's node receives, albums included. TJ entered it in his Helipad; it requires `HELIPAD_AUTH_TOKEN` as a
-  Bearer token (a POST without it gets 401). On 2026-11-24 the store held 0 rows. Helipad sends only new
-  boosts; old ones come back only from a Helipad CSV export.
+- **Helipad records** (`/api/helipad-webhook` into Postgres; boosts read by `/api/helipad-boosts`, streams by
+  `/api/streams`). Two senders, told apart by their token (Bearer prefix optional):
+  - TJ's Helipad (`HELIPAD_AUTH_TOKEN`, source `tj-helipad`): every payment TJ's node receives, albums
+    included. TJ entered the URL in his Helipad. Helipad sends only new records; old ones come back only
+    from a Helipad CSV export.
+  - Helipad-to-Nostr-BoostBot (`BOOSTBOT_WEBHOOK_TOKEN`, source `boostbot`): the streams and auto boosts of
+    Chad's Helipad (the ChadF split), forwarded unchanged by its `forwardUrl`/`forwardToken` settings.
+
+  An unset token matches nothing, so with neither set every POST gets 401. Only records for an ITDV feed are
+  stored (`lib/itdv-feeds.ts`: the podcast GUID or an album `feedGuid` from `public/static-albums.json`, as
+  the boostagram's `guid` or `remote_feed_guid`, else the exact title); any other show answers 200
+  `stored:false`, so the sender does not retry. The route writes one log line per request
+  (`helipad-webhook source=… action=… result=…`) and never the body: it carries listener names and messages.
+  A store failure also logs its reason (`helipad-store <op> failed: …`, through `describeError`: the WebSocket
+  path fails with an ErrorEvent, not an Error). Both use `lib/server-log.ts`, because production strips
+  `console.*` (see "To check production without posting").
+  A store failure answers 503 on all three routes, so the page can tell "no rows" from "store down".
+
+**The Streams tab** (since 2026-11-24, `components/StreamsTab.tsx`) shows one row per listener and episode,
+built from Helipad action 1 (stream) and 4 (auto) records; every other action goes to the boost list. One
+listener payment arrives as several records: one per split on TJ's node, one on Chad's node, and one per
+sent split when Chad is the listener. They arrive up to about 90 s apart (BoostBot measured 86 s, and a
+minute bucket once split one boost in two). So `lib/stream-records.ts` gives each record a payment key. A
+record joins the oldest payment with the same identity (feed, item, listener, app, `value_msat_total`) that
+has a record within 120 s, unless that payment already has a record from the same source and recipient
+(`custom_key:custom_value`, or the sent split's destination) or a record with another playback `ts` (when
+both carry one; 0 counts as missing); then it starts a new payment. The oldest, not the nearest: a split
+that arrives ~90 s late would otherwise join the next minute's payment and count one too many. `ts` is
+not in the identity because a Lightning-address record has none: Helipad stores that payment's
+`x-rss-payment` JSON as `tlv`, which names the feed `feed_guid` and the item `item_guid` (helipad
+`src/metadata.rs`), while the keysend splits of the same payment carry `guid`, `episode_guid` and `ts`. `lib/helipad-storage.ts` inserts in one transaction under `pg_advisory_xact_lock(hashtext(identity))`,
+so splits that arrive together share one key, and the summary counts each payment once
+(`DISTINCT ON (payment_key)`). A resent record is matched by source, Helipad index, and sent or received:
+Helipad numbers its sent and received records in two tables. Stream and auto rows keep no raw `tlv`. Rows
+stored before 2026-11-24 have no `kind`: those with action 2 or 5 count as boosts, and old stream (1) and
+auto (4) rows show nowhere (no payment key, and a stream is never a boost card). The open tab is kept in localStorage
+`boosts_tab_v1`.
 
 A Helipad record that is the same boost as a Boostr card is hidden (Chad: "check for duplicates and hide
 them"): same total sats, same message, at most 600 s apart, and not a stream (`sameBoost` in
 `lib/boost-dedupe.ts`). Helipad's `action` is a number: 1 stream, 2 boost, 4 auto (helipad
-`dbif/src/boosts.rs`); `isHelipadStream` is the one copy, and the page's "🌊 Stream" badge uses it too (it
-read 2 as a stream until 2026-11-24). A Boostr card's "Listen" link is the bot's app link only: the note's
-`r` tag is a link the payer chose, so it is never rendered. The localStorage cache is `boosts_cache_v2`; bump it again when the card fields change.
+`dbif/src/boosts.rs`); `isHelipadStream` is the one copy (it read 2 as a stream until 2026-11-24). Helipad
+cards group by payment key, so the splits of one boost show as one card. A Boostr card's "Listen" link is the bot's app link only: the note's
+`r` tag is a link the payer chose, so it is never rendered. The localStorage cache is `boosts_cache_v3` (v3: stream cards left the list); bump it again when the card fields change.
 `npx tsx scripts/check-boostr-notes.ts` covers the reader, the dedupe and the backfill paging.
 
 ### Context callbacks must be memoized (`contexts/AudioContext.tsx`)
@@ -335,11 +371,24 @@ ADMIN_PASSWORD=<anything> npm run dev         # without it every admin route 401
 npx tsc --noEmit                              # fastest correctness check
 npm run build                                 # also runs lint; the only full type gate
 npx next lint                                 # should report zero warnings — keep it there
-ADMIN_PASSWORD=<same> ./scripts/security-smoke.sh   # 35 checks, needs dev (or next start) running
+ADMIN_PASSWORD=<same> ./scripts/security-smoke.sh   # 40 checks, needs dev (or next start) running
 npx tsx scripts/backfill-album-dates.ts       # asserts the date extractor still agrees
 npx tsx scripts/check-boost-messages.ts       # boost records, LNURL comment, note text, publish route
 npx tsx scripts/check-boostr-notes.ts         # /boosts: Boostr Bot note reader, card dedupe
+npx tsx scripts/check-streams.ts              # Streams tab: record kind, ITDV filter, payment keys
+STREAMS_TEST_DB=1 npx tsx scripts/check-streams-store.ts   # Helipad store, on a LOCAL database
+STREAMS_TEST_DB=1 npx tsx scripts/check-webhook.ts         # webhook tokens, filter, 503s, log lines (local DB)
+node scripts/e2e-boosts-streams.mjs <base-url> # browser test of both tabs (local DB + dev; see its header)
 ```
+
+The store checks, the webhook check and the browser test delete rows, so they need the local database in
+`scripts/local-db.md` (Homebrew Postgres plus `scripts/local-neon-ws-proxy.mjs`, which stands in for Neon's
+WebSocket and HTTP proxy). They refuse any host but `localhost`. Never point a test at Vercel's
+`POSTGRES_URL`: it is set for Preview and Development too. `@vercel/postgres`'s `sql` always goes through
+Neon's HTTP API and `db.connect()` through its WebSocket, so the relay serves both; and a dynamic `import()`
+of the store in a script loads the driver's ESM copy beside the CJS one, so the local proxy setting is lost
+(use static imports). For the Boosts tab in local dev, set `NEXT_PUBLIC_SITE_NOSTR_NPUB` (any npub): without
+it the page stops at "Site Nostr account not configured" before the Helipad cards render.
 
 `security-smoke.sh` takes the base URL as its first argument (default `http://localhost:3000`).
 After a Next upgrade, run it against `npm run build && next start`, not only dev (see "Next is pinned").
@@ -389,6 +438,14 @@ resolved result — do not trust that a framework decoded it safely.
 
 Findings from the August 2026 audit that are understood but not yet fixed. Each needs a decision or
 an environment change rather than just code, so don't treat them as fresh discoveries.
+
+- **The production database password is stale** (found 2026-11-24). Every query from Vercel failed with
+  `password authentication failed for user 'neondb_owner'`: the hand-added `POSTGRES_URL` no longer matches
+  the Neon database. Until 2026-11-24 the webhook still answered success with `stored:false`, so TJ's Helipad
+  saw no error while nothing was kept, and `/api/albums` fails the same way. Chad fixes it from the Neon
+  console (Production only, Sensitive). Until then `/boosts` shows no Helipad cards and the Streams tab says
+  "Streams are unavailable right now". `POSTGRES_URL` is also set for Preview and Development, so a preview
+  build or `vercel env pull` reaches the live store.
 
 - **The old site Nostr key is compromised; rotation is deferred by choice.** `NEXT_PUBLIC_SITE_NOSTR_NSEC`
   was set in Vercel, so that private key shipped in every client bundle built while the code

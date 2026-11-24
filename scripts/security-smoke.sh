@@ -42,6 +42,28 @@ check_header() {
   fi
 }
 
+# check_any <wanted codes, space-separated> <desc> <curl args...>
+check_any() {
+  local want="$1" desc="$2"; shift 2
+  local got
+  got="$(curl -sS -o /dev/null -w '%{http_code}' "$@")"
+  if [[ " $want " == *" $got "* ]]; then
+    printf '  ok    %-58s %s\n' "$desc" "$got"; pass=$((pass + 1))
+  else
+    printf '  FAIL  %-58s want one of %s got %s\n' "$desc" "$want" "$got"; fail=$((fail + 1))
+  fi
+}
+
+# check_body_lacks <text> <desc> <curl args...>: the response body must not contain <text>.
+check_body_lacks() {
+  local text="$1" desc="$2"; shift 2
+  if curl -sS "$@" | grep -qF -- "$text"; then
+    printf '  FAIL  %-58s body contains %s\n' "$desc" "$text"; fail=$((fail + 1))
+  else
+    printf '  ok    %-58s\n' "$desc"; pass=$((pass + 1))
+  fi
+}
+
 echo "== path traversal (/api/optimized-images) must not escape the directory"
 for p in '..%2F..%2Fpackage.json' '..%2f..%2f.env.local' '..%2F..%2Fdata%2Ffeeds.json' \
          '..%2F..%2F..%2F..%2F..%2F..%2Fetc%2Fhosts' '..%5C..%5Cpackage.json' '.env.local'; do
@@ -60,6 +82,16 @@ check 401 "unauthenticated DELETE /api/helipad-boosts" -X DELETE "$BASE/api/heli
 check 401 "forged admin token" -b 'admin-token=9999999999999.deadbeef' "$BASE/api/admin/all-feeds"
 check 401 "malformed admin token" -b 'admin-token=notatoken' "$BASE/api/admin/all-feeds"
 check 401 "empty signature" -b 'admin-token=1.' "$BASE/api/admin/all-feeds"
+
+echo "== Helipad webhook needs a sender token; streams and boosts never answer 500"
+check 401 "webhook POST without a token" -X POST -H 'content-type: application/json' -d '{"value_msat":1}' \
+  "$BASE/api/helipad-webhook"
+check 401 "webhook POST with a wrong token" -X POST -H 'Authorization: Bearer wrong' \
+  -H 'content-type: application/json' -d '{"value_msat":1}' "$BASE/api/helipad-webhook"
+check_any "200 503" "GET /api/streams with a huge limit" "$BASE/api/streams?limit=100000"
+check_any "200 503" "GET /api/helipad-boosts" "$BASE/api/helipad-boosts"
+# The boost list once answered a `debug` block that told anyone whether POSTGRES_URL was set.
+check_body_lacks '"debug"' "GET /api/helipad-boosts has no debug field" "$BASE/api/helipad-boosts"
 
 echo "== login"
 check 401 "wrong password rejected" -X POST "$BASE/api/admin/simple-auth" \
