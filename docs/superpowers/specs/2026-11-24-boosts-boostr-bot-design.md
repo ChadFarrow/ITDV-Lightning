@@ -89,3 +89,13 @@ new version, so an old cache does not hide the new cards.
 ## Not in scope
 
 Deleting the webhook route or its database; changing the bot; the old notes' format.
+
+## Changes after approval (2026-11-24)
+
+- Chad: "just add Boostr bot info and make it match what's already there". The Boostr cards use the
+  existing card layout ("by <show>"), and the subtitle stays as it was. Messages render as the other
+  cards do (one paragraph).
+- Final review: Helipad's `action` is 1 stream, 2 boost, 4 auto. The plan had 2 as a stream; the code
+  uses 1 (`isHelipadStream`), and the page's Stream badge now uses the same rule.
+- Final review: a Boostr card's "Listen" link is only the bot's app link. The `r` tag is payer-chosen.
+

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { getBoostToNostrService, noteTitle } from '@/lib/boost-to-nostr-service';
 import { parseBoostNote } from '@/lib/boost-note';
-import { deduplicateBoosts, normalizeString } from '@/lib/boost-dedupe';
+import { deduplicateBoosts, isHelipadStream, normalizeString } from '@/lib/boost-dedupe';
 import { BOOSTR_BOT_PUBKEY, ITDV_PODCAST_I_TAG, parseBoostrNote } from '@/lib/boostr-note';
 import { type Event } from 'nostr-tools';
 import { nip19, SimplePool } from 'nostr-tools';
@@ -71,7 +71,9 @@ function parseBoostFromEvent(event: Event): ParsedBoost | null {
         trackAlbum: boostr.sender, // the card shows this field as "Sent by:"
         timestamp: event.created_at,
         tags: event.tags,
-        url: boostr.listenUrl || boostr.boostUrl,
+        // The bot's app link only. The `r` tag (boostUrl) is a link the payer chose (boostbox
+        // `boost-link`), so it is never shown as "Listen".
+        url: boostr.listenUrl,
         isFromApp: false,
         isFromHelipad: false,
         platform: 'boostr',
@@ -326,12 +328,9 @@ function convertMsatsToSats(msats: number | undefined | null): string {
 }
 
 // Helper function to detect if action is stream or boost
-// Based on Helipad documentation: action values indicate the type
-// Common values: 1 = boost, 2 = stream
 function isStreamAction(action: number | undefined | null): boolean {
-  if (action === undefined || action === null) return false;
-  // Only action === 2 indicates stream, everything else (including 1) is boost
-  return action === 2;
+  // Helipad: 1 stream, 2 boost, 4 auto. This said 2 until 2026-11-24, which badged every boost "Stream".
+  return isHelipadStream(action);
 }
 
 // Helper function to generate track URL for Helipad boosts

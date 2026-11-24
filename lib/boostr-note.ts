@@ -33,6 +33,7 @@ export interface BoostrNote {
   episode?: string;
   app?: string;
   listenUrl?: string;
+  /** The `r` tag: a link the payer chose (boostbox `boost-link`). Never render it as a link. */
   boostUrl?: string;
   senderNpub?: string;
 }

@@ -263,7 +263,10 @@ The page (Doerfel-Pad) merges three sources. They are read in the browser.
 
 A Helipad record that is the same boost as a Boostr card is hidden (Chad: "check for duplicates and hide
 them"): same total sats, same message, at most 600 s apart, and not a stream (`sameBoost` in
-`lib/boost-dedupe.ts`). The localStorage cache is `boosts_cache_v2`; bump it again when the card fields change.
+`lib/boost-dedupe.ts`). Helipad's `action` is a number: 1 stream, 2 boost, 4 auto (helipad
+`dbif/src/boosts.rs`); `isHelipadStream` is the one copy, and the page's "🌊 Stream" badge uses it too (it
+read 2 as a stream until 2026-11-24). A Boostr card's "Listen" link is the bot's app link only: the note's
+`r` tag is a link the payer chose, so it is never rendered. The localStorage cache is `boosts_cache_v2`; bump it again when the card fields change.
 `npx tsx scripts/check-boostr-notes.ts` covers the reader, the dedupe and the backfill paging.
 
 ### Context callbacks must be memoized (`contexts/AudioContext.tsx`)

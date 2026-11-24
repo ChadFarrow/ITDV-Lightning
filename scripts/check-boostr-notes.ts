@@ -11,7 +11,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { BOOSTR_BOT_PUBKEY, ITDV_PODCAST_I_TAG, parseBoostrNote } from '../lib/boostr-note';
-import { deduplicateBoosts, type DedupeInput } from '../lib/boost-dedupe';
+import { deduplicateBoosts, isHelipadStream, type DedupeInput } from '../lib/boost-dedupe';
 import { BoostToNostrService } from '../lib/boost-to-nostr-service';
 
 let checks = 0;
@@ -117,10 +117,17 @@ function checkDedupe() {
   equal(ids(deduplicateBoosts([helipad({}), card({ id: 'e1', timestamp: t + 700 })])), 'e1,helipad-index-7',
     'more than 10 minutes apart: two boosts');
   equal(ids(deduplicateBoosts([helipad({ amount: '3332' }), bot])), 'e1,helipad-index-7', 'other sats: two boosts');
+  // Helipad's actions (dbif/src/boosts.rs ActionType, sent as numbers): 1 stream, 2 boost, 4 auto.
   equal(ids(deduplicateBoosts([
-    helipad({ action: 2, userMessage: undefined, timestamp: t + 10 }),
+    helipad({ action: 1, userMessage: undefined, timestamp: t + 10 }),
     card({ id: 'e1', userMessage: undefined }),
-  ])), 'e1,helipad-index-7', 'a Helipad stream is never hidden by a Boostr boost');
+  ])), 'e1,helipad-index-7', 'a Helipad stream (action 1) is never hidden by a Boostr boost');
+  equal(ids(deduplicateBoosts([helipad({ action: 2 }), bot])), 'e1',
+    'a Helipad boost (action 2) of a Boostr boost is hidden');
+  equal(isHelipadStream(1), true, 'action 1 is a stream');
+  equal(isHelipadStream(2), false, 'action 2 is a boost');
+  equal(isHelipadStream(4), false, 'action 4 (auto) is not a stream');
+  equal(isHelipadStream(undefined), false, 'no action is not a stream');
 
   const site = (id: string, amount: string) => card({ id, platform: 'nostr', amount, trackTitle: 'Them', trackArtist: 'The Doerfels' });
   const sites = deduplicateBoosts([site('s1', '50'), site('s2', '100')]);

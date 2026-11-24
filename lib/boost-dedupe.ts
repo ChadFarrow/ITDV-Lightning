@@ -24,8 +24,15 @@ export interface DedupeInput {
 
 /** Seconds between a Helipad record and a Boostr note of the same boost, at most. */
 const SAME_BOOST_WINDOW_SECONDS = 600;
-/** Helipad's action for a stream payment. A stream is never a boost note. */
-const HELIPAD_STREAM_ACTION = 2;
+/**
+ * Helipad's action numbers (helipad dbif/src/boosts.rs `ActionType`, serialized as numbers for the
+ * webhook): 1 stream, 2 boost, 4 auto boost. A stream is never a boost note.
+ */
+export const HELIPAD_ACTION_STREAM = 1;
+
+export function isHelipadStream(action: number | undefined | null): boolean {
+  return action === HELIPAD_ACTION_STREAM;
+}
 
 export function normalizeString(str: string | undefined | null): string {
   if (!str) return '';
@@ -39,7 +46,7 @@ export function normalizeString(str: string | undefined | null): string {
  * from the payer's TLV, the bot from its own feed lookup, and the two can differ.
  */
 export function sameBoost(helipad: DedupeInput, boostr: DedupeInput): boolean {
-  if (helipad.action === HELIPAD_STREAM_ACTION) return false;
+  if (isHelipadStream(helipad.action)) return false;
   const a = parseFloat(helipad.amount || '');
   const b = parseFloat(boostr.amount || '');
   if (isNaN(a) || a !== b) return false;
