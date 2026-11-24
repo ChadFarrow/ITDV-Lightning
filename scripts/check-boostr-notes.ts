@@ -3,12 +3,14 @@
 //   npx tsx scripts/check-boostr-notes.ts
 //
 // It covers lib/boostr-note.ts (the reader for Boostr_Bot's kind 1 notes) against the 31 real
-// ITDV notes in scripts/fixtures/boostr-itdv-notes.json, saved from the relays on 2026-11-24.
+// ITDV notes in scripts/fixtures/boostr-itdv-notes.json, saved from the relays on 2026-11-24,
+// and lib/boost-dedupe.ts (which cards /boosts hides as duplicates).
 // Nothing leaves this process.
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { BOOSTR_BOT_PUBKEY, ITDV_PODCAST_I_TAG, parseBoostrNote } from '../lib/boostr-note';
+import { deduplicateBoosts, type DedupeInput } from '../lib/boost-dedupe';
 
 let checks = 0;
 function fail(message: string): never {
@@ -95,5 +97,45 @@ function checkReader() {
   equal(parseBoostrNote(synthetic('⚡ Boost ⚡\n\njust text')), null, 'a note with no attribution sentence is not a boost');
 }
 
+function checkDedupe() {
+  const t = 1795527781;
+  const card = (over: Partial<DedupeInput> & { id: string }): DedupeInput => ({
+    platform: 'boostr', amount: '3333', trackTitle: 'Ep 83 - Jon Ross', trackArtist: 'Into The Doerfel-Verse',
+    userMessage: 'Hi', timestamp: t, ...over,
+  });
+  const ids = (list: DedupeInput[]) => list.map(b => b.id).sort().join(',');
+
+  equal(ids(deduplicateBoosts([card({ id: 'a' }), card({ id: 'b' })])), 'a,b',
+    'two Boostr boosts on one episode with the same message stay two cards');
+  equal(ids(deduplicateBoosts([card({ id: 'a' }), card({ id: 'a' })])), 'a', 'one Boostr note twice is one card');
+
+  const helipad = (over: Partial<DedupeInput>) => card({ id: 'helipad-index-7', platform: 'helipad', ...over });
+  const bot = card({ id: 'e1', userMessage: ' hi ', timestamp: t + 120 });
+  equal(ids(deduplicateBoosts([helipad({}), bot])), 'e1', 'a Helipad record of a Boostr boost is hidden');
+  equal(ids(deduplicateBoosts([helipad({}), card({ id: 'e1', timestamp: t + 700 })])), 'e1,helipad-index-7',
+    'more than 10 minutes apart: two boosts');
+  equal(ids(deduplicateBoosts([helipad({ amount: '3332' }), bot])), 'e1,helipad-index-7', 'other sats: two boosts');
+  equal(ids(deduplicateBoosts([
+    helipad({ action: 2, userMessage: undefined, timestamp: t + 10 }),
+    card({ id: 'e1', userMessage: undefined }),
+  ])), 'e1,helipad-index-7', 'a Helipad stream is never hidden by a Boostr boost');
+
+  const site = (id: string, amount: string) => card({ id, platform: 'nostr', amount, trackTitle: 'Them', trackArtist: 'The Doerfels' });
+  const sites = deduplicateBoosts([site('s1', '50'), site('s2', '100')]);
+  equal(sites.length, 1, 'site cards with the same title, artist and message are one card (old rule)');
+  equal(sites[0].amount, '100', 'the old rule keeps the higher amount');
+  equal(deduplicateBoosts([card({ id: 'x', platform: 'nostr', trackTitle: '', trackArtist: '', userMessage: '' })]).length, 0,
+    'a site card with no title, artist or message is dropped (old rule)');
+
+  // The page renders the result as is, so the input order (newest first) must survive.
+  const ordered = deduplicateBoosts([
+    card({ id: 's1', platform: 'nostr', trackTitle: 'One' }),
+    card({ id: 'e1' }),
+    card({ id: 's2', platform: 'nostr', trackTitle: 'Two' }),
+  ]);
+  equal(ordered.map(b => b.id).join(','), 's1,e1,s2', 'the input order is kept');
+}
+
 checkReader();
+checkDedupe();
 console.log(`✅ ${checks} checks passed`);

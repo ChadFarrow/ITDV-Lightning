@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { getBoostToNostrService, noteTitle } from '@/lib/boost-to-nostr-service';
 import { parseBoostNote } from '@/lib/boost-note';
+import { deduplicateBoosts, normalizeString } from '@/lib/boost-dedupe';
 import { type Event } from 'nostr-tools';
 import { nip19, SimplePool } from 'nostr-tools';
 import Link from 'next/link';
@@ -280,56 +281,6 @@ function buildThreadedReplies(events: any[], rootEventId: string): ParsedReply[]
 
   // Start with direct replies to the root event
   return buildChildren(rootEventId, 0);
-}
-
-// Normalize string for comparison (trim whitespace, lowercase, handle empty strings)
-function normalizeString(str: string | undefined | null): string {
-  if (!str) return '';
-  return str.trim().toLowerCase().replace(/\s+/g, ' ');
-}
-
-// Deduplicate boosts based on content (track title, artist, message)
-// This ensures we only show one entry per unique boost
-function deduplicateBoosts(boosts: ParsedBoost[]): ParsedBoost[] {
-  const seenBoosts = new Map<string, ParsedBoost>();
-  
-  for (const boost of boosts) {
-    // Normalize content fields for better matching
-    const trackTitle = normalizeString(boost.trackTitle);
-    const trackArtist = normalizeString(boost.trackArtist);
-    const userMessage = normalizeString(boost.userMessage);
-    
-    // Create a unique key based on content (track title, artist, message)
-    // This will catch duplicates even if they have slightly different timestamps or IDs
-    const contentKey = `${trackTitle}-${trackArtist}-${userMessage}`;
-    
-    // Skip if all content fields are empty (invalid boost)
-    if (!contentKey || contentKey === '--') {
-      console.log(`⚠️ Skipping boost with empty content: ${boost.id}`);
-      continue;
-    }
-    
-    if (!seenBoosts.has(contentKey)) {
-      seenBoosts.set(contentKey, boost);
-      console.log(`✅ Added unique boost: ${contentKey.substring(0, 50)}...`);
-    } else {
-      // If we have a duplicate, prefer the one with higher amount (might be aggregated)
-      const existing = seenBoosts.get(contentKey)!;
-      const existingAmount = parseInt(existing.amount || '0', 10);
-      const newAmount = parseInt(boost.amount || '0', 10);
-      if (newAmount > existingAmount) {
-        // Replace with the one that has higher amount
-        seenBoosts.set(contentKey, boost);
-        console.log(`💰 Replaced duplicate boost with higher amount: ${contentKey.substring(0, 50)}... (${newAmount} > ${existingAmount})`);
-      } else {
-        console.log(`⏭️ Skipping duplicate boost: ${contentKey.substring(0, 50)}... (existing: ${existingAmount}, new: ${newAmount})`);
-      }
-    }
-  }
-  
-  const uniqueBoosts = Array.from(seenBoosts.values());
-  console.log(`🔍 Deduplicated ${boosts.length} boosts into ${uniqueBoosts.length} unique boosts`);
-  return uniqueBoosts;
 }
 
 // Helper function to convert millisats to sats and format
