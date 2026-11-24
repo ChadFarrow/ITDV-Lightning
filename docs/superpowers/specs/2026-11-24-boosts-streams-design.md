@@ -1,6 +1,6 @@
 # /boosts: a Streams tab from TJ's Helipad and Chad's BoostBot
 
-Date: 2026-11-24. Status: waiting for Chad's approval.
+Date: 2026-11-24. Status: approved 2026-11-24; built in PR #21.
 
 ## Why
 
