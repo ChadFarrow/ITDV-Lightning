@@ -125,7 +125,7 @@ back **from our own origin**. Passing the upstream `Content-Type` through unchec
 can carry script, so it gets a sandbox CSP. `application/octet-stream` is permitted for audio only,
 because podcast hosts commonly serve MP3s that way.
 
-`scripts/security-smoke.sh` asserts all of the above (34 checks). Run it against a dev server after
+`scripts/security-smoke.sh` asserts all of the above (35 checks). Run it against a dev server after
 touching auth, the proxies, or `/api/optimized-images`.
 
 ### Next is pinned to 15.5.28 on purpose (`package.json`)
@@ -332,7 +332,7 @@ ADMIN_PASSWORD=<anything> npm run dev         # without it every admin route 401
 npx tsc --noEmit                              # fastest correctness check
 npm run build                                 # also runs lint; the only full type gate
 npx next lint                                 # should report zero warnings — keep it there
-ADMIN_PASSWORD=<same> ./scripts/security-smoke.sh   # 34 checks, needs dev (or next start) running
+ADMIN_PASSWORD=<same> ./scripts/security-smoke.sh   # 35 checks, needs dev (or next start) running
 npx tsx scripts/backfill-album-dates.ts       # asserts the date extractor still agrees
 npx tsx scripts/check-boost-messages.ts       # boost records, LNURL comment, note text, publish route
 npx tsx scripts/check-boostr-notes.ts         # /boosts: Boostr Bot note reader, card dedupe

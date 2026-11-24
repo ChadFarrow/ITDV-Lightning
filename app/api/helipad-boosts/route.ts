@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getHelipadBoosts, clearHelipadBoosts, getHelipadBoostsCount } from '@/lib/helipad-storage';
+import { isAuthenticatedRequest } from '@/lib/admin-auth';
 
 // GET endpoint to retrieve stored Helipad boosts
 export async function GET(request: NextRequest) {
@@ -47,8 +48,12 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// DELETE endpoint to clear all stored Helipad boosts
-export async function DELETE() {
+// DELETE endpoint to clear all stored Helipad boosts. Admin only: this route is outside /api/admin,
+// so middleware does not guard it, and until 2026-11-24 anyone could empty the store with one request.
+export async function DELETE(request: NextRequest) {
+  if (!(await isAuthenticatedRequest(request))) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
   try {
     await clearHelipadBoosts();
     return NextResponse.json({
