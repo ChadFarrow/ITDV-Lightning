@@ -12,6 +12,19 @@ the site's own boost notes, the Boostr Bot notes for the ITDV podcast, and TJ's 
   defaults to `boost`, on purpose. It is also only a 1% split, so most stream payments skip it.
 - TJ's Helipad webhook can carry streams, but nothing sends them now.
 
+**The site's database does not accept its password (found 2026-11-24).** A temporary diagnostic route
+on a preview build (same `POSTGRES_URL`: the variable is set for Development, Preview and Production)
+got `NeonDbError: password authentication failed for user 'neondb_owner'`. The Neon host answers;
+only the credential in Vercel is stale. Effects today:
+
+- `/api/helipad-webhook` answers 200 `{ stored: false }` when the insert fails, so a Helipad that still
+  sends sees success while nothing is kept. "TJ's store is empty" may mean this, not a missing webhook.
+- `/api/helipad-boosts` returns `[]` and `0` on any error, so the page cannot tell an empty store from
+  a dead one.
+- `/api/albums` serves `source: static_fallback` (it was 200 after 46.7 s when it last worked).
+
+The Streams tab needs this database. Chad fixes the credential first (step 0 below).
+
 ## Who gets paid (checked 2026-11-24)
 
 - **TJ's node `doerfels_start9` (`031ce2f1…`)** gets most of the money. The podcast's main split
@@ -90,7 +103,12 @@ the site's own boost notes, the Boostr Bot notes for the ITDV podcast, and TJ's 
 - **Logging.** Stop logging the raw body and the raw payload. Log one line per request: source,
   action, kept or dropped.
 - **Classification** (one helper, used by the route, the store and the page):
-  - stream: `action` 1, or `action` 5 with a memo/message that starts `rss::payment::stream`;
+  - stream: `action` 1. A Helipad invoice (`action` 5, a Lightning-address payment) counts only when
+    Helipad fetched its `rss::payment` metadata: Helipad then fills the record from the
+    `x-rss-payment` JSON, with the feed, sender and amounts, and sets the action from it. A bare
+    `action` 5 with only an `rss::payment::…` memo has no feed and no sender, so the ITDV filter drops
+    it. (Helipad's "fetch metadata" setting must be on; Chad's steps. The builder confirms from
+    Helipad's `fetch_boost_metadata` which fields it fills.)
   - auto: `action` 4 (v4vmusic sends one per song; Chad: "some apps might be calling them auto
     boosts");
   - boost: everything else that is kept.
@@ -104,10 +122,19 @@ the site's own boost notes, the Boostr Bot notes for the ITDV podcast, and TJ's 
 - **Fix the duplicate check.** Today a record is "the same" when `boost_index` and `value_msat`
   match. Helipad's `index` is local to each node, and stream amounts repeat (for example 1000 msat),
   so TJ's record 512 would overwrite Chad's record 512. The check becomes `(source, boost_index)`.
-- **`payment_key`** identifies one listener payment across nodes. Build it from the boostagram: feed
-  guid, item guid (or episode title), sender name, app name, `value_msat_total`, and the playback
-  position `ts`. When the boostagram has no `ts`, add the minute of `time`. Records with the same
-  key are one payment.
+- **`payment_key`** identifies one listener payment across nodes. Identity fields from the
+  boostagram: feed guid, item guid (or episode title), sender name, app name, `value_msat_total`, and
+  the playback position `ts`. `ts` 0 counts as missing (BoostMeBitch sends `ts: 0`). At insert, a
+  record from another source with the same identity fields and a `time` within 120 s gets the
+  existing record's key; otherwise the record gets a new key. Do not use minute buckets: BoostBot
+  measured splits of one payment up to 86 s apart, and a bucket edge split one payment in two
+  (2026-10-30). Same rule, same reason as BoostBot's `sessionIdFor()`.
+- **Retention.** A stream or auto row keeps the parsed fields, not the raw `tlv` (boost rows keep
+  it, as today). No row is deleted now. Rough size: 10 listeners × 2 h a week × 60 payments × up to
+  3 records ≈ 3,600 rows a week, well inside a free Neon database for years.
+- **Errors are not silent.** A failed read answers 503 `{ error: 'store unavailable' }`; the page
+  shows that state instead of an empty list. A failed insert in the webhook answers 503, so the
+  sending Helipad marks the delivery as failed.
 - `getHelipadBoosts` (the boost list) returns boosts only, so 50 boosts stay 50 boosts.
 - A new query returns the stream summary rows (below).
 
@@ -141,11 +168,14 @@ shows (sender names that listeners set in their apps). Its `limit` is clamped.
 
 ### 5. BoostBot (repo Helipad-to-Nostr-BoostBot, after the ITDV PR merges)
 
+- Only the production instance on the Ubuntu server forwards (fed by Chad's main node's Helipad).
+  The second instance on the StartOS 0.4 node keeps forwarding off; its StartOS package does not
+  change.
 - New settings `forwardUrl` and `forwardToken` (dashboard settings form and `config.json`; the token
   is redacted like `webhookToken`). Empty `forwardUrl` = off, so the change is safe to deploy first.
 - In `POST /helipad-webhook`, after the existing processing: when forwarding is on and the event is
-  a stream (`action` 1, or `action` 5 with an `rss::payment::stream` memo) or an auto boost
-  (`action` 4), POST the Helipad event unchanged to `forwardUrl` with
+  a stream (`action` 1), an auto boost (`action` 4) or an invoice (`action` 5), POST the Helipad
+  event unchanged to `forwardUrl` with
   `Authorization: Bearer <forwardToken>`. Fire and forget, 5 s timeout, never block or fail the
   Helipad request, log the status code only.
 - Events from BoostBot's own NWC client are not forwarded: they carry no stream that Helipad does not
@@ -156,20 +186,29 @@ shows (sender names that listeners set in their apps). Its `limit` is clamped.
 
 ### 6. Chad's steps (no agent does these)
 
+0. **Fix the database password** (any time; the tab shows "store unavailable" until then). In the
+   Neon console, open the ITDV project and copy its pooled connection string (role `neondb_owner`;
+   reset the password there if needed). In Vercel `itdv-lightning-fixed`, replace `POSTGRES_URL`
+   with it for **Production only**, as Sensitive, and remove it from Development and Preview, so a
+   preview build can never write test rows into the live store. Redeploy production. The value never
+   goes into a chat. Then add it to `vibe-kit/secrets-map.json`.
 1. Make a token and store it in Vercel `itdv-lightning-fixed`, Production, Sensitive, as
    `BOOSTBOT_WEBHOOK_TOKEN`. The plan gives one piped command, so the value never shows.
 2. After the BoostBot PR merges: deploy BoostBot on the Ubuntu server (exact commands in the plan),
    then set `forwardUrl` = `https://itdv.podtards.com/api/helipad-webhook` and the token in the
    BoostBot settings page.
-3. In Chad's Helipad, on the trigger that sends to BoostBot, tick Stream, Auto and Invoice.
-4. TJ: add the webhook again in his Helipad: URL `https://itdv.podtards.com/api/helipad-webhook`,
-   the `HELIPAD_AUTH_TOKEN` value as the auth token, Boost, Stream, Auto and Invoice ticked. Chad gives
-   TJ the token by a private channel.
+3. In Chad's Helipad, on the trigger that sends to BoostBot, tick Stream, Auto and Invoice. In
+   Helipad's settings, turn on fetching payment metadata.
+4. TJ: after step 0, check whether boosts arrive from his Helipad (the webhook may still be set).
+   If none arrive, TJ adds it again: URL `https://itdv.podtards.com/api/helipad-webhook`, the
+   `HELIPAD_AUTH_TOKEN` value as the auth token. In any case TJ ticks Stream, Auto and Invoice on that
+   trigger and turns on metadata fetching. Chad gives TJ the token by a private channel.
 5. Add the new token to `vibe-kit/secrets-map.json` (Vercel and BoostBot copies).
 
 ## Limits (tell Chad)
 
-- Until TJ adds his webhook again, the tab shows only payments that reach Chad's node: Chad's 10% of
+- Nothing shows until the database password is fixed (step 0).
+- Until TJ's Helipad sends streams, the tab shows only payments that reach Chad's node: Chad's 10% of
   episodes and 6 albums. During songs in Ep 82/83 Chad's share is 1%, and payments under 1 sat skip it.
 - A Lightning-address payment (`rss::payment`, for example Castamatic) shows only if the Helipad
   records it. That needs getalby.com to put the comment into the node's invoice memo; the code does
@@ -185,6 +224,7 @@ shows (sender names that listeners set in their apps). Its `limit` is clamped.
   payment, stream and auto counts, apps, live).
 - The webhook route: both tokens, wrong token, unset token, non-ITDV dropped, the `(source, index)`
   duplicate check.
+- The store-unavailable path: a failed read gives 503 and the page shows it; a failed insert gives 503.
 - BoostBot: `npm test` with new tests for the forward rule (stream, auto, invoice stream forwarded;
   boost and NWC events not; forwarding off; a failing target does not fail the webhook).
 - `npx tsc --noEmit`, `npm run build` (zero lint warnings), `scripts/security-smoke.sh` on
@@ -194,6 +234,15 @@ shows (sender names that listeners set in their apps). Its `limit` is clamped.
   desktop and phone width (CDP device emulation).
 - Not testable here: a real stream through TJ's Helipad or Chad's Helipad and BoostBot. Chad checks
   the tab after his steps.
+
+## My calls (Chad can change them)
+
+- Auto boosts go to the Streams tab, counted apart from streams.
+- A Doerfels song played inside another show counts, with "in <that show>".
+- The site keeps only ITDV records; BoostBot forwards every stream, auto and invoice event and the
+  site filters, so the ITDV feed list has one home (the site).
+- `BOOSTBOT_WEBHOOK_TOKEN` is a second token, so each sender can be told apart and revoked alone.
+- The fixed `POSTGRES_URL` goes to Production only.
 
 ## Left to the builder
 
