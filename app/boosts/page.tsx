@@ -3,12 +3,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { getBoostToNostrService, noteTitle } from '@/lib/boost-to-nostr-service';
 import { parseBoostNote } from '@/lib/boost-note';
-import { deduplicateBoosts, isHelipadStream, normalizeString } from '@/lib/boost-dedupe';
+import { deduplicateBoosts, normalizeString } from '@/lib/boost-dedupe';
 import { BOOSTR_BOT_PUBKEY, ITDV_PODCAST_I_TAG, parseBoostrNote } from '@/lib/boostr-note';
 import { type Event } from 'nostr-tools';
 import { nip19, SimplePool } from 'nostr-tools';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
+import StreamsTab from '@/components/StreamsTab';
+import { formatTimestamp } from '@/lib/relative-time';
 
 interface ParsedBoost {
   id: string;
@@ -327,12 +329,6 @@ function convertMsatsToSats(msats: number | undefined | null): string {
   return sats.toFixed(2);
 }
 
-// Helper function to detect if action is stream or boost
-function isStreamAction(action: number | undefined | null): boolean {
-  // Helipad: 1 stream, 2 boost, 4 auto. This said 2 until 2026-11-24, which badged every boost "Stream".
-  return isHelipadStream(action);
-}
-
 // Helper function to generate track URL for Helipad boosts
 function generateHelipadTrackUrl(podcast: string | undefined, episode: string | undefined): string | undefined {
   if (!podcast) return undefined;
@@ -419,12 +415,15 @@ async function fetchHelipadBoosts(): Promise<ParsedBoost[]> {
     console.log(`📦 Processing ${data.boosts.length} boosts from database`);
     
     for (const boost of data.boosts) {
-      // Create a unique key for grouping: prefer index, then uuid, then fallback to a combination
-      // For splits from the same boost, index/uuid should be the same
+      // Group the split records of one boost into one card. The store gives every record a payment
+      // key (one per listener payment, across both senders and every split). Rows stored before it
+      // fall back to the sender and Helipad index; each sender numbers its records separately.
       let boostKey: string;
       
-      if (boost.index !== null && boost.index !== undefined) {
-        boostKey = `index-${boost.index}`;
+      if (boost.paymentKey) {
+        boostKey = `payment-${boost.paymentKey}`;
+      } else if (boost.index !== null && boost.index !== undefined) {
+        boostKey = `${boost.source || 'legacy'}-index-${boost.index}`;
       } else if (boost.uuid) {
         boostKey = `uuid-${boost.uuid}`;
       } else {
@@ -477,7 +476,7 @@ async function fetchHelipadBoosts(): Promise<ParsedBoost[]> {
           valueMsat: boost.value_msat,
           valueMsatTotal: boost.value_msat_total,
           app: boost.app || undefined,  // App name that sent the boost
-          action: boost.action || undefined  // Helipad action field (indicates stream vs boost)
+          action: boost.action || undefined  // Helipad action: the list holds boosts only (streams are on the Streams tab)
         };
         boostMap.set(boostKey, parsedBoost);
         console.log(`✅ Created new boost entry: ${boostKey}`);
@@ -561,27 +560,6 @@ async function fetchHelipadBoosts(): Promise<ParsedBoost[]> {
   }
 }
 
-function formatTimestamp(timestamp: number): string {
-  const date = new Date(timestamp * 1000);
-  const now = new Date();
-  const diff = now.getTime() - date.getTime();
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-  const minutes = Math.floor(diff / (1000 * 60));
-
-  if (days > 7) {
-    return date.toLocaleDateString();
-  } else if (days > 0) {
-    return `${days}d ago`;
-  } else if (hours > 0) {
-    return `${hours}h ago`;
-  } else if (minutes > 0) {
-    return `${minutes}m ago`;
-  } else {
-    return 'just now';
-  }
-}
-
 // Recursive component for displaying threaded replies
 function ThreadedReply({ reply, maxDepth = 3 }: { reply: ParsedReply; maxDepth?: number }) {
   const indentLevel = Math.min(reply.depth || 0, maxDepth);
@@ -661,6 +639,24 @@ export default function BoostsPage() {
   const [isRealTimeActive, setIsRealTimeActive] = useState(false);
   const [lastCacheTime, setLastCacheTime] = useState<number | null>(null);
   const [isHelipadPolling, setIsHelipadPolling] = useState(false);
+  // Which list is open. Remembered per browser; storage can be missing or refuse, so both calls are guarded.
+  const [tab, setTab] = useState<'boosts' | 'streams'>('boosts');
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('boosts_tab_v1');
+      if (saved === 'boosts' || saved === 'streams') setTab(saved);
+    } catch {
+      // keep the Boosts tab
+    }
+  }, []);
+  const chooseTab = (next: 'boosts' | 'streams') => {
+    setTab(next);
+    try {
+      localStorage.setItem('boosts_tab_v1', next);
+    } catch {
+      // the choice lasts for this page view only
+    }
+  };
 
   // Keep boostsRef in step with boosts so the subscription callback reads
   // current data. Without this the ref would be as stale as the closure it
@@ -720,8 +716,9 @@ export default function BoostsPage() {
 
       // Check cache first (cache for 10 minutes)
       // v2 since the Boostr Bot cards (2026-11-24): an older cache has none of them.
-      const cacheKey = 'boosts_cache_v2';
-      const cacheTimeKey = 'boosts_cache_time_v2';
+      // v3 since the Streams tab (2026-11-24): an older cache can hold stream cards.
+      const cacheKey = 'boosts_cache_v3';
+      const cacheTimeKey = 'boosts_cache_time_v3';
       const cacheValidDuration = 10 * 60 * 1000; // 10 minutes
 
       if (!forceRefresh) {
@@ -1134,16 +1131,15 @@ export default function BoostsPage() {
             for (const boost of helipadBoosts) {
               // Check by ID first
               if (existingIds.has(boost.id)) {
-                // Boost exists - check if it's a streaming boost that needs updating
+                // Boost exists. Late split records of a boost can raise its amount.
                 const existingBoost = prev.find(b => b.id === boost.id);
-                if (existingBoost && isStreamAction(existingBoost.action)) {
-                  // Streaming boost - check if amount has changed
+                if (existingBoost) {
                   const existingAmount = parseFloat(existingBoost.amount || '0');
                   const newAmount = parseFloat(boost.amount || '0');
-                  
+
                   if (newAmount > existingAmount) {
                     // Amount increased (new splits arrived) - update the boost
-                    console.log(`💰 Updating streaming boost ${boost.id}: ${existingAmount} -> ${newAmount} sats`);
+                    console.log(`💰 Updating boost ${boost.id}: ${existingAmount} -> ${newAmount} sats`);
                     updatedBoosts.push(boost);
                   }
                 }
@@ -1155,17 +1151,14 @@ export default function BoostsPage() {
               const existingBoost = existingBoostsMap.get(boostKey);
               
               if (existingBoost) {
-                // Boost exists - check if it's a streaming boost that needs updating
-                if (isStreamAction(existingBoost.action)) {
-                  // Streaming boost - check if amount has changed
-                  const existingAmount = parseFloat(existingBoost.amount || '0');
-                  const newAmount = parseFloat(boost.amount || '0');
-                  
-                  if (newAmount > existingAmount) {
-                    // Amount increased (new splits arrived) - update the boost
-                    console.log(`💰 Updating streaming boost ${boostKey}: ${existingAmount} -> ${newAmount} sats`);
-                    updatedBoosts.push(boost);
-                  }
+                // Boost exists. Late split records of a boost can raise its amount.
+                const existingAmount = parseFloat(existingBoost.amount || '0');
+                const newAmount = parseFloat(boost.amount || '0');
+
+                if (newAmount > existingAmount) {
+                  // Amount increased (new splits arrived) - update the boost
+                  console.log(`💰 Updating boost ${boostKey}: ${existingAmount} -> ${newAmount} sats`);
+                  updatedBoosts.push(boost);
                 }
                 continue;
               }
@@ -1363,8 +1356,28 @@ export default function BoostsPage() {
         </div>
 
 
+        {/* Tabs */}
+        <div className="flex gap-2 mb-6" role="group" aria-label="Choose a list">
+          {([['boosts', '⚡ Boosts'], ['streams', '🌊 Streams']] as const).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              data-tab={id}
+              aria-pressed={tab === id}
+              onClick={() => chooseTab(id)}
+              className={`min-h-[44px] px-4 py-2 rounded-lg font-medium transition ${
+                tab === id ? 'bg-orange-500 text-black' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
         {/* Content */}
-        {loading ? (
+        {tab === 'streams' ? (
+          <StreamsTab />
+        ) : loading ? (
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-orange-500 border-t-transparent"></div>
             <p className="mt-4 text-gray-400">Loading boosts from Nostr relays...</p>
@@ -1506,16 +1519,10 @@ export default function BoostsPage() {
                 📱 {boost.app === 'ITDV Lightning' ? 'ITDV App' : boost.app}
               </span>
             )}
-            {/* Always show Boost/Stream badge for Helipad boosts - default to Boost if action is undefined or not 2 */}
-            {isStreamAction(boost.action) ? (
-              <span className="bg-purple-500/20 text-purple-400 px-2 py-1 rounded text-xs font-medium">
-                🌊 Stream
-              </span>
-            ) : (
-              <span className="bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded text-xs font-medium">
-                ⚡ Boost
-              </span>
-            )}
+            {/* Streams and auto boosts are on the Streams tab, so every Helipad card is a boost. */}
+            <span className="bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded text-xs font-medium">
+              ⚡ Boost
+            </span>
           </>
         )}
         {boost.platform === 'boostr' && (
