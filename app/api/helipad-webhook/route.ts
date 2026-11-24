@@ -1,356 +1,86 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getBoostToNostrService, type TrackMetadata } from '@/lib/boost-to-nostr-service';
-import { addHelipadBoost, type StoredHelipadBoost } from '@/lib/helipad-storage';
-import crypto from 'crypto';
+import { constantTimeEquals } from '@/lib/admin-auth';
+import { addHelipadRecord, StoreUnavailableError } from '@/lib/helipad-storage';
+import { getItdvFeedIndex } from '@/lib/itdv-feeds';
+import { normalizeRecord, type HelipadRecord, type RecordSource } from '@/lib/stream-records';
 
-// Helipad webhook payload interface
-interface HelipadBoostPayload {
-  index?: number;
-  uuid?: string;
-  value_msat?: number;
-  value_msat_total?: number;
-  action?: number;
-  sender?: string;
-  app?: string;
-  message?: string;
-  podcast?: string;
-  episode?: string;
-  time?: number;
-  remote_podcast?: string;
-  remote_episode?: string;
-  tlv?: string;
-  reply_sent?: boolean;
-  custom_key?: string | null;
-  custom_value?: string | null;
-  payment_info?: any;
+// Helipad webhook: two senders post Helipad records here, and the token says which one.
+// - HELIPAD_AUTH_TOKEN: TJ's Helipad (his node gets the album and podcast splits) -> 'tj-helipad'.
+// - BOOSTBOT_WEBHOOK_TOKEN: Helipad-to-Nostr-BoostBot, which forwards the streams and auto boosts
+//   of Chad's Helipad (the ChadF split) -> 'boostbot'.
+// An unset token matches nothing, so with neither set every request is refused.
+//
+// Only records for an ITDV feed are stored (lib/itdv-feeds.ts); any other show answers 200 so the
+// sender does not retry. Each request writes one log line with no part of the body: the records
+// carry listener names and messages.
+
+function tokenOf(header: string | null): string {
+  if (!header) return '';
+  return header.startsWith('Bearer ') ? header.slice(7) : header;
 }
 
-// Verify webhook signature
-function verifyWebhookSignature(
-  payload: string,
-  signature: string,
-  secret: string
-): boolean {
-  try {
-    const expectedSignature = crypto
-      .createHmac('sha256', secret)
-      .update(payload)
-      .digest('hex');
-    
-    // Compare signatures (constant-time comparison)
-    return crypto.timingSafeEqual(
-      Buffer.from(signature, 'hex'),
-      Buffer.from(expectedSignature, 'hex')
-    );
-  } catch (error) {
-    console.error('Error verifying webhook signature:', error);
-    return false;
-  }
+function sourceFor(header: string | null): RecordSource | null {
+  const token = tokenOf(header);
+  if (!token) return null;
+  const tj = process.env.HELIPAD_AUTH_TOKEN || '';
+  const bot = process.env.BOOSTBOT_WEBHOOK_TOKEN || '';
+  // Both compares always run, so the time taken does not say which token was close.
+  const isTj = tj !== '' && constantTimeEquals(token, tj);
+  const isBot = bot !== '' && constantTimeEquals(token, bot);
+  if (isTj) return 'tj-helipad';
+  if (isBot) return 'boostbot';
+  return null;
 }
 
-// Verify Authorization token
-function verifyAuthToken(authHeader: string | null, expectedToken: string): boolean {
-  if (!authHeader || !expectedToken) {
-    return false;
-  }
-  
-  try {
-    // Support both "Bearer token" and "token" formats
-    const token = authHeader.startsWith('Bearer ') 
-      ? authHeader.slice(7) 
-      : authHeader;
-    
-    // Constant-time comparison to prevent timing attacks
-    return crypto.timingSafeEqual(
-      Buffer.from(token, 'utf8'),
-      Buffer.from(expectedToken, 'utf8')
-    );
-  } catch (error) {
-    console.error('Error verifying auth token:', error);
-    return false;
-  }
-}
-
-// Convert Helipad boost to TrackMetadata format
-function convertHelipadBoostToTrackMetadata(boost: HelipadBoostPayload): TrackMetadata {
-  return {
-    title: boost.episode || boost.podcast || 'Unknown Episode',
-    artist: boost.podcast || 'Unknown Podcast',
-    album: boost.podcast || 'Unknown Album',
-    url: `https://zaps.podtards.com/album/${encodeURIComponent(boost.podcast || '')}`,
-    imageUrl: undefined,
-    timestamp: boost.time || Math.floor(Date.now() / 1000),
-    senderName: boost.sender || 'Helipad User',
-    guid: boost.uuid,
-    podcastGuid: boost.uuid,
-    feedGuid: undefined,
-    feedUrl: undefined,
-    publisherGuid: undefined,
-    publisherUrl: undefined,
-  };
+function logLine(source: RecordSource | 'none', action: unknown, result: string) {
+  const a = typeof action === 'number' && isFinite(action) ? String(action) : '-';
+  console.log(`helipad-webhook source=${source} action=${a} result=${result}`);
 }
 
 export async function POST(request: NextRequest) {
-  const startTime = Date.now();
-  try {
-    console.log('🎯 Helipad webhook received');
-    console.log('🔍 Request URL:', request.url);
-    console.log('🔍 Request method:', request.method);
-    console.log('🔍 Request headers:', JSON.stringify(Object.fromEntries(request.headers.entries())));
-    console.log('🔍 POSTGRES_URL configured:', !!process.env.POSTGRES_URL);
-    
-    // Get the raw body for signature verification
-    const body = await request.text();
-    console.log('🔍 Request body length:', body.length);
-    console.log('🔍 Request body preview:', body.substring(0, 200));
-    const signature = request.headers.get('x-helipad-signature') || 
-                     request.headers.get('x-signature') || 
-                     request.headers.get('signature');
-    const authHeader = request.headers.get('authorization');
-    
-    // Verify Authorization token if configured
-    const authToken = process.env.HELIPAD_AUTH_TOKEN;
-    if (authToken) {
-      const isValidAuth = verifyAuthToken(authHeader, authToken);
-      if (!isValidAuth) {
-        console.error('❌ Invalid authorization token');
-        return NextResponse.json(
-          { error: 'Unauthorized' },
-          { status: 401 }
-        );
-      }
-      console.log('✅ Authorization token verified');
-    } else {
-      console.warn('⚠️ No authorization token configured');
-    }
-    
-    // Verify webhook signature if secret is configured
-    const webhookSecret = process.env.HELIPAD_WEBHOOK_SECRET;
-    if (webhookSecret && signature) {
-      const isValid = verifyWebhookSignature(body, signature, webhookSecret);
-      if (!isValid) {
-        console.error('❌ Invalid webhook signature');
-        return NextResponse.json(
-          { error: 'Invalid signature' },
-          { status: 401 }
-        );
-      }
-      console.log('✅ Webhook signature verified');
-    } else {
-      console.warn('⚠️ No webhook secret configured or signature missing');
-    }
-    
-    // Parse the payload
-    let boostData: HelipadBoostPayload;
-    try {
-      boostData = JSON.parse(body);
-      console.log('🔍 Raw payload from Helipad:', JSON.stringify(boostData, null, 2));
-    } catch (error) {
-      console.error('❌ Failed to parse webhook payload:', error);
-      console.error('🔍 Raw body that failed to parse:', body);
-      return NextResponse.json(
-        { error: 'Invalid JSON payload' },
-        { status: 400 }
-      );
-    }
-    
-    // Map Helipad fields to our expected format
-    const mappedBoostData: HelipadBoostPayload = {
-      index: boostData.index,
-      uuid: boostData.uuid,
-      value_msat: boostData.value_msat,
-      value_msat_total: boostData.value_msat_total,
-      action: boostData.action,
-      sender: boostData.sender,
-      app: boostData.app,
-      message: boostData.message,
-      podcast: boostData.podcast,
-      episode: boostData.episode,
-      time: boostData.time,
-      remote_podcast: boostData.remote_podcast,
-      remote_episode: boostData.remote_episode,
-      tlv: boostData.tlv,
-      reply_sent: boostData.reply_sent,
-      custom_key: boostData.custom_key,
-      custom_value: boostData.custom_value,
-      payment_info: boostData.payment_info
-    };
+  const source = sourceFor(request.headers.get('authorization'));
+  if (!source) {
+    logLine('none', undefined, '401');
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
-    console.log('📊 Helipad boost data (mapped):', {
-      id: mappedBoostData.index || mappedBoostData.uuid,
-      amount: mappedBoostData.value_msat,
-      sender: mappedBoostData.sender,
-      podcast: mappedBoostData.podcast,
-      episode: mappedBoostData.episode,
-      message: mappedBoostData.message,
-      app: mappedBoostData.app
-    });
-    
-    // Validate required fields
-    if ((!mappedBoostData.index && !mappedBoostData.uuid) || !mappedBoostData.value_msat) {
-      console.error('❌ Missing required fields in boost data');
-      return NextResponse.json(
-        { error: 'Missing required fields: id or amount' },
-        { status: 400 }
-      );
-    }
-    
-    // Convert to TrackMetadata format
-    const trackMetadata = convertHelipadBoostToTrackMetadata(mappedBoostData);
-    
-    // Get the boost service
-    const boostService = getBoostToNostrService();
-    
-    // Check if we have keys configured for posting boosts
-    if (!boostService.hasKeys()) {
-      console.warn('⚠️ No Nostr keys configured - boost will be stored but not posted to Nostr');
-      
-      // Store the boost data for later processing or display
-      const storedBoostData: StoredHelipadBoost = {
-        ...mappedBoostData,
-        platform: 'helipad' as const,
-        timestamp: Date.now(),
-        storedAt: new Date().toISOString()
-      };
-      let stored = false;
-      let storageError = null;
-      try {
-        await addHelipadBoost(storedBoostData);
-        console.log('✅ Boost stored successfully (no Nostr keys)');
-        stored = true;
-      } catch (error) {
-        console.error('❌ Failed to store boost:', error);
-        if (error instanceof Error) {
-          console.error('❌ Storage error message:', error.message);
-          console.error('❌ Storage error stack:', error.stack);
-          storageError = error.message;
-        }
-        // Continue anyway - don't fail the webhook
-      }
-      
-      return NextResponse.json({
-        success: true,
-        message: 'Boost received and stored (no Nostr posting due to missing keys)',
-        boostId: mappedBoostData.index || mappedBoostData.uuid,
-        amount: mappedBoostData.value_msat,
-        stored: stored,
-        storageError: storageError,
-        duration: Date.now() - startTime
-      });
-    }
-    
-    // Post the boost to Nostr. This branch does not run today: the server-side service
-    // has no key, so the route returns above. If a key is ever added, note that
-    // postBoost publishes in the background, which a Vercel function cuts off — use
-    // signBoost + publishToRelays as /api/nostr/publish does.
-    console.log('🚀 Posting Helipad boost to Nostr...');
-    const boostResult = await boostService.postBoost({
-      // The note says "⚡ N sats"; Helipad sends millisats.
-      amount: Math.floor(mappedBoostData.value_msat / 1000),
-      track: trackMetadata,
-      comment: mappedBoostData.message,
-      tags: ['#helipad', '#boost', '#podcast']
-    });
-    
-    if (boostResult.success) {
-      console.log('✅ Helipad boost posted to Nostr successfully:', boostResult.eventId);
-      
-      // Store the boost data for display purposes
-      const storedBoostData: StoredHelipadBoost = {
-        ...mappedBoostData,
-        platform: 'helipad' as const,
-        timestamp: Date.now(),
-        storedAt: new Date().toISOString(),
-        nostrEventId: boostResult.eventId,
-        nevent: boostResult.nevent
-      };
-      let stored = false;
-      let storageError = null;
-      try {
-        await addHelipadBoost(storedBoostData);
-        console.log('✅ Boost stored successfully (with Nostr event)');
-        stored = true;
-      } catch (error) {
-        console.error('❌ Failed to store boost:', error);
-        if (error instanceof Error) {
-          console.error('❌ Storage error message:', error.message);
-          console.error('❌ Storage error stack:', error.stack);
-          storageError = error.message;
-        }
-        // Continue anyway - don't fail the webhook
-      }
-      
-      return NextResponse.json({
-        success: true,
-        message: 'Boost posted to Nostr successfully',
-        nostrEventId: boostResult.eventId,
-        nevent: boostResult.nevent,
-        boostId: mappedBoostData.index || mappedBoostData.uuid,
-        amount: mappedBoostData.value_msat,
-        stored: stored,
-        storageError: storageError,
-        duration: Date.now() - startTime
-      });
-    } else {
-      console.error('❌ Failed to post boost to Nostr:', boostResult.error);
-      
-      // Store the boost data even if Nostr posting failed
-      const storedBoostData: StoredHelipadBoost = {
-        ...mappedBoostData,
-        platform: 'helipad' as const,
-        timestamp: Date.now(),
-        storedAt: new Date().toISOString(),
-        nostrError: boostResult.error
-      };
-      let stored = false;
-      let storageError = null;
-      try {
-        await addHelipadBoost(storedBoostData);
-        console.log('✅ Boost stored successfully (Nostr posting failed)');
-        stored = true;
-      } catch (error) {
-        console.error('❌ Failed to store boost:', error);
-        if (error instanceof Error) {
-          console.error('❌ Storage error message:', error.message);
-          console.error('❌ Storage error stack:', error.stack);
-          storageError = error.message;
-        }
-        // Continue anyway - don't fail the webhook
-      }
-      
-      // Still return success for the webhook, but log the error
-      return NextResponse.json({
-        success: true,
-        message: 'Boost received but failed to post to Nostr',
-        error: boostResult.error,
-        boostId: mappedBoostData.index || mappedBoostData.uuid,
-        amount: mappedBoostData.value_msat,
-        stored: stored,
-        storageError: storageError,
-        duration: Date.now() - startTime
-      });
-    }
-    
+  let record: HelipadRecord;
+  try {
+    const parsed: unknown = JSON.parse(await request.text());
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('not an object');
+    record = parsed as HelipadRecord;
+  } catch {
+    logLine(source, undefined, '400');
+    return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 });
+  }
+  if (typeof record.value_msat !== 'number' || !isFinite(record.value_msat)) {
+    logLine(source, record.action, '400');
+    return NextResponse.json({ error: 'Missing required field: value_msat' }, { status: 400 });
+  }
+
+  const normalized = normalizeRecord(record, source, getItdvFeedIndex(), Math.floor(Date.now() / 1000));
+  if (!normalized) {
+    logLine(source, record.action, 'dropped');
+    return NextResponse.json({ success: true, stored: false, reason: 'not itdv' });
+  }
+
+  try {
+    const result = await addHelipadRecord(normalized);
+    logLine(source, record.action, 'stored');
+    return NextResponse.json({ success: true, stored: true, kind: normalized.kind, paymentKey: result.paymentKey });
   } catch (error) {
-    console.error('❌ Helipad webhook error:', error);
-    return NextResponse.json(
-      { 
-        error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    );
+    if (error instanceof StoreUnavailableError) {
+      logLine(source, record.action, '503');
+      return NextResponse.json({ success: false, error: 'store unavailable' }, { status: 503 });
+    }
+    throw error;
   }
 }
 
-// Handle GET requests for webhook verification or health checks
-export async function GET(request: NextRequest) {
-  console.log('🔍 GET request to Helipad webhook endpoint (health check)');
-  console.log('⚠️ Note: Helipad should send POST requests with boost data');
+// A GET answers that the endpoint is up, as before; Helipad itself only POSTs.
+export async function GET() {
   return NextResponse.json({
     message: 'Helipad webhook endpoint is active',
-    timestamp: new Date().toISOString(),
-    version: '1.0.0',
-    note: 'This endpoint expects POST requests from Helipad with boost data'
+    note: 'This endpoint expects POST requests from Helipad with boost data',
   });
 }

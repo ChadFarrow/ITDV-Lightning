@@ -1,50 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getHelipadBoosts, clearHelipadBoosts, getHelipadBoostsCount } from '@/lib/helipad-storage';
+import { getHelipadBoosts, clearHelipadBoosts, getHelipadBoostsCount, StoreUnavailableError } from '@/lib/helipad-storage';
 import { isAuthenticatedRequest } from '@/lib/admin-auth';
 
-// GET endpoint to retrieve stored Helipad boosts
+// GET: the newest boosts (streams and auto boosts are on /api/streams). 503 when the store fails,
+// so the page can tell "no boosts" from "store down".
 export async function GET(request: NextRequest) {
+  const requested = parseInt(request.nextUrl.searchParams.get('limit') || '', 10);
+  const limit = Math.min(100, Math.max(1, isFinite(requested) ? requested : 50));
   try {
-    console.log('🔍 Helipad boosts API called');
-    console.log('🔍 POSTGRES_URL configured:', !!process.env.POSTGRES_URL);
-    console.log('🔍 POSTGRES_URL length:', process.env.POSTGRES_URL?.length || 0);
-    
-    const limit = parseInt(request.nextUrl.searchParams.get('limit') || '50');
-    console.log(`🔍 Fetching ${limit} boosts...`);
-    
-    // Return the most recent boosts
     const recentBoosts = await getHelipadBoosts(limit);
     const total = await getHelipadBoostsCount();
-    
-    console.log(`✅ Returning ${recentBoosts.length} boosts (total: ${total})`);
-    console.log('🔍 First boost sample:', recentBoosts[0] ? JSON.stringify(recentBoosts[0]).substring(0, 200) : 'none');
-    
     return NextResponse.json({
       success: true,
       boosts: recentBoosts,
       count: recentBoosts.length,
-      total: total,
-      debug: {
-        postgres_url_configured: !!process.env.POSTGRES_URL,
-        postgres_url_length: process.env.POSTGRES_URL?.length || 0
-      }
-    });
+      total,
+    }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
-    console.error('❌ Error retrieving Helipad boosts:', error);
-    if (error instanceof Error) {
-      console.error('❌ Error message:', error.message);
-      console.error('❌ Error stack:', error.stack);
+    if (error instanceof StoreUnavailableError) {
+      return NextResponse.json({ success: false, error: 'store unavailable' }, { status: 503 });
     }
-    return NextResponse.json(
-      { 
-        success: false,
-        error: 'Failed to retrieve boosts',
-        message: error instanceof Error ? error.message : 'Unknown error',
-        postgres_url_configured: !!process.env.POSTGRES_URL,
-        postgres_url_length: process.env.POSTGRES_URL?.length || 0
-      },
-      { status: 500 }
-    );
+    throw error;
   }
 }
 

@@ -48,7 +48,7 @@ async function hmacHex(message: string, secret: string): Promise<string> {
  * Comparing every character of the longer string keeps the work independent of
  * where the first difference falls.
  */
-function constantTimeEquals(a: string, b: string): boolean {
+export function constantTimeEquals(a: string, b: string): boolean {
   const length = Math.max(a.length, b.length);
   let mismatch = a.length ^ b.length;
   for (let i = 0; i < length; i++) {
