@@ -312,6 +312,7 @@ npx next lint                                 # should report zero warnings — 
 ADMIN_PASSWORD=<same> ./scripts/security-smoke.sh   # 34 checks, needs dev (or next start) running
 npx tsx scripts/backfill-album-dates.ts       # asserts the date extractor still agrees
 npx tsx scripts/check-boost-messages.ts       # boost records, LNURL comment, note text, publish route
+npx tsx scripts/check-boostr-notes.ts         # /boosts: Boostr Bot note reader, card dedupe
 ```
 
 `security-smoke.sh` takes the base URL as its first argument (default `http://localhost:3000`).
