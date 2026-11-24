@@ -782,6 +782,41 @@ export class BoostToNostrService {
   }
 
   /**
+   * Fetch every kind 1 of one author that carries one of `iTags` (NIP-73 `i` values), the whole
+   * history and not a recent window: /boosts backfills all of Boostr Bot's ITDV notes this way.
+   * Pages backwards with `until` and stops at a short page or after `maxPages`. Newest first,
+   * each event once (several relays answer each query).
+   */
+  async fetchAllUserBoosts(
+    pubkey: string,
+    iTags: string[],
+    pageSize: number = 500,
+    maxPages: number = 20
+  ): Promise<Event[]> {
+    const byId: { [id: string]: Event } = {};
+    let until: number | undefined;
+    for (let page = 0; page < maxPages; page++) {
+      const filter: Filter = { kinds: [1], authors: [pubkey], '#i': iTags, limit: pageSize };
+      if (until !== undefined) filter.until = until;
+      const events = await this.pool.querySync(this.relays, filter);
+      let oldest = Infinity;
+      let fresh = 0;
+      for (const event of events) {
+        if (!byId[event.id]) {
+          byId[event.id] = event;
+          fresh++;
+        }
+        if (event.created_at < oldest) oldest = event.created_at;
+      }
+      if (fresh < pageSize || oldest === Infinity) break;
+      until = oldest - 1;
+    }
+    return Object.keys(byId)
+      .map(id => byId[id])
+      .sort((a, b) => b.created_at - a.created_at);
+  }
+
+  /**
    * Fetch all recent boosts from relays
    */
   async fetchRecentBoosts(

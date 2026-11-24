@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { getBoostToNostrService, noteTitle } from '@/lib/boost-to-nostr-service';
 import { parseBoostNote } from '@/lib/boost-note';
+import { deduplicateBoosts, isHelipadStream, normalizeString } from '@/lib/boost-dedupe';
+import { BOOSTR_BOT_PUBKEY, ITDV_PODCAST_I_TAG, parseBoostrNote } from '@/lib/boostr-note';
 import { type Event } from 'nostr-tools';
 import { nip19, SimplePool } from 'nostr-tools';
 import Link from 'next/link';
@@ -33,6 +35,7 @@ interface ParsedBoost {
   valueMsatTotal?: number;
   app?: string;  // App name that sent the boost (for Helipad boosts)
   action?: number;  // Helipad action field (indicates stream vs boost)
+  senderNpub?: string;  // Boostr Bot notes: the payer's npub, when the app sent one
 }
 
 interface ParsedReply {
@@ -48,6 +51,37 @@ interface ParsedReply {
 
 function parseBoostFromEvent(event: Event): ParsedBoost | null {
   try {
+    // Boostr Bot's notes start with the same "⚡ Boost ⚡" header but use their own sentence, so
+    // they go to their own reader first, and never fall through: a bot note for another show is
+    // not shown (lib/boostr-note.ts).
+    if (event.pubkey === BOOSTR_BOT_PUBKEY) {
+      const boostr = parseBoostrNote(event);
+      if (!boostr) return null;
+      const title = boostr.episode || boostr.show;
+      return {
+        id: event.id,
+        author: event.pubkey,
+        authorNpub: nip19.npubEncode(event.pubkey),
+        authorName: 'Boostr Bot',
+        content: event.content,
+        userMessage: boostr.message,
+        amount: String(boostr.sats),
+        trackTitle: title ? noteTitle(title) : undefined,
+        trackArtist: boostr.show,
+        trackAlbum: boostr.sender, // the card shows this field as "Sent by:"
+        timestamp: event.created_at,
+        tags: event.tags,
+        // The bot's app link only. The `r` tag (boostUrl) is a link the payer chose (boostbox
+        // `boost-link`), so it is never shown as "Listen".
+        url: boostr.listenUrl,
+        isFromApp: false,
+        isFromHelipad: false,
+        platform: 'boostr',
+        app: boostr.app,
+        senderNpub: boostr.senderNpub,
+      };
+    }
+
     // Notes since 2026-11-17 use the shared format (lib/boost-note.ts), which starts
     // "⚡ Boost ⚡". Older notes have no header and go through the reader below,
     // which must stay: a kind 1 cannot be edited, so every old layout remains.
@@ -282,56 +316,6 @@ function buildThreadedReplies(events: any[], rootEventId: string): ParsedReply[]
   return buildChildren(rootEventId, 0);
 }
 
-// Normalize string for comparison (trim whitespace, lowercase, handle empty strings)
-function normalizeString(str: string | undefined | null): string {
-  if (!str) return '';
-  return str.trim().toLowerCase().replace(/\s+/g, ' ');
-}
-
-// Deduplicate boosts based on content (track title, artist, message)
-// This ensures we only show one entry per unique boost
-function deduplicateBoosts(boosts: ParsedBoost[]): ParsedBoost[] {
-  const seenBoosts = new Map<string, ParsedBoost>();
-  
-  for (const boost of boosts) {
-    // Normalize content fields for better matching
-    const trackTitle = normalizeString(boost.trackTitle);
-    const trackArtist = normalizeString(boost.trackArtist);
-    const userMessage = normalizeString(boost.userMessage);
-    
-    // Create a unique key based on content (track title, artist, message)
-    // This will catch duplicates even if they have slightly different timestamps or IDs
-    const contentKey = `${trackTitle}-${trackArtist}-${userMessage}`;
-    
-    // Skip if all content fields are empty (invalid boost)
-    if (!contentKey || contentKey === '--') {
-      console.log(`⚠️ Skipping boost with empty content: ${boost.id}`);
-      continue;
-    }
-    
-    if (!seenBoosts.has(contentKey)) {
-      seenBoosts.set(contentKey, boost);
-      console.log(`✅ Added unique boost: ${contentKey.substring(0, 50)}...`);
-    } else {
-      // If we have a duplicate, prefer the one with higher amount (might be aggregated)
-      const existing = seenBoosts.get(contentKey)!;
-      const existingAmount = parseInt(existing.amount || '0', 10);
-      const newAmount = parseInt(boost.amount || '0', 10);
-      if (newAmount > existingAmount) {
-        // Replace with the one that has higher amount
-        seenBoosts.set(contentKey, boost);
-        console.log(`💰 Replaced duplicate boost with higher amount: ${contentKey.substring(0, 50)}... (${newAmount} > ${existingAmount})`);
-      } else {
-        console.log(`⏭️ Skipping duplicate boost: ${contentKey.substring(0, 50)}... (existing: ${existingAmount}, new: ${newAmount})`);
-      }
-    }
-  }
-  
-  const uniqueBoosts = Array.from(seenBoosts.values());
-  console.log(`🔍 Deduplicated ${boosts.length} boosts into ${uniqueBoosts.length} unique boosts`);
-  return uniqueBoosts;
-}
-
 // Helper function to convert millisats to sats and format
 function convertMsatsToSats(msats: number | undefined | null): string {
   if (!msats || msats === 0) return '';
@@ -344,12 +328,9 @@ function convertMsatsToSats(msats: number | undefined | null): string {
 }
 
 // Helper function to detect if action is stream or boost
-// Based on Helipad documentation: action values indicate the type
-// Common values: 1 = boost, 2 = stream
 function isStreamAction(action: number | undefined | null): boolean {
-  if (action === undefined || action === null) return false;
-  // Only action === 2 indicates stream, everything else (including 1) is boost
-  return action === 2;
+  // Helipad: 1 stream, 2 boost, 4 auto. This said 2 until 2026-11-24, which badged every boost "Stream".
+  return isHelipadStream(action);
 }
 
 // Helper function to generate track URL for Helipad boosts
@@ -738,8 +719,9 @@ export default function BoostsPage() {
       setError(null);
 
       // Check cache first (cache for 10 minutes)
-      const cacheKey = 'boosts_cache';
-      const cacheTimeKey = 'boosts_cache_time';
+      // v2 since the Boostr Bot cards (2026-11-24): an older cache has none of them.
+      const cacheKey = 'boosts_cache_v2';
+      const cacheTimeKey = 'boosts_cache_time_v2';
       const cacheValidDuration = 10 * 60 * 1000; // 10 minutes
 
       if (!forceRefresh) {
@@ -832,26 +814,29 @@ export default function BoostsPage() {
         return;
       }
 
-      // Fetch boosts from the historical account
-      let allBoosts: any[] = [];
+      // Fetch the site's own notes and Boostr Bot's ITDV podcast notes (all of them: a backfill).
+      // Each source has its own timeout, so a slow one never empties the other.
+      const withTimeout = async (label: string, fetch: Promise<Event[]>): Promise<Event[]> => {
+        try {
+          return await Promise.race([
+            fetch,
+            new Promise<Event[]>((_, reject) =>
+              setTimeout(() => reject(new Error('Fetch timeout after 10 seconds')), 10000)
+            )
+          ]);
+        } catch (error) {
+          console.warn(`Failed to fetch ${label}:`, error);
+          return [];
+        }
+      };
 
-      try {
-        console.log(`Fetching boosts from account: ${appPubkey.substring(0, 8)}...`);
-
-        // Add timeout to prevent hanging
-        const fetchWithTimeout = Promise.race([
-          service.fetchUserBoosts(appPubkey, 200), // Fetch up to 200 most recent boosts
-          new Promise<[]>((_, reject) =>
-            setTimeout(() => reject(new Error('Fetch timeout after 10 seconds')), 10000)
-          )
-        ]);
-
-        allBoosts = await fetchWithTimeout;
-        console.log(`Found ${allBoosts.length} total events from this account`);
-      } catch (error) {
-        console.warn(`Failed to fetch boosts:`, error);
-        allBoosts = [];
-      }
+      console.log(`Fetching boosts from account: ${appPubkey.substring(0, 8)}... and Boostr Bot`);
+      const [siteBoosts, boostrBoosts] = await Promise.all([
+        withTimeout('site boosts', service.fetchUserBoosts(appPubkey, 200)), // up to 200 most recent
+        withTimeout('Boostr Bot boosts', service.fetchAllUserBoosts(BOOSTR_BOT_PUBKEY, [ITDV_PODCAST_I_TAG])),
+      ]);
+      const allBoosts: Event[] = siteBoosts.concat(boostrBoosts).sort((a, b) => b.created_at - a.created_at);
+      console.log(`Found ${siteBoosts.length} site events and ${boostrBoosts.length} Boostr Bot events`);
 
       // Also fetch Helipad boosts
       console.log('Fetching Helipad boosts...');
@@ -920,7 +905,7 @@ export default function BoostsPage() {
             actualBoostCount++;
           }
 
-          parsedBoost.isFromApp = true;
+          parsedBoost.isFromApp = parsedBoost.platform !== 'boostr'; // a Boostr card is not the site's own note
           // Platform is now set by parseBoostFromEvent based on #helipad tag
           parsedBoost.replies = []; // Start with empty replies
           parsedBoosts.push(parsedBoost);
@@ -1027,7 +1012,8 @@ export default function BoostsPage() {
 
         // Subscribe to new boosts from this account
         subscription = service.subscribeToBoosts(
-          { authors: [appPubkey] },
+          // Boostr Bot posts for other shows too; parseBoostFromEvent drops those.
+          { authors: [appPubkey, BOOSTR_BOT_PUBKEY] },
           {
             onBoost: async (event) => {
               const parsedBoost = parseBoostFromEvent(event);
@@ -1050,7 +1036,7 @@ export default function BoostsPage() {
                   }
                 }
                 
-                parsedBoost.isFromApp = true;
+                parsedBoost.isFromApp = parsedBoost.platform !== 'boostr'; // a Boostr card is not the site's own note
                 // Platform is now set by parseBoostFromEvent based on #helipad tag
 
                 // Fetch threaded replies for real-time boost
@@ -1086,9 +1072,10 @@ export default function BoostsPage() {
                   const existsById = prev.some(b => b.id === parsedBoost.id);
                   if (existsById) return prev;
 
-                  // Check if boost already exists by content (deduplication)
+                  // Check if boost already exists by content (deduplication). Not for a Boostr card:
+                  // it is one event, and deduplicateBoosts keys it by id.
                   const contentKey = `${parsedBoost.trackTitle || ''}-${parsedBoost.trackArtist || ''}-${parsedBoost.userMessage || ''}`.toLowerCase();
-                  const existsByContent = prev.some(b => {
+                  const existsByContent = parsedBoost.platform !== 'boostr' && prev.some(b => {
                     const bContentKey = `${b.trackTitle || ''}-${b.trackArtist || ''}-${b.userMessage || ''}`.toLowerCase();
                     return bContentKey === contentKey;
                   });
@@ -1403,8 +1390,9 @@ export default function BoostsPage() {
           <div className="space-y-4">
             {filteredBoosts.map((boost, index) => {
               // Create a unique key based on content to prevent duplicate renders
+              // A Boostr card is one event: two of them can share all three fields.
               const contentKey = `${normalizeString(boost.trackTitle)}-${normalizeString(boost.trackArtist)}-${normalizeString(boost.userMessage)}`;
-              const uniqueKey = contentKey || boost.id || `boost-${index}`;
+              const uniqueKey = boost.platform === 'boostr' ? boost.id : (contentKey || boost.id || `boost-${index}`);
               
               return (
               <div
@@ -1447,7 +1435,8 @@ export default function BoostsPage() {
                     {/* User Message */}
                     {boost.userMessage && (
                       <div className="mb-3">
-                        <div className="text-gray-300 italic bg-gray-800/30 rounded-lg p-3 border-l-2 border-blue-400/50">
+                        {/* break-words: Boostr messages carry long URLs and nostr:npub links */}
+                        <div className="text-gray-300 italic bg-gray-800/30 rounded-lg p-3 border-l-2 border-blue-400/50 break-words">
                           &ldquo;{boost.userMessage}&rdquo;
                         </div>
                       </div>
@@ -1476,14 +1465,17 @@ export default function BoostsPage() {
                           >
                             View on Nostr
                           </a>
-                          <a
-                            href={`https://primal.net/p/${boost.author}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-400 hover:text-blue-300 transition text-sm py-1"
-                          >
-                            Profile
-                          </a>
+                          {/* A Boostr card links the payer, when the app named one, not the bot */}
+                          {(boost.platform !== 'boostr' || boost.senderNpub) && (
+                            <a
+                              href={`https://primal.net/p/${boost.platform === 'boostr' ? boost.senderNpub : boost.author}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-400 hover:text-blue-300 transition text-sm py-1"
+                            >
+                              Profile
+                            </a>
+                          )}
                         </>
                       )}
 
@@ -1526,12 +1518,27 @@ export default function BoostsPage() {
             )}
           </>
         )}
+        {boost.platform === 'boostr' && (
+          <>
+            <span className="bg-blue-500/20 text-blue-400 px-2 py-1 rounded text-xs font-medium">
+              📻 Boostr Bot
+            </span>
+            {boost.app && (
+              <span className="bg-gray-700/50 text-gray-300 px-2 py-1 rounded text-xs font-medium">
+                📱 {boost.app}
+              </span>
+            )}
+            <span className="bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded text-xs font-medium">
+              ⚡ Boost
+            </span>
+          </>
+        )}
         {boost.isFromApp && !boost.isFromHelipad && (
           <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs font-medium">
             📱 ITDV App
           </span>
         )}
-        {!boost.isFromApp && !boost.isFromHelipad && (
+        {!boost.isFromApp && !boost.isFromHelipad && boost.platform !== 'boostr' && (
           <span className="bg-purple-500/20 text-purple-400 px-2 py-1 rounded text-xs font-medium">
             📡 Nostr
           </span>

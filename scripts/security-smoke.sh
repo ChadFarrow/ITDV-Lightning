@@ -54,6 +54,9 @@ for e in all-feeds cdn-status monitoring feeds manage-feeds pinned-albums \
   check 401 "unauthenticated GET /api/admin/$e" "$BASE/api/admin/$e"
 done
 check 401 "unauthenticated DELETE /api/admin/monitoring" -X DELETE "$BASE/api/admin/monitoring"
+# Clears every stored Helipad boost, and it lives outside /api/admin, so middleware does not cover it.
+# Never add an authenticated DELETE here: on a server with POSTGRES_URL it wipes the store.
+check 401 "unauthenticated DELETE /api/helipad-boosts" -X DELETE "$BASE/api/helipad-boosts"
 check 401 "forged admin token" -b 'admin-token=9999999999999.deadbeef' "$BASE/api/admin/all-feeds"
 check 401 "malformed admin token" -b 'admin-token=notatoken' "$BASE/api/admin/all-feeds"
 check 401 "empty signature" -b 'admin-token=1.' "$BASE/api/admin/all-feeds"
