@@ -103,12 +103,12 @@ The Streams tab needs this database. Chad fixes the credential first (step 0 bel
 - **Logging.** Stop logging the raw body and the raw payload. Log one line per request: source,
   action, kept or dropped.
 - **Classification** (one helper, used by the route, the store and the page):
-  - stream: `action` 1. A Helipad invoice (`action` 5, a Lightning-address payment) counts only when
-    Helipad fetched its `rss::payment` metadata: Helipad then fills the record from the
-    `x-rss-payment` JSON, with the feed, sender and amounts, and sets the action from it. A bare
-    `action` 5 with only an `rss::payment::…` memo has no feed and no sender, so the ITDV filter drops
-    it. (Helipad's "fetch metadata" setting must be on; Chad's steps. The builder confirms from
-    Helipad's `fetch_boost_metadata` which fields it fills.)
+  - stream: `action` 1. A Lightning-address payment (`rss::payment`) arrives as a stream too when
+    Helipad's metadata fetch is on: `fetch_boost_metadata` (Helipad `src/boost.rs`) sets the action,
+    sender, app, podcast, episode and `value_msat_total` from the `x-rss-payment` JSON. Without the
+    fetch it is a bare `action` 5 with only a memo and no feed, which the ITDV filter drops. The
+    builder checks which feed fields it keeps (a guid, or only the title, which the title fallback
+    covers).
   - auto: `action` 4 (v4vmusic sends one per song; Chad: "some apps might be calling them auto
     boosts");
   - boost: everything else that is kept.
@@ -124,9 +124,13 @@ The Streams tab needs this database. Chad fixes the credential first (step 0 bel
   so TJ's record 512 would overwrite Chad's record 512. The check becomes `(source, boost_index)`.
 - **`payment_key`** identifies one listener payment across nodes. Identity fields from the
   boostagram: feed guid, item guid (or episode title), sender name, app name, `value_msat_total`, and
-  the playback position `ts`. `ts` 0 counts as missing (BoostMeBitch sends `ts: 0`). At insert, a
-  record from another source with the same identity fields and a `time` within 120 s gets the
-  existing record's key; otherwise the record gets a new key. Do not use minute buckets: BoostBot
+  the playback position `ts`. `ts` 0 counts as missing (BoostMeBitch sends `ts: 0`). One payment makes
+  several records, also on one node: an album payment reaches TJ's node as Ben, Kurt, Joey and
+  DoerfelVerse_Node splits; `chadf@` and `boostr@` both land on ChadF33; Chad's sent records are one
+  per split. So at insert, a record joins an existing payment when the identity fields match, its
+  `time` is within 120 s, and that payment has no record yet from the same source **and** the same
+  recipient (`custom_key`/`custom_value`, or the sent split's destination). A repeat of source and
+  recipient starts a new payment. Otherwise the record gets a new key. Do not use minute buckets: BoostBot
   measured splits of one payment up to 86 s apart, and a bucket edge split one payment in two
   (2026-10-30). Same rule, same reason as BoostBot's `sessionIdFor()`.
 - **Retention.** A stream or auto row keeps the parsed fields, not the raw `tlv` (boost rows keep
@@ -168,14 +172,15 @@ shows (sender names that listeners set in their apps). Its `limit` is clamped.
 
 ### 5. BoostBot (repo Helipad-to-Nostr-BoostBot, after the ITDV PR merges)
 
-- Only the production instance on the Ubuntu server forwards (fed by Chad's main node's Helipad).
+- Only the production instance on the Ubuntu server forwards. It is fed by the Helipad on Chad's main
+  (StartOS 0.3.x) node. My assumption: that node is ChadF33 (`032870511…`), because this BoostBot
+  posts the ITDV boosts that pay `chadf@getalby.com`. Chad confirms.
   The second instance on the StartOS 0.4 node keeps forwarding off; its StartOS package does not
   change.
 - New settings `forwardUrl` and `forwardToken` (dashboard settings form and `config.json`; the token
   is redacted like `webhookToken`). Empty `forwardUrl` = off, so the change is safe to deploy first.
 - In `POST /helipad-webhook`, after the existing processing: when forwarding is on and the event is
-  a stream (`action` 1), an auto boost (`action` 4) or an invoice (`action` 5), POST the Helipad
-  event unchanged to `forwardUrl` with
+  a stream (`action` 1) or an auto boost (`action` 4), POST the Helipad event unchanged to `forwardUrl` with
   `Authorization: Bearer <forwardToken>`. Fire and forget, 5 s timeout, never block or fail the
   Helipad request, log the status code only.
 - Events from BoostBot's own NWC client are not forwarded: they carry no stream that Helipad does not
@@ -191,17 +196,20 @@ shows (sender names that listeners set in their apps). Its `limit` is clamped.
    reset the password there if needed). In Vercel `itdv-lightning-fixed`, replace `POSTGRES_URL`
    with it for **Production only**, as Sensitive, and remove it from Development and Preview, so a
    preview build can never write test rows into the live store. Redeploy production. The value never
-   goes into a chat. Then add it to `vibe-kit/secrets-map.json`.
+   goes into a chat. Then add it to `vibe-kit/secrets-map.json`. If the Neon account cannot be
+   found: make a new database in Vercel (Storage, Create Database, Neon) and connect it to the
+   project for Production. Vercel then sets the connection variables itself. The old rows are lost;
+   how many there are is not known.
 1. Make a token and store it in Vercel `itdv-lightning-fixed`, Production, Sensitive, as
    `BOOSTBOT_WEBHOOK_TOKEN`. The plan gives one piped command, so the value never shows.
 2. After the BoostBot PR merges: deploy BoostBot on the Ubuntu server (exact commands in the plan),
    then set `forwardUrl` = `https://itdv.podtards.com/api/helipad-webhook` and the token in the
    BoostBot settings page.
-3. In Chad's Helipad, on the trigger that sends to BoostBot, tick Stream, Auto and Invoice. In
+3. In Chad's Helipad, on the trigger that sends to BoostBot, tick Stream and Auto. In
    Helipad's settings, turn on fetching payment metadata.
 4. TJ: after step 0, check whether boosts arrive from his Helipad (the webhook may still be set).
    If none arrive, TJ adds it again: URL `https://itdv.podtards.com/api/helipad-webhook`, the
-   `HELIPAD_AUTH_TOKEN` value as the auth token. In any case TJ ticks Stream, Auto and Invoice on that
+   `HELIPAD_AUTH_TOKEN` value as the auth token. In any case TJ ticks Stream and Auto on that
    trigger and turns on metadata fetching. Chad gives TJ the token by a private channel.
 5. Add the new token to `vibe-kit/secrets-map.json` (Vercel and BoostBot copies).
 
@@ -225,7 +233,10 @@ shows (sender names that listeners set in their apps). Its `limit` is clamped.
 - The webhook route: both tokens, wrong token, unset token, non-ITDV dropped, the `(source, index)`
   duplicate check.
 - The store-unavailable path: a failed read gives 503 and the page shows it; a failed insert gives 503.
-- BoostBot: `npm test` with new tests for the forward rule (stream, auto, invoice stream forwarded;
+- `scripts/check-streams.ts` also: one album payment that arrives as four records from TJ's node
+  (different `custom_value`s) counts once; two payments 60 s apart from one listener with no `ts`
+  count twice.
+- BoostBot: `npm test` with new tests for the forward rule (stream and auto forwarded; invoice,
   boost and NWC events not; forwarding off; a failing target does not fail the webhook).
 - `npx tsc --noEmit`, `npm run build` (zero lint warnings), `scripts/security-smoke.sh` on
   `next start`, plus a check that the webhook answers 401 to a missing or wrong token.
@@ -239,7 +250,7 @@ shows (sender names that listeners set in their apps). Its `limit` is clamped.
 
 - Auto boosts go to the Streams tab, counted apart from streams.
 - A Doerfels song played inside another show counts, with "in <that show>".
-- The site keeps only ITDV records; BoostBot forwards every stream, auto and invoice event and the
+- The site keeps only ITDV records; BoostBot forwards every stream and auto event and the
   site filters, so the ITDV feed list has one home (the site).
 - `BOOSTBOT_WEBHOOK_TOKEN` is a second token, so each sender can be told apart and revoked alone.
 - The fixed `POSTGRES_URL` goes to Production only.
