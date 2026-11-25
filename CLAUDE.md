@@ -151,18 +151,36 @@ sends `nosniff`; the image route applies `hardeningHeadersFor` — SVG is an `im
 script, so it gets a sandbox CSP. `application/octet-stream` is permitted for audio and video only,
 because podcast hosts commonly serve MP3s that way.
 
+**HLS playlists: every link goes back through the video route** (`lib/hls-rewrite.ts`). The route reads a
+playlist whole and rewrites each link to a root-relative `/api/proxy-video?url=<absolute URL>`. The rule is
+the format's own (RFC 8216 4.1), not a list of file names: every non-blank line that does not start with
+`#` is a URI, and so is every `URI="…"` attribute of a tag (`EXT-X-MAP`, `EXT-X-KEY`, `EXT-X-MEDIA`,
+`EXT-X-I-FRAME-STREAM-INF` …). Each link resolves against the URL of the final response, after any
+redirect; only `http(s)` links are rewritten (`data:` and `skd:` keys stay). Until 2026-11-25 the route
+matched names (`.m3u8`, `.ts`, `segment_N.ts`), so Cloudflare Stream's `../../<id>/video/<n>/seg_N.mp4?p=…`
+lines stayed relative, resolved against this site, and no Cloudflare video played (production too). The
+rewrite decides nothing about safety: each rewritten link is a new request to the route, so the host
+allow-list, the guard, the media-type check and the limits apply to it as to the first. Root-relative
+links keep the cached body (`public, max-age=3600`) free of the request's Host. The largest rewritten
+playlist on 2026-11-25 was 1.83 MB: the audio rendition of the 2.5-hour CityBeach video, 1.53 MB upstream
+(every rendition of the three videos measured).
+`npx tsx scripts/check-hls-rewrite.ts` asserts the rewrite on synthetic copies of the real shapes.
+
 `npx tsx scripts/check-media-proxy.ts` drives the three route handlers against a local server: 42
 private address forms, a name that resolves to 127.0.0.1, redirects to private addresses and a redirect
 loop, an endless and a falsely declared body, a server that never answers and one that drips, HTML behind
-an allowed video host, the SplitKit page and probes, and the real-use shapes (Range 206 with its headers,
-a public redirect, an upstream 304). The timeout cases take about 30 s; `CHECK_SKIP_SLOW=1` skips them.
+an allowed video host, the SplitKit page and probes, the real-use shapes (Range 206 with its headers,
+a public redirect, an upstream 304), and the HLS chain a player walks (master, media playlist, init
+segment, `../../` segment, key, audio rendition, a redirected playlist), with playlist links that the route
+must refuse once followed (private address, foreign host, plain http, HTML). The timeout cases take about 30 s; `CHECK_SKIP_SLOW=1` skips them.
 On 2026-11-25 each rule of the guard, of `safe-fetch.ts` and of the route wiring was removed once (52
 removals), and a check failed every time. One needs `check-feed-fetch.ts`: the recipe's scheme check,
 which the proxy's own HTTPS rule covers.
 
 `scripts/security-smoke.sh` asserts the proxy refusals and the real media, including an op3.dev track
-through its redirect (47 checks with the Helipad webhook ones). Run it against a dev server after
-touching auth, the proxies, or `/api/optimized-images`, and against `next start` after a change to a proxy
+through its redirect and a Cloudflare Stream playlist down to its first segment (53 checks with the Helipad
+webhook ones). Run it against a dev server after touching auth, the proxies, or `/api/optimized-images`,
+and against `next start` after a change to a proxy
 (the 206 framing only shows on a running build, see "Next is pinned").
 
 ### Feed fetches go through `lib/feed-fetch.ts` (server only)
@@ -453,14 +471,15 @@ ADMIN_PASSWORD=<anything> npm run dev         # without it every admin route 401
 npx tsc --noEmit                              # fastest correctness check
 npm run build                                 # also runs lint; the only full type gate
 npx next lint                                 # should report zero warnings — keep it there
-ADMIN_PASSWORD=<same> ./scripts/security-smoke.sh   # 47 checks, needs dev (or next start) running
+ADMIN_PASSWORD=<same> ./scripts/security-smoke.sh   # 53 checks, needs dev (or next start) running
 npx tsx scripts/backfill-album-dates.ts       # asserts the date extractor still agrees
 npx tsx scripts/check-boost-messages.ts       # boost records, LNURL comment, note text, publish route
 npx tsx scripts/check-boostr-notes.ts         # /boosts: Boostr Bot note reader, card dedupe
 npx tsx scripts/check-streams.ts              # Streams tab: record kind, ITDV filter, payment keys
 npx tsx scripts/check-feed-fetch.ts           # feed fetch: private-address guard, time/size limits, channel scoping
-npx tsx scripts/check-media-proxy.ts          # media proxies: address guard, redirects, time/size limits, media type
-node scripts/e2e-media-proxy.mjs http://localhost:<port>  # browser: proxied art, the big GIF, two tracks, HLS video (needs internet)
+npx tsx scripts/check-media-proxy.ts          # media proxies: address guard, redirects, time/size limits, media type, HLS chain
+npx tsx scripts/check-hls-rewrite.ts          # HLS playlist rewrite: every link form, keys, CRLF, exact query round trip
+node scripts/e2e-media-proxy.mjs <base-url>   # browser: proxied art, the big GIF, two tracks, 3 Cloudflare videos play (needs internet)
 STREAMS_TEST_DB=1 npx tsx scripts/check-streams-store.ts   # Helipad store, on a LOCAL database
 STREAMS_TEST_DB=1 npx tsx scripts/check-webhook.ts         # webhook tokens, filter, 503s, log lines (local DB)
 node scripts/e2e-boosts-streams.mjs <base-url> # browser test of both tabs (local DB + dev; see its header)
@@ -555,12 +574,6 @@ an environment change rather than just code, so don't treat them as fresh discov
   else calls it since the dead album-page loaders were removed. Treat it, `lib/db.ts` and
   `/api/admin/ensure-feed` as a candidate for deletion if Postgres is not coming back; do not wire
   new callers to it in the meantime.
-- **Cloudflare Stream videos do not play** (found 2026-11-25, also on production). The playlist rewrite in
-  `app/api/proxy-video/route.ts` proxies a segment line only when it matches a few name patterns, and
-  Cloudflare's media playlists name segments `../../<id>/video/720/seg_N.mp4?p=…`. That line stays
-  relative, the player resolves it against this site, gets a 404, and stops after the init segment. A
-  segment fetched through the proxy by its absolute URL arrives byte-identical, so the fix is in the
-  rewrite, not the guard.
 - **Rate limits are per-instance.** Both `/api/admin/simple-auth` and `/api/nostr/publish` count
   attempts in a module-level `Map`, so a distributed caller gets the limit *per serverless instance*.
   They raise the cost of guessing; they are not a hard stop. A durable limit needs Vercel KV or similar.

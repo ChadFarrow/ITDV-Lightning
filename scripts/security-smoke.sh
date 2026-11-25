@@ -54,6 +54,16 @@ check_any() {
   fi
 }
 
+# check_value <want> <desc> <got>: a value the script computed must equal <want>.
+check_value() {
+  local want="$1" desc="$2" got="$3"
+  if [ "$got" = "$want" ]; then
+    printf '  ok    %-58s %s\n' "$desc" "$got"; pass=$((pass + 1))
+  else
+    printf '  FAIL  %-58s want %s got %s\n' "$desc" "$want" "${got:-<empty>}"; fail=$((fail + 1))
+  fi
+}
+
 # check_body_lacks <text> <desc> <curl args...>: the response body must not contain <text>.
 check_body_lacks() {
   local text="$1" desc="$2"; shift 2
@@ -138,6 +148,26 @@ check_header "1025" "op3.dev audio 206 carries Content-Length" content-length -r
   "$BASE/api/proxy-audio?url=$OP3_TRACK"
 check_header "bytes 0-1024/*" "op3.dev audio 206 carries Content-Range" content-range -r 0-1024 \
   "$BASE/api/proxy-audio?url=$OP3_TRACK"
+
+# Cloudflare Stream: the master names its variant playlists, and a variant names its init
+# segment and its segments as ../../<id>/video/<n>/seg_N.mp4?p=…. Until 2026-11-25 those segment
+# lines stayed relative and no Cloudflare video played. Every link must be a root-relative proxy
+# link, and the init segment and the first segment must arrive through it.
+echo "== Cloudflare Stream video: every playlist link goes through the proxy"
+CF_MASTER="https%3A%2F%2Fcustomer-dlnbepb8zpz7h846.cloudflarestream.com%2Faef771f15a451d680860b185bde17de6%2Fmanifest%2Fvideo.m3u8"
+cf_variant="$(curl -sS "$BASE/api/proxy-video?url=$CF_MASTER" | tr -d '\r' | grep -v '^#' | grep -m1 .)"
+check_value "/api/proxy-video?url=" "Cloudflare master: variant link is a proxy link" "${cf_variant:0:21}"
+cf_media="$(curl -sS "$BASE${cf_variant:-/api/proxy-video}" | tr -d '\r')"
+cf_loose="$(grep -v '^#' <<<"$cf_media" | grep . | grep -vc '^/api/proxy-video?url=')"
+cf_count="$(grep -c '^/api/proxy-video?url=' <<<"$cf_media")"
+check_value "yes" "Cloudflare media playlist names its segments" "$([ "${cf_count:-0}" -gt 100 ] && echo yes || echo "no ($cf_count)")"
+check_value "0" "Cloudflare media playlist: no link left unproxied" "$cf_loose"
+cf_init="$(grep -m1 '^#EXT-X-MAP' <<<"$cf_media" | sed 's/.*URI="\([^"]*\)".*/\1/')"
+cf_seg="$(grep -v '^#' <<<"$cf_media" | grep -m1 .)"
+# An empty link falls back to the bare route (400), not to the home page (200).
+check 200 "Cloudflare init segment arrives through the proxy" "$BASE${cf_init:-/api/proxy-video}"
+check 200 "Cloudflare ../../ segment arrives through the proxy" "$BASE${cf_seg:-/api/proxy-video}"
+check_header "video/mp4*" "Cloudflare segment is video/mp4" content-type "$BASE${cf_seg:-/api/proxy-video}"
 
 echo
 echo "passed: $pass  failed: $fail"

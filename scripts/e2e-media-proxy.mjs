@@ -1,16 +1,18 @@
 // Browser test for the media proxies on real ITDV pages: album art and GIFs through
 // /api/proxy-image, audio through /api/proxy-audio (a doerfelverse.com track and an op3.dev
-// track, which redirects), and an HLS video through /api/proxy-video.
+// track, which redirects), and every Cloudflare Stream video through /api/proxy-video, played to
+// real playback (currentTime moves on by 2 s).
 //
 //   node scripts/e2e-media-proxy.mjs <base-url>
+//   E2E_ONLY=video node scripts/e2e-media-proxy.mjs <base-url>   # the video cases only
 //
-// It needs the internet (the media is real) and a running app (`npm run dev` or `next start`).
-// Give the base URL as http://localhost:<port>: the video route writes its playlist links from the
-// request's own origin, and `next start` reports that as localhost even when bound to 127.0.0.1.
+// It needs the internet (the media is real) and a running app (`npm run dev` or `next start`), or
+// a deployment. The video route writes root-relative playlist links, so any base URL works.
 // Chrome runs muted on a throwaway profile at a phone size (device emulation, mobile: true),
 // because the phone layout is where non-GIF art goes through the image proxy. It watches every
 // /api/proxy-* response over CDP and fails on any status other than 200, 206 or 304, on a failed
-// load, or when the media does not play. It quits with Browser.close, and deletes the profile.
+// load, on a media request that missed the proxy (a 404 from this site), or when the media does
+// not play. It quits with Browser.close, and deletes the profile.
 
 import { spawn } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
@@ -21,6 +23,13 @@ import { WebSocket } from 'ws';
 const BASE = (process.argv[2] || 'http://localhost:3000').replace(/\/$/, '');
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const PORT = 9341;
+// E2E_ONLY=video runs the video cases only.
+const ONLY = process.env.E2E_ONLY || '';
+const VIDEO_CASES = [
+  { label: 'Cloudflare full video', path: '/album/the-satellite-spotlight', track: 'CityBeach [Raw Set]', id: 'f6e70bb3f1404c6ec68bd0e91970c9fb' },
+  { label: 'Cloudflare chapter', path: '/album/the-satellite-spotlight', track: 'CityBeach', id: 'aef771f15a451d680860b185bde17de6', startTime: 5842 },
+  { label: 'Cloudflare chapter via op3.dev', path: '/album/autumn-rust', track: 'The Doerfels', id: 'cc4efa9b3ef45d7c0b6688656da87216', startTime: 338 },
+];
 
 let checks = 0;
 const failures = [];
@@ -96,6 +105,17 @@ cdp.on((msg) => {
   }
 });
 
+// A playlist line that the route leaves relative resolves against this site: the player then asks
+// for /<id>/video/…/seg_N.mp4 here and gets a 404. Collect every such miss.
+const siteMisses = [];
+cdp.on((msg) => {
+  const p = msg.params || {};
+  if (msg.method === 'Network.responseReceived' && p.response.url.startsWith(BASE) && p.response.status === 404
+      && /\.(mp4|m4s|ts|m3u8|aac|key)(\?|$)/.test(new URL(p.response.url).pathname + '?')) {
+    siteMisses.push(new URL(p.response.url).pathname.slice(0, 80));
+  }
+});
+
 await cdp.send('Network.enable');
 await cdp.send('Page.enable');
 await cdp.send('Runtime.enable');
@@ -165,6 +185,7 @@ async function playAndCheck(label, path, button, srcPart) {
 }
 
 try {
+  if (ONLY !== 'video') {
   // ---------- art ----------
   console.log('== home page art at phone size');
   await open('/');
@@ -194,25 +215,43 @@ try {
   await playAndCheck('op3.dev track (redirect)', '/album/think-of-me-in-color', 'Play Album', 'op3.dev');
   const a2 = proxyReport('audio');
   check(a2.list.length > 0 && a2.bad.length === 0, `op3.dev track: proxy-audio answered ${[...new Set(a2.list.map((r) => r.status))].join('/')} and no load failed`);
+  }
 
   // ---------- video ----------
-  console.log('== HLS video (Cloudflare Stream)');
-  await open('/album/the-satellite-spotlight');
-  check(await clickByText('button', 'Video'), 'video: switched to the Video tab');
-  await sleep(1500);
-  // Playback is not asserted. On 2026-11-25 Cloudflare Stream's media playlists name their segments as
-  // `../../<id>/video/720/seg_N.mp4?p=…`, a line shape the playlist rewrite in the route does not
-  // proxy, so the player asks this site for them and stops after the init segment. Production showed
-  // the same before this test existed. What the proxy itself controls is asserted below.
-  check(await clickByText('button', 'Play video', true), 'video: found the "Play video" button');
-  await waitFor(`[...performance.getEntriesByType('resource')].some((e) => e.name.includes('/api/proxy-video') && e.name.includes('.mp4'))`, 30000);
-  await sleep(3000);
-  const v = proxyReport('video');
-  const playlists = v.list.filter((r) => /mpegurl/i.test(r.type));
-  const segments = v.list.filter((r) => /^video\//.test(r.type) && r.status === 200 && r.done && !r.failed);
-  check(playlists.length >= 2 && segments.length > 0,
-    `video: ${playlists.length} playlists and ${segments.length} segments through /api/proxy-video`);
-  check(v.bad.length === 0, `video: every proxy-video response 200/206 (bad: ${v.bad.map((b) => b.status + ' ' + (b.failed || '')).slice(0, 3).join(', ') || 'none'})`);
+  // Every Cloudflare Stream track in the catalogue: a full video, a chapter of a long video
+  // (hls.js starts at startTime), and a chapter behind an op3.dev prefix. Each must reach real
+  // playback: currentTime moves on by 2 s or more while the test watches. On 2026-11-25 the
+  // player stopped after the init segment, because the playlist rewrite left Cloudflare's
+  // `../../<id>/video/<n>/seg_N.mp4?p=…` lines relative and they resolved against this site.
+  for (const v of VIDEO_CASES) {
+    console.log(`== HLS video: ${v.label}`);
+    await open(v.path);
+    // Events of the previous page can arrive after the navigation; start clean here.
+    proxied.clear();
+    siteMisses.length = 0;
+    check(await clickByText('button', 'Video'), `${v.label}: switched to the Video tab`);
+    await sleep(1500);
+    // The row of a track: the nearest ancestor of its button that holds an <h3> (the title).
+    check(await evaluate(`(() => { const b = [...document.querySelectorAll('button[title="Play video"]')].find((x) => {
+        let e = x.parentElement; while (e && !e.querySelector('h3')) e = e.parentElement;
+        return !!e && e.querySelector('h3').textContent.trim() === ${JSON.stringify(v.track)}; });
+      if (!b) return false; b.scrollIntoView(); b.click(); return true; })()`), `${v.label}: found the "Play video" button of "${v.track}"`);
+    const VIDEO = `[...document.querySelectorAll('video')].sort((a, b) => b.readyState - a.readyState)[0]`;
+    const started = await waitFor(`(() => { const m = ${VIDEO}; return !!m && m.readyState >= 3 && !m.error && !m.paused; })()`, 40000);
+    const t0 = await evaluate(`(() => { const m = ${VIDEO}; return m ? m.currentTime : null; })()`);
+    const moved = started && await waitFor(`(() => { const m = ${VIDEO}; return !!m && !m.error && m.currentTime > ${Number(t0) + 2}; })()`, 30000);
+    const state = await evaluate(`(() => { const m = ${VIDEO}; return m ? { time: m.currentTime, readyState: m.readyState, paused: m.paused, error: m.error && m.error.code, buffered: m.buffered.length } : null; })()`);
+    check(moved, `${v.label}: plays, currentTime ${Number(t0).toFixed(1)} -> ${state ? state.time.toFixed(1) : '?'} (${JSON.stringify(state)})`);
+    if (v.startTime) check(!!state && state.time >= v.startTime - 1 && state.time < v.startTime + 120, `${v.label}: starts at the chapter start, ${v.startTime} s`);
+    const r = proxyReport('video');
+    const playlists = r.list.filter((x) => /mpegurl/i.test(x.type));
+    const segments = r.list.filter((x) => /^(video|audio)\//.test(x.type) && [200, 206].includes(x.status) && x.done && !x.failed
+      && decodeURIComponent(x.url).includes(`/${v.id}/`));
+    check(playlists.length >= 3 && segments.length >= 3,
+      `${v.label}: ${playlists.length} playlists and ${segments.length} segments of video ${v.id.slice(0, 8)} through /api/proxy-video`);
+    check(r.bad.length === 0, `${v.label}: every proxy-video response 200/206 (bad: ${r.bad.map((b) => b.status + ' ' + (b.failed || '')).slice(0, 3).join(', ') || 'none'})`);
+    check(siteMisses.length === 0, `${v.label}: no media request missed the proxy (${siteMisses.slice(0, 2).join(', ') || 'none'})`);
+  }
 } catch (error) {
   check(false, `test error: ${error.message}`);
 } finally {

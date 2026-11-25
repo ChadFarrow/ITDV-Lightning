@@ -7,6 +7,7 @@ import {
   readProxyText,
   MEDIA_LIMITS,
 } from '@/lib/proxy-guard';
+import { rewriteHlsPlaylist } from '@/lib/hls-rewrite';
 
 /**
  * What this route will serve. It is same-origin, so an upstream that answers
@@ -232,91 +233,16 @@ export async function GET(request: NextRequest) {
     if (isPlaylist) {
       contentType = 'application/vnd.apple.mpegurl';
       
-      // For HLS manifests, rewrite relative URLs to absolute proxied URLs
       let manifestText: string;
       try {
         manifestText = await readProxyText(fetched.body);
       } catch {
         return NextResponse.json({ error: 'Upstream playlist too large or too slow' }, { status: 502 });
       }
-      const baseUrl = new URL(videoUrl);
-      const basePath = baseUrl.pathname.substring(0, baseUrl.pathname.lastIndexOf('/') + 1);
-      
-      // Get the request origin to create absolute proxied URLs
-      const requestUrl = new URL(request.url);
-      const origin = requestUrl.origin;
-      
-      // Track if this is a master playlist (contains variant playlists) or media playlist (contains segments)
-      const isMasterPlaylist = manifestText.includes('#EXT-X-STREAM-INF') || manifestText.includes('#EXT-X-MEDIA');
-      
-      // Rewrite URLs in the manifest (lines that aren't comments and contain URLs)
-      const rewrittenManifest = manifestText.split('\n').map(line => {
-        const trimmedLine = line.trim();
-        
-        // Skip empty lines
-        if (!trimmedLine) {
-          return line;
-        }
-        
-        // Skip if already proxied (absolute or relative)
-        if (trimmedLine.includes('/api/proxy-video')) {
-          return line;
-        }
-        
-        // Handle URLs inside EXT-X-MEDIA tags (URI="...") - these are typically alternate audio tracks
-        if (trimmedLine.includes('URI=')) {
-          return line.replace(/URI="([^"]+)"/g, (match, url) => {
-            if (url.includes('/api/proxy-video')) {
-              return match; // Already proxied
-            }
-            let absoluteUrl: string;
-            if (url.startsWith('http://') || url.startsWith('https://')) {
-              absoluteUrl = url;
-            } else {
-              // Relative URL, convert to absolute
-              try {
-                absoluteUrl = new URL(url, baseUrl.origin + basePath).href;
-              } catch (e) {
-                return match; // If parsing fails, return original
-              }
-            }
-            // Proxy audio track manifests and all segment URLs
-            return `URI="${origin}/api/proxy-video?url=${encodeURIComponent(absoluteUrl)}"`;
-          });
-        }
-        
-        // Skip comment lines (but not EXT-X tags that might contain URLs)
-        if (trimmedLine.startsWith('#') && !trimmedLine.includes('URI=')) {
-          return line;
-        }
-        
-        // This line should be a URL (standalone segment URL or variant playlist URL)
-        // Check if it looks like a URL (contains .m3u8, .ts, or starts with http)
-        // Also check for fragment patterns like stream_*.ts or segment_*.ts
-        if (trimmedLine.includes('.m3u8') || trimmedLine.includes('.ts') || 
-            trimmedLine.startsWith('http://') || trimmedLine.startsWith('https://') ||
-            trimmedLine.startsWith('stream_') || trimmedLine.match(/^[a-f0-9]+\.ts$/i) ||
-            trimmedLine.match(/^segment_\d+\.ts$/i) || trimmedLine.match(/^seg_\d+\.ts$/i)) {
-          let segmentUrl = trimmedLine;
-          
-          // If it's already an absolute URL, proxy it with absolute URL
-          if (segmentUrl.startsWith('http://') || segmentUrl.startsWith('https://')) {
-            return `${origin}/api/proxy-video?url=${encodeURIComponent(segmentUrl)}`;
-          }
-          // If it's a relative URL, convert to absolute and proxy
-          try {
-            const absoluteUrl = new URL(segmentUrl, baseUrl.origin + basePath).href;
-            return `${origin}/api/proxy-video?url=${encodeURIComponent(absoluteUrl)}`;
-          } catch (e) {
-            console.warn(`⚠️ Failed to parse segment URL: ${segmentUrl}`, e);
-            // If URL parsing fails, return original line
-            return line;
-          }
-        }
-        
-        // Return original line if it doesn't match any pattern
-        return line;
-      }).join('\n');
+      // Every link (segments, init segments, keys, variant and rendition
+      // playlists) goes back through this route and its guard. Links resolve
+      // against the URL of the final response, after any redirect.
+      const rewrittenManifest = rewriteHlsPlaylist(manifestText, response.url || videoUrl);
       
       // Create response with rewritten manifest
       const proxyResponse = new NextResponse(rewrittenManifest, {

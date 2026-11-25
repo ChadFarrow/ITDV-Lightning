@@ -66,6 +66,38 @@ function endless(req: http.IncomingMessage, res: http.ServerResponse, key: strin
   pump();
 }
 
+// Cloudflare Stream shapes (made-up tokens): a master, its media playlists with
+// `../../<id>/video/240/seg_N.mp4?p=…` links, an init segment, a key, and links
+// the guard must refuse once the player asks for them.
+const SEG = Buffer.alloc(2048, 0x47).toString('latin1');
+const INIT = 'ftyp-init-segment';
+const HLS_TOKEN = 'p=eyJ0Ijoic2VnIn0+/=&s=AbC-d_e';
+const HLS_FIXTURES: Record<string, [string, string]> = {
+  '/0123abcd/manifest/video.m3u8': ['application/vnd.apple.mpegurl', [
+    '#EXTM3U', '#EXT-X-VERSION:6',
+    '#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="a",NAME="original",DEFAULT=YES,URI="stream_a.m3u8"',
+    '#EXT-X-STREAM-INF:BANDWIDTH=1029326,CODECS="avc1.42c015,mp4a.40.2",AUDIO="a"', 'stream_v.m3u8', '',
+  ].join('\n')],
+  '/0123abcd/manifest/stream_v.m3u8': ['application/vnd.apple.mpegurl', [
+    '#EXTM3U', '#EXT-X-VERSION:6', '#EXT-X-TARGETDURATION:5',
+    `#EXT-X-MAP:URI="../../0123abcd/video/240/init.mp4?${HLS_TOKEN}"`,
+    '#EXT-X-KEY:METHOD=AES-128,URI="../../0123abcd/key.bin"',
+    '#EXTINF:4.0,', `../../0123abcd/video/240/seg_1.mp4?${HLS_TOKEN}`,
+    '#EXTINF:4.0,', '../../0123abcd/video/240/evil.mp4',
+    '#EXTINF:4.0,', 'https://127.0.0.1/secret-seg.mp4',
+    '#EXTINF:4.0,', `https://${PUBLIC}/foreign.mp4`,
+    '#EXTINF:4.0,', 'http://customer-dlnbepb8zpz7h846.cloudflarestream.com/plain.mp4',
+    '#EXT-X-ENDLIST', '',
+  ].join('\n')],
+  '/0123abcd/manifest/stream_a.m3u8': ['application/vnd.apple.mpegurl',
+    '#EXTM3U\n#EXT-X-TARGETDURATION:5\n#EXTINF:4.0,\n../../0123abcd/audio/131/seg_1.mp4?p=x\n#EXT-X-ENDLIST\n'],
+  '/0123abcd/video/240/init.mp4': ['video/mp4', INIT],
+  '/0123abcd/video/240/seg_1.mp4': ['video/mp4', SEG],
+  '/0123abcd/video/240/evil.mp4': ['text/html', '<script>alert(1)</script>'],
+  '/0123abcd/audio/131/seg_1.mp4': ['audio/mp4', SEG],
+  '/0123abcd/key.bin': ['application/octet-stream', '0123456789abcdef'],
+};
+
 const server = http.createServer((req, res) => {
   const u = new URL(req.url || '/', 'http://x');
   hits.push(u.pathname + u.search);
@@ -157,6 +189,17 @@ const server = http.createServer((req, res) => {
       res.end(`<video src="http://127.0.0.1:${port}/secret.m3u8"></video>`);
       return;
     default:
+      if (HLS_FIXTURES[u.pathname]) {
+        const [ctype, body] = HLS_FIXTURES[u.pathname];
+        res.writeHead(200, { 'Content-Type': ctype, 'Content-Length': Buffer.byteLength(body) });
+        res.end(body);
+        return;
+      }
+      if (u.pathname === '/a/b/c/d/redir.m3u8') {
+        res.writeHead(302, { Location: '/0123abcd/manifest/stream_v.m3u8' });
+        res.end();
+        return;
+      }
       if (u.pathname.startsWith('/live/probe-page/')) {
         res.writeHead(302, { Location: `http://127.0.0.1:${port}/secret-probe` });
         res.end();
@@ -178,7 +221,12 @@ globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
   fetchCalls++;
   const u = new URL(input instanceof Request ? input.url : String(input));
   if (u.hostname === PUBLIC || VIDEO_HOSTS.includes(u.hostname)) {
-    return realFetch(`http://127.0.0.1:${port}${u.pathname}${u.search}`, init);
+    // A real fetch reports the URL it asked for; the video route resolves
+    // playlist links against it, so the stub must not show the loopback one.
+    return realFetch(`http://127.0.0.1:${port}${u.pathname}${u.search}`, init).then((res) => {
+      Object.defineProperty(res, 'url', { value: u.href });
+      return res;
+    });
   }
   stubbed.push(u.href);
   return Promise.reject(new Error('test stub: guard let through ' + u.hostname));
@@ -433,6 +481,52 @@ async function main() {
     const text = await pl.text();
     check(pl.status === 200 && text.includes('/api/proxy-video?url=') && pl.headers.get('x-content-type-options') === 'nosniff',
       `video: playlist is rewritten to proxied segments (got ${pl.status})`);
+
+    // The whole chain the player walks: master, media playlist, init, segment,
+    // key, each link fetched the way the player resolves it (root-relative,
+    // against the playlist URL on this site), each through the route and its guard.
+    const CF = 'https://customer-dlnbepb8zpz7h846.cloudflarestream.com';
+    const follow = (link: string) => (videoGET as Handler)(new NextRequest(new URL(link, 'http://localhost/api/proxy-video?url=x').href));
+    const linksOf = (t: string) => t.split('\n').flatMap((l) => l.startsWith('#') ? [...(l.match(/URI="[^"]*"/g) || [])].map((a) => a.slice(5, -1)) : l.trim() ? [l.trim()] : []);
+    const targetOf = (link: string) => new URL(link, 'http://localhost').searchParams.get('url');
+    const master = await call(videoGET as Handler, '/api/proxy-video', `${CF}/0123abcd/manifest/video.m3u8`);
+    const masterLinks = linksOf(await master.text());
+    check(master.status === 200 && masterLinks.length === 2 && masterLinks.every((l) => l.startsWith('/api/proxy-video?url=')),
+      `video chain: master playlist links are root-relative proxy links (${masterLinks.length} links, got ${master.status})`);
+    const variant = masterLinks.find((l) => targetOf(l)!.endsWith('/stream_v.m3u8'))!;
+    const mediaRes = await follow(variant);
+    const mediaLinks = linksOf(await mediaRes.text());
+    check(mediaRes.status === 200 && mediaLinks.length === 7 && mediaLinks.every((l) => l.startsWith('/api/proxy-video?url=')),
+      `video chain: every link of the media playlist is proxied, ../../ segments too (${mediaLinks.length} links, got ${mediaRes.status})`);
+    const byName = (n: string) => mediaLinks.find((l) => targetOf(l)!.includes(n))!;
+    const init = await follow(byName('init.mp4'));
+    check(init.status === 200 && (await init.text()) === INIT && hits.includes(`/0123abcd/video/240/init.mp4?${HLS_TOKEN}`),
+      `video chain: init segment arrives whole, its query (+ / = &) reaches upstream byte for byte (got ${init.status})`);
+    const seg = await follow(byName('seg_1.mp4'));
+    const segBytes = Buffer.from(await seg.arrayBuffer());
+    check(seg.status === 200 && seg.headers.get('content-type') === 'video/mp4' && seg.headers.get('x-content-type-options') === 'nosniff'
+      && segBytes.equals(Buffer.from(SEG, 'latin1')),
+      `video chain: ../../<id>/video/240/seg_1.mp4 segment arrives byte-identical as video/mp4 (got ${seg.status}, ${segBytes.length} bytes)`);
+    const key = await follow(byName('key.bin'));
+    check(key.status === 200 && (await key.text()) === '0123456789abcdef', `video chain: EXT-X-KEY key is served through the proxy (got ${key.status})`);
+    const audioPl = await follow(masterLinks.find((l) => targetOf(l)!.endsWith('/stream_a.m3u8'))!);
+    const audioSeg = await follow(linksOf(await audioPl.text())[0]);
+    check(audioSeg.status === 200 && audioSeg.headers.get('content-type') === 'audio/mp4',
+      `video chain: the audio rendition's segment plays through the proxy (got ${audioSeg.status})`);
+    const evil = await follow(byName('evil.mp4'));
+    check(evil.status === 415, `video chain: a playlist link that answers HTML is refused with 415 (got ${evil.status})`);
+    const secretSegBefore = hits.filter((h) => h.startsWith('/secret-seg')).length;
+    const priv = await follow(byName('127.0.0.1'));
+    check(priv.status === 403 && hits.filter((h) => h.startsWith('/secret-seg')).length === secretSegBefore,
+      `video chain: a playlist link to a private address is rewritten, then refused with 403, no request made (got ${priv.status})`);
+    const foreign = await follow(byName('/foreign.mp4'));
+    check(foreign.status === 403, `video chain: a playlist link to a host outside the video allow-list is refused with 403 (got ${foreign.status})`);
+    const plain = await follow(byName('/plain.mp4'));
+    check(plain.status === 400, `video chain: a plain-http playlist link is refused with 400 (got ${plain.status})`);
+    const redir = await call(videoGET as Handler, '/api/proxy-video', `${CF}/a/b/c/d/redir.m3u8`);
+    const redirLinks = linksOf(await redir.text());
+    check(redir.status === 200 && targetOf(redirLinks[0]) === `${CF}/0123abcd/video/240/init.mp4?${HLS_TOKEN}`,
+      `video chain: links of a redirected playlist resolve against the final URL (${targetOf(redirLinks[0] || '/x?url=')})`);
     const secretBefore = hits.filter((h) => h.startsWith('/secret')).length;
     const sk = await call(videoGET as Handler, '/api/proxy-video', 'https://www.thesplitkit.com/live/splitkit');
     check(sk.status === 403 && hits.filter((h) => h.startsWith('/secret')).length === secretBefore,
