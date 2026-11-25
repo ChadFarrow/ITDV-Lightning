@@ -1,4 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  validateProxyTarget,
+  fetchProxyTarget,
+  forwardableLength,
+  isAllowedMediaType,
+  readProxyText,
+  MEDIA_LIMITS,
+} from '@/lib/proxy-guard';
+
+/**
+ * What this route will serve. It is same-origin, so an upstream that answers
+ * with HTML (an allowed host can redirect anywhere) must not pass through.
+ * Playlists come as application/vnd.apple.mpegurl (or the x- form, or
+ * audio/mpegurl), segments as video/* or audio/*.
+ */
+const VIDEO_MEDIA_TYPES = ['video/', 'audio/', 'application/vnd.apple.mpegurl', 'application/x-mpegurl'];
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -45,14 +61,13 @@ export async function GET(request: NextRequest) {
       }
     }
     
-    // Validate URL
-    let url: URL;
-    try {
-      url = new URL(actualVideoUrl);
-    } catch (e) {
-      console.error('❌ Invalid URL format:', actualVideoUrl, e);
-      return NextResponse.json({ error: 'Invalid URL format' }, { status: 400 });
+    // Validate URL: HTTPS and a public address as written (the shared guard).
+    // The fetches below check again after DNS and on every redirect.
+    const target = validateProxyTarget(actualVideoUrl);
+    if (!target.ok) {
+      return NextResponse.json({ error: target.error }, { status: target.status });
     }
+    const url = target.url;
     
     // Allow Cloudflare Stream and SplitKit domains (including through op3.dev)
     const allowedDomains = [
@@ -84,15 +99,18 @@ export async function GET(request: NextRequest) {
     // SplitKit returns HTML with a video element that loads the stream dynamically
     if (videoUrl.includes('thesplitkit.com') && !videoUrl.includes('.m3u8')) {
       try {
-        // Fetch the HTML page
-        const htmlResponse = await fetch(videoUrl, {
+        // Fetch the HTML page (15 s, 2 MB, through the shared guard)
+        const page = await fetchProxyTarget(videoUrl, MEDIA_LIMITS.page, {
           headers: {
             'User-Agent': 'Mozilla/5.0 (compatible; VideoProxy/1.0)',
           }
         });
         
-        if (htmlResponse.ok) {
-          const html = await htmlResponse.text();
+        if (page.ok && !page.response.ok) {
+          await page.body?.cancel().catch(() => {});
+        }
+        if (page.ok && page.response.ok) {
+          const html = await readProxyText(page.body);
           
           // Try to find video source URLs in the HTML
           // Look for common patterns: data-src, src, video-url, etc.
@@ -131,7 +149,10 @@ export async function GET(request: NextRequest) {
               // Test each URL
               for (const testUrl of possibleStreamUrls) {
                 try {
-                  const testResponse = await fetch(testUrl, { method: 'HEAD' });
+                  const probe = await fetchProxyTarget(testUrl, MEDIA_LIMITS.probe, { method: 'HEAD' });
+                  if (!probe.ok) continue;
+                  await probe.body?.cancel().catch(() => {});
+                  const testResponse = probe.response;
                   if (testResponse.ok && testResponse.headers.get('content-type')?.includes('mpegurl')) {
                     videoUrl = testUrl;
                     console.log(`✅ Found SplitKit stream URL: ${videoUrl}`);
@@ -153,7 +174,7 @@ export async function GET(request: NextRequest) {
     // Fetch the video/manifest file
     // Forward Range header if present (for partial content requests)
     const rangeHeader = request.headers.get('range');
-    const fetchHeaders: HeadersInit = {
+    const fetchHeaders: Record<string, string> = {
       'User-Agent': 'DoerfelVerse/1.0 (Video Proxy)',
       'Accept': 'application/vnd.apple.mpegurl, video/*, */*',
       'Origin': 'https://re.podtards.com',
@@ -164,21 +185,22 @@ export async function GET(request: NextRequest) {
       fetchHeaders['Range'] = rangeHeader;
     }
     
-    let response: Response;
-    try {
-      response = await fetch(videoUrl, {
-        headers: fetchHeaders,
-        signal: AbortSignal.timeout(30000), // 30 second timeout
-      });
-    } catch (fetchError) {
-      console.error('❌ Video fetch error:', fetchError, 'URL:', videoUrl);
-      return NextResponse.json({ 
-        error: 'Failed to fetch video file',
-        details: fetchError instanceof Error ? fetchError.message : 'Unknown fetch error'
-      }, { status: 500 });
+    // Through the shared guard: 30 s over connection, redirects and body; a
+    // playlist is read whole to rewrite it, so it gets its own 8 MB limit.
+    const isPlaylist = videoUrl.includes('.m3u8');
+    const fetched = await fetchProxyTarget(
+      videoUrl,
+      isPlaylist ? MEDIA_LIMITS.playlist : MEDIA_LIMITS.video,
+      { headers: fetchHeaders }
+    );
+    if (!fetched.ok) {
+      console.error('❌ Video fetch error:', fetched.error, 'URL:', videoUrl);
+      return NextResponse.json({ error: fetched.error }, { status: fetched.status });
     }
+    const response = fetched.response;
 
     if (!response.ok) {
+      await fetched.body?.cancel().catch(() => {});
       console.error(`❌ Video fetch failed: ${response.status} ${response.statusText} for ${videoUrl}`);
       return NextResponse.json({ 
         error: 'Failed to fetch video file',
@@ -188,6 +210,12 @@ export async function GET(request: NextRequest) {
 
     // Determine content type - use response header if available, otherwise infer from URL
     let contentType = response.headers.get('Content-Type');
+
+    // Same-origin response: refuse anything a browser would execute or render.
+    if (!isAllowedMediaType(contentType, VIDEO_MEDIA_TYPES, { allowOctetStream: true })) {
+      await fetched.body?.cancel().catch(() => {});
+      return NextResponse.json({ error: 'Upstream response is not a video file' }, { status: 415 });
+    }
     
     // If content-type is not set, infer from URL
     if (!contentType) {
@@ -201,11 +229,16 @@ export async function GET(request: NextRequest) {
     }
     
     // Handle HLS manifest files
-    if (videoUrl.includes('.m3u8')) {
+    if (isPlaylist) {
       contentType = 'application/vnd.apple.mpegurl';
       
       // For HLS manifests, rewrite relative URLs to absolute proxied URLs
-      const manifestText = await response.text();
+      let manifestText: string;
+      try {
+        manifestText = await readProxyText(fetched.body);
+      } catch {
+        return NextResponse.json({ error: 'Upstream playlist too large or too slow' }, { status: 502 });
+      }
       const baseUrl = new URL(videoUrl);
       const basePath = baseUrl.pathname.substring(0, baseUrl.pathname.lastIndexOf('/') + 1);
       
@@ -295,6 +328,7 @@ export async function GET(request: NextRequest) {
           'Access-Control-Allow-Methods': 'GET, HEAD',
           'Access-Control-Allow-Headers': 'Range, Accept',
           'Accept-Ranges': 'bytes',
+          'X-Content-Type-Options': 'nosniff',
         },
       });
       
@@ -302,10 +336,11 @@ export async function GET(request: NextRequest) {
       return proxyResponse;
     }
     
-    const contentLength = response.headers.get('Content-Length');
+    const contentLength = forwardableLength(response);
     
-    // Create response with proper headers for video streaming (non-manifest files)
-    const proxyResponse = new NextResponse(response.body, {
+    // Create response with proper headers for video streaming (non-manifest files).
+    // The body is counted on the way through and stops at the size limit.
+    const proxyResponse = new NextResponse(fetched.body, {
       status: response.status,
       headers: {
         'Content-Type': contentType,
@@ -314,6 +349,7 @@ export async function GET(request: NextRequest) {
         'Access-Control-Allow-Methods': 'GET, HEAD',
         'Access-Control-Allow-Headers': 'Range, Accept',
         'Accept-Ranges': 'bytes',
+        'X-Content-Type-Options': 'nosniff',
       },
     });
 
@@ -334,11 +370,10 @@ export async function GET(request: NextRequest) {
     return proxyResponse;
 
   } catch (error) {
+    // Fetch failures are answered above. Do not echo the message: it can name
+    // the upstream host.
     console.error('❌ Video proxy error:', error, 'URL:', videoUrl);
-    return NextResponse.json({ 
-      error: 'Failed to proxy video file',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to proxy video file' }, { status: 500 });
   }
 }
 

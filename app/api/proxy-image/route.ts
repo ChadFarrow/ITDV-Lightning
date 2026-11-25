@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
   validateProxyTarget,
+  fetchProxyTarget,
+  forwardableLength,
   isAllowedMediaType,
   hardeningHeadersFor,
+  MEDIA_LIMITS,
 } from '@/lib/proxy-guard';
 
 export async function GET(request: NextRequest) {
@@ -10,8 +13,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const imageUrl = searchParams.get('url');
 
-    // Rejects non-HTTPS targets and anything pointing at loopback or a private
-    // network — this route fetches on the server's behalf.
+    // Rejects non-HTTPS targets and private addresses as written. The fetch
+    // below checks again after DNS and on every redirect.
     const target = validateProxyTarget(imageUrl);
     if (!target.ok) {
       return NextResponse.json(
@@ -20,9 +23,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Determine timeout based on file type (GIFs may be large and need more time)
+    // GIFs may be large and need more time: 30 s for a GIF, 15 s for others.
+    // The limit covers the connection, redirects and the whole body.
     const isGif = target.url.pathname.toLowerCase().endsWith('.gif');
-    const timeoutMs = isGif ? 30000 : 15000; // 30 seconds for GIFs, 15 seconds for others
+    const limits = isGif ? MEDIA_LIMITS.gif : MEDIA_LIMITS.image;
 
     // Check for conditional requests and forward them to upstream server
     const ifNoneMatch = request.headers.get('if-none-match');
@@ -32,7 +36,6 @@ export async function GET(request: NextRequest) {
     const upstreamHeaders: HeadersInit = {
       'User-Agent': 'Mozilla/5.0 (compatible; PodtardsImageProxy/1.0)',
       'Accept': 'image/*',
-      'Accept-Encoding': 'gzip, deflate, br',
     };
     
     // Forward conditional request headers to upstream server
@@ -43,16 +46,19 @@ export async function GET(request: NextRequest) {
       upstreamHeaders['If-Modified-Since'] = ifModifiedSince;
     }
 
-    // Fetch the image
-    // Fetch the validated URL, not the raw parameter.
-    const response = await fetch(target.url, {
-      headers: upstreamHeaders,
-      // Add timeout - longer for GIFs to handle large files
-      signal: AbortSignal.timeout(timeoutMs),
-    });
+    // Fetch the validated URL, not the raw parameter, through the shared guard.
+    const fetched = await fetchProxyTarget(target.url, limits, { headers: upstreamHeaders });
+    if (!fetched.ok) {
+      return NextResponse.json(
+        { success: false, error: fetched.error },
+        { status: fetched.status }
+      );
+    }
+    const response = fetched.response;
 
     // Handle 304 Not Modified from upstream server
     if (response.status === 304) {
+      await fetched.body?.cancel().catch(() => {});
       return new NextResponse(null, {
         status: 304,
         headers: {
@@ -65,6 +71,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (!response.ok) {
+      await fetched.body?.cancel().catch(() => {});
       return NextResponse.json({ 
         success: false, 
         error: `Failed to fetch image: ${response.status} ${response.statusText}` 
@@ -78,6 +85,7 @@ export async function GET(request: NextRequest) {
     // Content-Type through unchecked would let `?url=…/evil.html` execute
     // script on this domain. Only actual images get past here.
     if (!isAllowedMediaType(upstreamContentType, ['image/'])) {
+      await fetched.body?.cancel().catch(() => {});
       return NextResponse.json(
         { success: false, error: 'Upstream response is not an image' },
         { status: 415 }
@@ -85,12 +93,13 @@ export async function GET(request: NextRequest) {
     }
 
     const contentType = upstreamContentType || 'image/jpeg';
-    const contentLength = response.headers.get('content-length');
+    const contentLength = forwardableLength(response);
     const etag = response.headers.get('etag');
     const lastModified = response.headers.get('last-modified');
 
     // Handle conditional requests - return 304 Not Modified if content hasn't changed
     if (ifNoneMatch && etag && ifNoneMatch === etag) {
+      await fetched.body?.cancel().catch(() => {});
       return new NextResponse(null, {
         status: 304,
         headers: {
@@ -106,6 +115,7 @@ export async function GET(request: NextRequest) {
       const ifModifiedSinceDate = new Date(ifModifiedSince);
       const lastModifiedDate = new Date(lastModified);
       if (lastModifiedDate <= ifModifiedSinceDate) {
+        await fetched.body?.cancel().catch(() => {});
         return new NextResponse(null, {
           status: 304,
           headers: {
@@ -154,26 +164,18 @@ export async function GET(request: NextRequest) {
     }
 
     // Stream the response instead of buffering - much faster for large files
-    // This allows the browser to start rendering the image while it's still downloading
-    return new NextResponse(response.body, {
+    // This allows the browser to start rendering the image while it's still downloading.
+    // The body is counted on the way through and stops at the size limit.
+    return new NextResponse(fetched.body, {
       status: 200,
       headers
     });
 
   } catch (error) {
+    // Fetch failures are answered above. Do not echo the message: it can name
+    // the upstream host.
     console.error('Image proxy error:', error);
-    
-    if (error instanceof Error && error.name === 'TimeoutError') {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Image fetch timeout' 
-      }, { status: 408 });
-    }
-
-    return NextResponse.json({ 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
-    }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Image proxy error' }, { status: 500 });
   }
 }
 

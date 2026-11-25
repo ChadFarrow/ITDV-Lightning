@@ -112,6 +112,10 @@ check 403 "proxy-image refuses link-local metadata" "$BASE/api/proxy-image?url=h
 check 403 "proxy-image refuses RFC1918" "$BASE/api/proxy-image?url=https://10.0.0.5/x.png"
 check 400 "proxy-image refuses http://" "$BASE/api/proxy-image?url=http://example.com/x.png"
 check 403 "proxy-audio refuses localhost" "$BASE/api/proxy-audio?url=https://localhost/x.mp3"
+check 403 "proxy-image refuses IPv4-mapped loopback (hex)" "$BASE/api/proxy-image?url=https://%5B::ffff:7f00:1%5D/x.png"
+check 403 "proxy-audio refuses NAT64 loopback" "$BASE/api/proxy-audio?url=https://%5B64:ff9b::7f00:1%5D/x.mp3"
+check 403 "proxy-image refuses a name that resolves to loopback" "$BASE/api/proxy-image?url=https://127.0.0.1.nip.io/x.png"
+check 403 "proxy-video refuses loopback" "$BASE/api/proxy-video?url=https://127.0.0.1/x.m3u8"
 
 echo "== legitimate media still flows"
 check 200 "real album art proxies" "$BASE/api/proxy-image?url=https://www.doerfelverse.com/art/them.png"
@@ -126,6 +130,14 @@ check_header "1025" "audio 206 carries Content-Length" content-length -r 0-1024 
   "$BASE/api/proxy-audio?url=https://www.doerfelverse.com/tracks/disco-swag.mp3"
 check_header "bytes 0-1024/*" "audio 206 carries Content-Range" content-range -r 0-1024 \
   "$BASE/api/proxy-audio?url=https://www.doerfelverse.com/tracks/disco-swag.mp3"
+
+# op3.dev tracks answer with a redirect to their host; the proxy follows it by hand.
+OP3_TRACK="https%3A%2F%2Fop3.dev%2Fe%2Cpg%3D57203632-2003-55d2-b710-c699db963f18%2Fhttps%3A%2F%2Fd12wklypp119aj.cloudfront.net%2Ftrack%2F1fea31e7-73db-4b29-8d90-3b32ae47d2b9.mp3"
+check 206 "op3.dev audio streams through its redirect" -r 0-1024 "$BASE/api/proxy-audio?url=$OP3_TRACK"
+check_header "1025" "op3.dev audio 206 carries Content-Length" content-length -r 0-1024 \
+  "$BASE/api/proxy-audio?url=$OP3_TRACK"
+check_header "bytes 0-1024/*" "op3.dev audio 206 carries Content-Range" content-range -r 0-1024 \
+  "$BASE/api/proxy-audio?url=$OP3_TRACK"
 
 echo
 echo "passed: $pass  failed: $fail"

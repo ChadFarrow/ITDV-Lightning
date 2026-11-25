@@ -116,17 +116,54 @@ load-bearing: comparisons use a length-tolerant constant-time helper, because `c
 throws a `RangeError` on unequal lengths and one side is always attacker-supplied; and `verifyPassword`
 compares HMACs rather than raw strings so password length doesn't leak through timing.
 
-### Media proxies must validate the upstream media type (`lib/proxy-guard.ts`)
+### Media proxies: one address guard, limits, media type (`lib/proxy-guard.ts`)
 `/api/proxy-image`, `/api/proxy-audio` and `/api/proxy-video` fetch a caller-supplied URL and stream it
-back **from our own origin**. Passing the upstream `Content-Type` through unchecked turned
-`/api/proxy-image?url=…/evil.html` into script execution on this domain. Every proxy route must call
-`validateProxyTarget` (HTTPS only; rejects loopback, RFC1918, link-local and metadata addresses) and
-`isAllowedMediaType` before streaming, and apply `hardeningHeadersFor` — SVG is an `image/*` type that
-can carry script, so it gets a sandbox CSP. `application/octet-stream` is permitted for audio only,
+back **from our own origin**, so two things must hold for every one of them.
+
+**The destination is a public address, on every hop.** The proxies use the feed parser's guard,
+`lib/safe-fetch.ts`, so there is one list of refused addresses (see "Feed fetches" below for what it
+refuses and its stated residual risk, DNS rebinding). `validateProxyTarget` takes HTTPS only on the way in
+and runs that list on the URL as written. `fetchProxyTarget` then fetches through `safeFetch`: it resolves
+the name, refuses if any address is private, and follows redirects by hand (at most 5), checking each hop
+the same way. A redirect hop may be plain http, as for feeds. The list has no rule for IPv6 multicast
+(`ff00::/8`), so `validateProxyTarget` refuses that literal itself; TCP cannot connect to multicast, so a
+name that resolves to one fails at connect. Do not add an address rule to `proxy-guard.ts`: take it from
+the recipe, so the parser gets it too. Never call a plain `fetch` in a proxy route, also not for a probe
+or a page that the route reads (the SplitKit HTML, the HEAD probes): use `fetchProxyTarget`.
+
+**Time and size limits** (`MEDIA_LIMITS`). One `AbortSignal.timeout` covers the connection, the redirects
+and the whole body: 15 s for an image, 30 s for a GIF, audio and video, which are the values the routes
+had before (they already ended a streamed body in production, so a shorter one cuts playback). The body
+is counted as it streams through `capStream` and stops at 64 MB for an image, 200 MB for audio and video,
+per response (a Range response counts its own part); a declared `Content-Length` over the limit is
+refused with 502 before any body is read. On 2026-11-25 the largest proxied GIF was 41.7 MB
+(Autumn Rust) and the largest track 21.3 MB. An HLS playlist is read whole to rewrite it, so it gets
+8 MB (a long video's playlist is large: the 2.5-hour CityBeach set has 1.53 MB playlists); a SplitKit page
+2 MB. Upstream requests ask for `Accept-Encoding: identity`: media is compressed already,
+and a decoded body would not match the forwarded `Content-Length`. A refusal answers 403 "Destination not
+allowed", a timeout 504, anything else 502, each with a fixed text. The guard's own messages name the
+host and are for logs only; never put one in a response.
+
+**The media type is checked on the final response.** Passing the upstream `Content-Type` through
+unchecked turned `/api/proxy-image?url=…/evil.html` into script execution on this domain, and the final
+response can come from a redirect. Every route calls `isAllowedMediaType` after the fetch and
+sends `nosniff`; the image route applies `hardeningHeadersFor` — SVG is an `image/*` type that can carry
+script, so it gets a sandbox CSP. `application/octet-stream` is permitted for audio and video only,
 because podcast hosts commonly serve MP3s that way.
 
-`scripts/security-smoke.sh` asserts all of the above (40 checks with the Helipad webhook ones). Run it against a dev server after
-touching auth, the proxies, or `/api/optimized-images`.
+`npx tsx scripts/check-media-proxy.ts` drives the three route handlers against a local server: 42
+private address forms, a name that resolves to 127.0.0.1, redirects to private addresses and a redirect
+loop, an endless and a falsely declared body, a server that never answers and one that drips, HTML behind
+an allowed video host, the SplitKit page and probes, and the real-use shapes (Range 206 with its headers,
+a public redirect, an upstream 304). The timeout cases take about 30 s; `CHECK_SKIP_SLOW=1` skips them.
+On 2026-11-25 each rule of the guard, of `safe-fetch.ts` and of the route wiring was removed once (52
+removals), and a check failed every time. One needs `check-feed-fetch.ts`: the recipe's scheme check,
+which the proxy's own HTTPS rule covers.
+
+`scripts/security-smoke.sh` asserts the proxy refusals and the real media, including an op3.dev track
+through its redirect (47 checks with the Helipad webhook ones). Run it against a dev server after
+touching auth, the proxies, or `/api/optimized-images`, and against `next start` after a change to a proxy
+(the 206 framing only shows on a running build, see "Next is pinned").
 
 ### Feed fetches go through `lib/feed-fetch.ts` (server only)
 Every URL the parser fetches is untrusted: an admin types the feed URL, a podroll or remoteItem walk
@@ -416,12 +453,14 @@ ADMIN_PASSWORD=<anything> npm run dev         # without it every admin route 401
 npx tsc --noEmit                              # fastest correctness check
 npm run build                                 # also runs lint; the only full type gate
 npx next lint                                 # should report zero warnings — keep it there
-ADMIN_PASSWORD=<same> ./scripts/security-smoke.sh   # 40 checks, needs dev (or next start) running
+ADMIN_PASSWORD=<same> ./scripts/security-smoke.sh   # 47 checks, needs dev (or next start) running
 npx tsx scripts/backfill-album-dates.ts       # asserts the date extractor still agrees
 npx tsx scripts/check-boost-messages.ts       # boost records, LNURL comment, note text, publish route
 npx tsx scripts/check-boostr-notes.ts         # /boosts: Boostr Bot note reader, card dedupe
 npx tsx scripts/check-streams.ts              # Streams tab: record kind, ITDV filter, payment keys
 npx tsx scripts/check-feed-fetch.ts           # feed fetch: private-address guard, time/size limits, channel scoping
+npx tsx scripts/check-media-proxy.ts          # media proxies: address guard, redirects, time/size limits, media type
+node scripts/e2e-media-proxy.mjs http://localhost:<port>  # browser: proxied art, the big GIF, two tracks, HLS video (needs internet)
 STREAMS_TEST_DB=1 npx tsx scripts/check-streams-store.ts   # Helipad store, on a LOCAL database
 STREAMS_TEST_DB=1 npx tsx scripts/check-webhook.ts         # webhook tokens, filter, 503s, log lines (local DB)
 node scripts/e2e-boosts-streams.mjs <base-url> # browser test of both tabs (local DB + dev; see its header)
@@ -516,9 +555,12 @@ an environment change rather than just code, so don't treat them as fresh discov
   else calls it since the dead album-page loaders were removed. Treat it, `lib/db.ts` and
   `/api/admin/ensure-feed` as a candidate for deletion if Postgres is not coming back; do not wire
   new callers to it in the meantime.
-- **`lib/proxy-guard.ts` needs the feed guard's checks** (found 2026-11-24; the details are with Chad). Do not
-  copy it for a new route: use `lib/safe-fetch.ts` through `lib/feed-fetch.ts`. A change to the proxies needs
-  `security-smoke.sh` against `next start` (the audio Range response is fragile, see "Next is pinned").
+- **Cloudflare Stream videos do not play** (found 2026-11-25, also on production). The playlist rewrite in
+  `app/api/proxy-video/route.ts` proxies a segment line only when it matches a few name patterns, and
+  Cloudflare's media playlists name segments `../../<id>/video/720/seg_N.mp4?p=…`. That line stays
+  relative, the player resolves it against this site, gets a 404, and stops after the init segment. A
+  segment fetched through the proxy by its absolute URL arrives byte-identical, so the fix is in the
+  rewrite, not the guard.
 - **Rate limits are per-instance.** Both `/api/admin/simple-auth` and `/api/nostr/publish` count
   attempts in a module-level `Map`, so a distributed caller gets the limit *per serverless instance*.
   They raise the cost of guessing; they are not a hard stop. A durable limit needs Vercel KV or similar.
