@@ -162,7 +162,8 @@ lines stayed relative, resolved against this site, and no Cloudflare video playe
 rewrite decides nothing about safety: each rewritten link is a new request to the route, so the host
 allow-list, the guard, the media-type check and the limits apply to it as to the first. Root-relative
 links keep the cached body (`public, max-age=3600`) free of the request's Host. The largest rewritten
-playlist on 2026-11-25 was 1.76 MB (the 2.5-hour CityBeach video, 1.46 MB upstream).
+playlist on 2026-11-25 was 1.83 MB: the audio rendition of the 2.5-hour CityBeach video, 1.53 MB upstream
+(every rendition of the three videos measured).
 `npx tsx scripts/check-hls-rewrite.ts` asserts the rewrite on synthetic copies of the real shapes.
 
 `npx tsx scripts/check-media-proxy.ts` drives the three route handlers against a local server: 42
