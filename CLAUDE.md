@@ -128,6 +128,51 @@ because podcast hosts commonly serve MP3s that way.
 `scripts/security-smoke.sh` asserts all of the above (40 checks with the Helipad webhook ones). Run it against a dev server after
 touching auth, the proxies, or `/api/optimized-images`.
 
+### Feed fetches go through `lib/feed-fetch.ts` (server only)
+Every URL the parser fetches is untrusted: an admin types the feed URL, a podroll or remoteItem walk
+follows whatever another feed names, and a public feed can name any chapters URL. Until 2026-11-24
+`lib/rss-parser.ts` called a plain `fetch(feedUrl)` with no time limit, no size limit and no address
+check, so a feed (or its chapters file) at `http://169.254.169.254/` or `localhost` was fetched from
+the server. Now every feed read (`parseAlbumFeed`, `parsePublisherFeedInfo`, `parsePublisherFeed`)
+and both chapters reads go through `fetchUntrustedText`/`fetchUntrustedJson`:
+
+- `lib/safe-fetch.ts` refuses private, loopback, link-local, metadata and other special-use addresses
+  in the spellings its header lists, on every redirect hop, and after DNS. Residual
+  risk, stated in its header: DNS rebinding. Plain `http:` stays allowed, as real feeds need it.
+- One `AbortSignal.timeout` (10 s) covers connection, redirects and body; `lib/capped-body.ts` stops
+  reading past 8 MB for a feed and 1 MB for a chapters file.
+- `RSSParser.fetchFeedXml` maps a refused address or an oversized body to a non-retryable AppError, so
+  `withRetry` makes one attempt. A 4xx other than 429 is not retried either (it was before). A timeout,
+  a 429 and a 5xx still retry, so a feed that hangs costs about 33 s (3 × 10 s plus 1 s and 2 s waits).
+  `parseAlbumFeed` returns `null` on any failure, as before.
+
+`safe-fetch.ts` and `capped-body.ts` are the PC20-Nostr recipe `safe-feed-fetch` (boostmebitch
+`815c551f`, MIT), **byte-identical** — do not edit them here; take a fix from the recipe.
+`safe-fetch.ts` imports `node:dns/promises`, so `lib/rss-parser.ts` is server only: keep client files
+to `import type` from it (they are today). The old browser branch proxied through
+`/api/fetch-rss`, a route that never existed in this repo; it was removed, not repointed, because the
+browser never parses feeds and an XML read proxy from this origin is what `proxy-guard` refuses.
+
+`/api/podcastindex` was deleted on 2026-11-24. It passed a caller's `endpoint` query straight into a
+Podcast Index URL signed with the server key (anyone could call any PI endpoint on the key's quota),
+nothing in the repo called it, and its fallback was the missing `/api/fetch-rss`. Podcast Index is now
+read only by `lib/podcast-index.ts` (`podcasts/byfeedurl`, from the authenticated add-feed route).
+
+Channel-level tags come from the channel's own children: `firstChildElement` in `lib/rss-parser.ts`.
+`channel.getElementsByTagName` searches inside every `<item>` too, so a channel with no
+`<podcast:value>` took its first item's split as the album split (and an item's `<podcast:guid>` could
+become the feed GUID). On 2026-11-24 none of the 53 albums in `data/feeds.json` relied on that: old and
+new parser gave identical album and track splits for all of them. Other channel lookups in the parser
+(funding, podroll, chapters, title, image) still search deep.
+
+`npx tsx scripts/check-feed-fetch.ts` asserts all of this: the recipe's address list and redirect
+cases, the time and size limits against a real local server (a hanging server, a dripping body, a
+64 MB chunked body, a lying `Content-Length`), the parser refusing loopback, `localhost`, `[::1]`,
+`::ffff:127.0.0.1`, 10/8 and 169.254.169.254 with no request made and no retry, a redirect to
+loopback, a private chapters URL, and the channel scoping. It uses a temporary `RSSCache` folder:
+`data/rss-cache/` keeps parsed feeds for 30 minutes, so a test that writes there reads its own old
+results on the next run.
+
 ### Next is pinned to 15.5.28 on purpose (`package.json`)
 Next 15.5.29 (its fix for GHSA-pc58-hwjq-p385) strips `content-length`, `content-encoding` and
 `transfer-encoding` from **every** route-handler response. `/api/proxy-audio` then answered a Range
@@ -376,6 +421,7 @@ npx tsx scripts/backfill-album-dates.ts       # asserts the date extractor still
 npx tsx scripts/check-boost-messages.ts       # boost records, LNURL comment, note text, publish route
 npx tsx scripts/check-boostr-notes.ts         # /boosts: Boostr Bot note reader, card dedupe
 npx tsx scripts/check-streams.ts              # Streams tab: record kind, ITDV filter, payment keys
+npx tsx scripts/check-feed-fetch.ts           # feed fetch: private-address guard, time/size limits, channel scoping
 STREAMS_TEST_DB=1 npx tsx scripts/check-streams-store.ts   # Helipad store, on a LOCAL database
 STREAMS_TEST_DB=1 npx tsx scripts/check-webhook.ts         # webhook tokens, filter, 503s, log lines (local DB)
 node scripts/e2e-boosts-streams.mjs <base-url> # browser test of both tabs (local DB + dev; see its header)
@@ -470,6 +516,9 @@ an environment change rather than just code, so don't treat them as fresh discov
   else calls it since the dead album-page loaders were removed. Treat it, `lib/db.ts` and
   `/api/admin/ensure-feed` as a candidate for deletion if Postgres is not coming back; do not wire
   new callers to it in the meantime.
+- **`lib/proxy-guard.ts` needs the feed guard's checks** (found 2026-11-24; the details are with Chad). Do not
+  copy it for a new route: use `lib/safe-fetch.ts` through `lib/feed-fetch.ts`. A change to the proxies needs
+  `security-smoke.sh` against `next start` (the audio Range response is fragile, see "Next is pinned").
 - **Rate limits are per-instance.** Both `/api/admin/simple-auth` and `/api/nostr/publish` count
   attempts in a module-level `Map`, so a distributed caller gets the limit *per serverless instance*.
   They raise the cost of guessing; they are not a hard stop. A durable limit needs Vercel KV or similar.

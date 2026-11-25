@@ -1,6 +1,7 @@
 import { AppError, ErrorCodes, withRetry, createErrorLogger } from './error-utils';
 import { RSSCache } from './rss-cache';
 import { extractAlbumDate, AlbumDateInfo } from './album-date';
+import { fetchUntrustedText, fetchUntrustedJson, FeedFetchError } from './feed-fetch';
 
 export interface RSSTrack {
   title: string;
@@ -121,8 +122,68 @@ const verboseLog = (...args: any[]) => {
   if (isVerbose) console.log(...args);
 };
 
+/**
+ * The first direct child of `parent` with one of the qualified `names`, tried in
+ * order ('podcast:value' before 'value', as the old lookup preferred).
+ *
+ * `getElementsByTagName` searches the whole subtree, so on a <channel> it also
+ * finds the tags inside each <item>: a channel with no <podcast:value> took the
+ * value block of its first item as the album split. Channel-level tags must be
+ * read from the channel's own children. Walks `childNodes` because xmldom (the
+ * server DOM) has no `children` and no `:scope` selector.
+ */
+function firstChildElement(parent: Element, names: string[]): Element | undefined {
+  const kids = parent.childNodes;
+  for (let n = 0; n < names.length; n++) {
+    for (let i = 0; i < kids.length; i++) {
+      const node = kids[i];
+      if (node.nodeType === 1 && node.nodeName === names[n]) return node as Element;
+    }
+  }
+  return undefined;
+}
+
 export class RSSParser {
   private static readonly logger = createErrorLogger('RSSParser');
+
+  /**
+   * Fetch a feed's XML through the guarded fetch in lib/feed-fetch.ts (private
+   * address guard on every hop, time limit, size limit) and map its failures to
+   * AppErrors. Only network trouble, a timeout, a 429 and a 5xx are retryable:
+   * a refused address or an oversized body fails at once.
+   */
+  private static async fetchFeedXml(feedUrl: string): Promise<string> {
+    if (typeof window !== 'undefined') {
+      throw new AppError('RSSParser runs on the server only', ErrorCodes.VALIDATION_ERROR, 500, false, { feedUrl });
+    }
+    try {
+      return await fetchUntrustedText(feedUrl);
+    } catch (error) {
+      const reason = error instanceof FeedFetchError ? error.reason : 'network';
+      const status = error instanceof FeedFetchError ? error.status : undefined;
+      const message = error instanceof Error ? error.message : String(error);
+      const details = { feedUrl, reason, status, error: message };
+      if (reason === 'refused') {
+        throw new AppError('Feed URL is not allowed', ErrorCodes.VALIDATION_ERROR, 400, true, details);
+      }
+      if (reason === 'too-large') {
+        throw new AppError('RSS feed is too large', ErrorCodes.RSS_INVALID_FORMAT, 413, true, details);
+      }
+      if (reason === 'timeout') {
+        throw new AppError('Timed out fetching RSS feed', ErrorCodes.TIMEOUT_ERROR, 504, true, details);
+      }
+      if (reason === 'http' && status === 429) {
+        throw new AppError('Rate limited while fetching RSS feed', ErrorCodes.RATE_LIMIT_ERROR, 429, true, details);
+      }
+      if (reason === 'http' && status !== undefined && status < 500) {
+        throw new AppError(`Failed to fetch RSS feed: ${status}`, ErrorCodes.RSS_INVALID_FORMAT, status, true, details);
+      }
+      throw new AppError(
+        status ? `Failed to fetch RSS feed: ${status}` : 'Failed to fetch RSS feed',
+        ErrorCodes.RSS_FETCH_ERROR, status || 502, true, details,
+      );
+    }
+  }
   
   static async parseAlbumFeed(feedUrl: string, trackFilter?: string): Promise<RSSAlbum | null> {
     // Check cache first (only on server-side for performance)
@@ -152,64 +213,10 @@ export class RSSParser {
     return withRetry(async () => {
       verboseLog('[RSSParser] Parsing RSS feed', { feedUrl });
       
-      // For server-side fetching, always use direct URLs  
-      // For client-side fetching, use the proxy
-      const isServer = typeof window === 'undefined';
-      
-      let response;
-      try {
-        if (isServer) {
-          // Server-side: fetch directly
-          response = await fetch(feedUrl);
-        } else {
-          // Client-side: use proxy or direct API routes
-          const isApiRoute = feedUrl.startsWith('/api/');
-          const isAlreadyProxied = feedUrl.startsWith('/api/fetch-rss');
-          
-          let proxyUrl: string;
-          if (isApiRoute && !isAlreadyProxied) {
-            // Direct API route (e.g., /api/podcastindex)
-            proxyUrl = feedUrl;
-          } else if (isAlreadyProxied) {
-            // Already proxied through fetch-rss
-            proxyUrl = feedUrl;
-          } else {
-            // External URL, proxy through fetch-rss
-            proxyUrl = `/api/fetch-rss?url=${encodeURIComponent(feedUrl)}`;
-          }
-          
-          response = await fetch(proxyUrl);
-        }
-      } catch (error) {
-        throw new AppError(
-          'Failed to fetch RSS feed',
-          ErrorCodes.RSS_FETCH_ERROR,
-          500,
-          true,
-          { feedUrl, error }
-        );
-      }
-      
-      if (!response.ok) {
-        if (response.status === 429) {
-          throw new AppError(
-            'Rate limited while fetching RSS feed',
-            ErrorCodes.RATE_LIMIT_ERROR,
-            429,
-            true,
-            { feedUrl, status: response.status }
-          );
-        }
-        throw new AppError(
-          `Failed to fetch RSS feed: ${response.status}`,
-          ErrorCodes.RSS_FETCH_ERROR,
-          response.status,
-          response.status >= 500,
-          { feedUrl, status: response.status }
-        );
-      }
-      
-      const xmlText = await response.text();
+      // Server only: the browser never parses feeds (client files import types
+      // from here, nothing else), and /api/fetch-rss, the proxy the old browser
+      // branch called, never existed in this repo.
+      const xmlText = await RSSParser.fetchFeedXml(feedUrl);
       
       // Validate response content
       if (!xmlText || xmlText.trim().length === 0) {
@@ -421,7 +428,8 @@ export class RSSParser {
 
       // Extract tracks from items
       // Extract main feed GUID from podcast:guid element before processing tracks
-      const feedGuidElement = channel.getElementsByTagName('podcast:guid')[0];
+      // The channel's own <podcast:guid> only, not one inside an <item>.
+      const feedGuidElement = firstChildElement(channel, ['podcast:guid']);
       const mainFeedGuid = feedGuidElement?.textContent?.trim();
       
       // Debug feed GUID extraction
@@ -831,10 +839,11 @@ export class RSSParser {
             if (chaptersUrl && chaptersType === 'application/json') {
               try {
                 // Fetch chapters JSON (same domain as RSS feed, should be accessible)
-                const chaptersResponse = await fetch(chaptersUrl);
+                // Guarded fetch: the chapters URL comes from the feed, so it gets the
+                // same private-address, time and size limits as the feed (lib/feed-fetch.ts).
+                const chaptersData: any = await fetchUntrustedJson(chaptersUrl);
                 
-                if (chaptersResponse.ok) {
-                  const chaptersData = await chaptersResponse.json();
+                if (chaptersData) {
                   
                   if (chaptersData.chapters && Array.isArray(chaptersData.chapters)) {
                     verboseLog(`📖 Found ${chaptersData.chapters.length} chapters for "${trackTitle}"`);
@@ -891,7 +900,7 @@ export class RSSParser {
                     });
                   }
                 } else {
-                  verboseLog(`⚠️ Failed to fetch chapters JSON: ${chaptersResponse.status}`);
+                  verboseLog('⚠️ Chapters JSON was empty');
                 }
               } catch (error) {
                 verboseLog(`⚠️ Error fetching/parsing chapters for "${trackTitle}":`, error);
@@ -937,15 +946,12 @@ export class RSSParser {
       // Extract value information (podcast:value)
       let value: RSSValue | undefined;
       
-      // Try both namespaced and non-namespaced versions for value
-      const valueElements1 = Array.from(channel.getElementsByTagName('podcast:value'));
-      const valueElements2 = Array.from(channel.getElementsByTagName('value'));
-      const allValueElements = [...valueElements1, ...valueElements2];
+      // The channel's own value block only. A deep search also found the
+      // <podcast:value> inside each <item>, so a channel without one took its
+      // first item's split as the album split. Tracks keep their own value below.
+      const valueElement = firstChildElement(channel, ['podcast:value', 'value']);
       
-      console.log(`🔍 Album "${title}": Found ${valueElements1.length} podcast:value and ${valueElements2.length} value elements`);
-      
-      if (allValueElements.length > 0) {
-        const valueElement = allValueElements[0] as Element;
+      if (valueElement) {
         const type = valueElement.getAttribute('type');
         const method = valueElement.getAttribute('method');
         const suggested = valueElement.getAttribute('suggested');
@@ -1168,10 +1174,11 @@ export class RSSParser {
         if (chaptersUrl && chaptersType === 'application/json') {
           try {
             // Fetch chapters JSON
-            const chaptersResponse = await fetch(chaptersUrl);
+            // Guarded fetch: the chapters URL comes from the feed, so it gets the
+            // same private-address, time and size limits as the feed (lib/feed-fetch.ts).
+            const chaptersData: any = await fetchUntrustedJson(chaptersUrl);
             
-            if (chaptersResponse.ok) {
-              const chaptersData = await chaptersResponse.json();
+            if (chaptersData) {
               
               if (chaptersData.chapters && Array.isArray(chaptersData.chapters)) {
                 console.log(`📖 Found ${chaptersData.chapters.length} chapters at channel level`);
@@ -1393,7 +1400,7 @@ export class RSSParser {
                 });
               }
             } else {
-              verboseLog(`⚠️ Failed to fetch chapters JSON: ${chaptersResponse.status}`);
+              verboseLog('⚠️ Chapters JSON was empty');
             }
           } catch (error) {
             verboseLog(`⚠️ Error fetching/parsing chapters from channel level:`, error);
@@ -1511,7 +1518,8 @@ export class RSSParser {
       // Note: The cached album includes paymentRecipients for both album and tracks,
       // which are pre-processed during RSS parsing and stored in the cache for production use
       if (isServer) {
-        RSSCache.set(feedUrl, album, response.headers.get('etag') || undefined);
+        // No ETag: nothing ever sent it back as If-None-Match.
+        RSSCache.set(feedUrl, album);
       }
 
       return album;
@@ -1614,39 +1622,7 @@ export class RSSParser {
 
   static async parsePublisherFeedInfo(feedUrl: string): Promise<{ title?: string; description?: string; artist?: string; coverArt?: string } | null> {
     try {
-      // For server-side fetching, always use direct URLs
-      // For client-side fetching, use the proxy
-      const isServer = typeof window === 'undefined';
-      
-      let response;
-      if (isServer) {
-        // Server-side: fetch directly
-        response = await fetch(feedUrl);
-      } else {
-        // Client-side: use proxy or direct API routes
-        const isApiRoute = feedUrl.startsWith('/api/');
-        const isAlreadyProxied = feedUrl.startsWith('/api/fetch-rss');
-        
-        let proxyUrl: string;
-        if (isApiRoute && !isAlreadyProxied) {
-          // Direct API route (e.g., /api/podcastindex)
-          proxyUrl = feedUrl;
-        } else if (isAlreadyProxied) {
-          // Already proxied through fetch-rss
-          proxyUrl = feedUrl;
-        } else {
-          // External URL, proxy through fetch-rss
-          proxyUrl = `/api/fetch-rss?url=${encodeURIComponent(feedUrl)}`;
-        }
-        
-        response = await fetch(proxyUrl);
-      }
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch publisher feed: ${response.status}`);
-      }
-      
-      const xmlText = await response.text();
+      const xmlText = await RSSParser.fetchFeedXml(feedUrl);
       
       // Ensure xmlText is a string before calling includes
       if (typeof xmlText !== 'string') {
@@ -1730,23 +1706,7 @@ export class RSSParser {
       if (feedUrl === 'iroh-aggregated') {
         console.log('🎵 Loading IROH aggregated feed from Wavlake...');
         // For IROH, we need to fetch the main artist feed and extract music items
-        const isServer = typeof window === 'undefined';
-        
-        let response;
-        if (isServer) {
-          // Server-side: fetch directly
-          response = await fetch('https://wavlake.com/feed/artist/8a9c2e54-785a-4128-9412-737610f5d00a');
-        } else {
-          // Client-side: use proxy
-          const proxyUrl = `/api/fetch-rss?url=${encodeURIComponent('https://wavlake.com/feed/artist/8a9c2e54-785a-4128-9412-737610f5d00a')}`;
-          response = await fetch(proxyUrl);
-        }
-        
-        if (!response.ok) {
-          throw new Error(`Failed to fetch IROH artist feed: ${response.status}`);
-        }
-        
-        const xmlText = await response.text();
+        const xmlText = await RSSParser.fetchFeedXml('https://wavlake.com/feed/artist/8a9c2e54-785a-4128-9412-737610f5d00a');
         
         // Use different XML parsing based on environment
         let xmlDoc: any;
@@ -1805,37 +1765,7 @@ export class RSSParser {
         throw new TypeError('feedUrl must be a string (URL). Received: ' + typeof feedUrl);
       }
       // For regular feeds, use the original logic
-      const isServer = typeof window === 'undefined';
-      
-      let response;
-      if (isServer) {
-        // Server-side: fetch directly
-        response = await fetch(feedUrl);
-      } else {
-        // Client-side: use proxy or direct API routes
-        const isApiRoute = feedUrl.startsWith('/api/');
-        const isAlreadyProxied = feedUrl.startsWith('/api/fetch-rss');
-        
-        let proxyUrl: string;
-        if (isApiRoute && !isAlreadyProxied) {
-          // Direct API route (e.g., /api/podcastindex)
-          proxyUrl = feedUrl;
-        } else if (isAlreadyProxied) {
-          // Already proxied through fetch-rss
-          proxyUrl = feedUrl;
-        } else {
-          // External URL, proxy through fetch-rss
-          proxyUrl = `/api/fetch-rss?url=${encodeURIComponent(feedUrl)}`;
-        }
-        
-        response = await fetch(proxyUrl);
-      }
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch publisher feed: ${response.status}`);
-      }
-      
-      const xmlText = await response.text();
+      const xmlText = await RSSParser.fetchFeedXml(feedUrl);
       
       // Ensure xmlText is a string before calling includes
       if (typeof xmlText !== 'string') {
