@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateProxyTarget, isAllowedMediaType } from '@/lib/proxy-guard';
+import {
+  validateProxyTarget,
+  fetchProxyTarget,
+  forwardableLength,
+  isAllowedMediaType,
+  MEDIA_LIMITS,
+} from '@/lib/proxy-guard';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -31,8 +37,9 @@ export async function GET(request: NextRequest) {
       }
     }
     
-    // Rejects non-HTTPS targets and anything pointing at loopback or a private
-    // network — this route fetches on the server's behalf.
+    // Rejects non-HTTPS targets and private addresses as written. The fetch
+    // below checks again after DNS and on every redirect (op3.dev tracks
+    // redirect to their host).
     const target = validateProxyTarget(audioUrl);
     if (!target.ok) {
       return NextResponse.json({ error: target.error }, { status: target.status });
@@ -41,26 +48,28 @@ export async function GET(request: NextRequest) {
     // Get the Range header for partial content requests (streaming)
     const rangeHeader = request.headers.get('range');
     
-    // Fetch the audio file
-    const fetchOptions: RequestInit = {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; PodtardsAudioProxy/1.0)',
-        'Accept': 'audio/*',
-      },
-      signal: AbortSignal.timeout(30000), // 30 second timeout
+    const upstreamHeaders: Record<string, string> = {
+      'User-Agent': 'Mozilla/5.0 (compatible; PodtardsAudioProxy/1.0)',
+      'Accept': 'audio/*',
     };
 
     // Add Range header if present (for seeking/streaming)
     if (rangeHeader) {
-      fetchOptions.headers = {
-        ...fetchOptions.headers,
-        'Range': rangeHeader,
-      };
+      upstreamHeaders['Range'] = rangeHeader;
     }
 
-    const response = await fetch(audioUrl, fetchOptions);
+    // Fetch the validated URL through the shared guard: 30 s over connection,
+    // redirects and body, and a size limit per response.
+    const fetched = await fetchProxyTarget(target.url, MEDIA_LIMITS.audio, {
+      headers: upstreamHeaders,
+    });
+    if (!fetched.ok) {
+      return NextResponse.json({ error: fetched.error }, { status: fetched.status });
+    }
+    const response = fetched.response;
 
     if (!response.ok) {
+      await fetched.body?.cancel().catch(() => {});
       return NextResponse.json({ 
         error: `Failed to fetch audio: ${response.status} ${response.statusText}` 
       }, { status: response.status });
@@ -76,6 +85,7 @@ export async function GET(request: NextRequest) {
         allowOctetStream: true,
       })
     ) {
+      await fetched.body?.cancel().catch(() => {});
       return NextResponse.json(
         { error: 'Upstream response is not an audio file' },
         { status: 415 }
@@ -83,12 +93,13 @@ export async function GET(request: NextRequest) {
     }
 
     const contentType = upstreamContentType || 'audio/mpeg';
-    const contentLength = response.headers.get('content-length');
+    const contentLength = forwardableLength(response);
     const contentRange = response.headers.get('content-range');
     const acceptRanges = response.headers.get('accept-ranges') || 'bytes';
 
-    // Create response with proper headers for audio streaming
-    const proxyResponse = new NextResponse(response.body, {
+    // Create response with proper headers for audio streaming. The body is
+    // counted on the way through and stops at the size limit.
+    const proxyResponse = new NextResponse(fetched.body, {
       status: response.status,
       headers: {
         'Content-Type': contentType,
@@ -113,11 +124,10 @@ export async function GET(request: NextRequest) {
     return proxyResponse;
 
   } catch (error) {
+    // Fetch failures are answered above. Do not echo the message: it can name
+    // the upstream host.
     console.error('❌ Audio proxy error:', error, 'URL:', audioUrl);
-    return NextResponse.json({ 
-      error: 'Failed to proxy audio file',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to proxy audio file' }, { status: 500 });
   }
 }
 
