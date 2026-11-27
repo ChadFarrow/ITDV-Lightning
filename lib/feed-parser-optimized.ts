@@ -1,5 +1,6 @@
 import { logger } from './logger';
 import { withRetry, createNetworkError, createTimeoutError } from './error-utils';
+import { USER_AGENT } from './user-agent';
 
 export interface FeedItem {
   id: string;
@@ -87,7 +88,7 @@ export class FeedParser {
             const response = await fetch(url, {
               signal: controller.signal,
               headers: {
-                'User-Agent': 'Mozilla/5.0 (compatible; RSS-Parser/1.0)'
+                'User-Agent': USER_AGENT
               }
             });
             

@@ -8,7 +8,9 @@
 // told "success". The last check uses a real socket to a host that cannot exist: with
 // nostr-tools 2.25.2's relay code that recursed until the stack overflowed on Node 22.
 
+import http from 'node:http';
 import { publishToRelays } from '../lib/relay-publish.ts';
+import { USER_AGENT } from '../lib/user-agent.js';
 
 function fail(message) {
   console.error(`❌ ${message}`);
@@ -98,4 +100,18 @@ const reply = (ws, msg) => ws.onmessage?.({ data: JSON.stringify(msg) });
   const r = await publishToRelays(event, ['wss://relay.nonexistent.invalid/'], { timeoutMs: 8000 });
   check(r.accepted.length === 0 && r.failed.length === 1, `the unreachable relay fails cleanly, got ${JSON.stringify(r)}`);
   console.log(`✅ real socket on Node ${process.version}: unreachable relay reported as "${r.failed[0].reason}", no stack overflow`);
+}
+
+{
+  // The real socket's upgrade request names the app (lib/user-agent.js), not Node's bare "node".
+  // A local server reads the header and drops the connection; no event is accepted.
+  let agent = null;
+  const server = http.createServer();
+  server.on('upgrade', (req, socket) => { agent = req.headers['user-agent'] ?? '(none)'; socket.destroy(); });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const r = await publishToRelays(event, [`ws://127.0.0.1:${server.address().port}/`], { timeoutMs: 2000 });
+  server.close();
+  check(r.accepted.length === 0 && r.failed.length === 1, `the dropped upgrade is reported as a failure, got ${JSON.stringify(r)}`);
+  check(agent === USER_AGENT, `the WebSocket upgrade sends User-Agent ${USER_AGENT}, got ${agent}`);
+  console.log(`✅ real socket: the upgrade request sends User-Agent ${agent}`);
 }

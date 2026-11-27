@@ -48,8 +48,8 @@ export async function GET(request: NextRequest) {
     // Get the Range header for partial content requests (streaming)
     const rangeHeader = request.headers.get('range');
     
+    // fetchProxyTarget adds the User-Agent.
     const upstreamHeaders: Record<string, string> = {
-      'User-Agent': 'Mozilla/5.0 (compatible; PodtardsAudioProxy/1.0)',
       'Accept': 'audio/*',
     };
 

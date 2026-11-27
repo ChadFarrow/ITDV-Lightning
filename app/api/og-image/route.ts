@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import sharp from 'sharp';
+import { USER_AGENT } from '@/lib/user-agent';
 
 export async function GET(request: NextRequest) {
   try {
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
     // Fetch the image with timeout
     const response = await fetch(imageUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; OGImageProxy/1.0)',
+        'User-Agent': USER_AGENT,
         'Accept': 'image/*',
       },
       signal: AbortSignal.timeout(30000), // 30 second timeout

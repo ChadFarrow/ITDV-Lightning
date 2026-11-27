@@ -1,4 +1,5 @@
 import type { Event } from 'nostr-tools';
+import { USER_AGENT } from './user-agent.js';
 
 /**
  * Publish one signed event to each relay and wait for the relay's OK, within a
@@ -39,7 +40,15 @@ export interface RelayPublishOptions {
 
 const DEFAULT_TIMEOUT_MS = 5000;
 
-const openWebSocket = (url: string): RelaySocket => new WebSocket(url) as unknown as RelaySocket;
+/**
+ * Node's WebSocket (undici) takes an init object with `headers` as its second
+ * argument; the DOM typings know only protocols, hence the cast. Without it the
+ * upgrade request says `User-Agent: node`. Server only: a browser would read the
+ * object as a protocol name and throw.
+ */
+type NodeWebSocket = new (url: string, init: { headers: Record<string, string> }) => RelaySocket;
+const openWebSocket = (url: string): RelaySocket =>
+  new (WebSocket as unknown as NodeWebSocket)(url, { headers: { 'User-Agent': USER_AGENT } });
 
 function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error);

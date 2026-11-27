@@ -3,6 +3,7 @@
  * Used on Vercel where the filesystem is read-only.
  * Commits trigger auto-deploy via Vercel's GitHub integration.
  */
+import { USER_AGENT } from './user-agent';
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const REPO_OWNER = 'ChadFarrow';
@@ -36,6 +37,7 @@ async function githubFetch(endpoint: string, options: RequestInit = {}): Promise
       'Accept': 'application/vnd.github.v3+json',
       'Content-Type': 'application/json',
       'X-GitHub-Api-Version': '2022-11-28',
+      'User-Agent': USER_AGENT,
       ...options.headers,
     },
   });

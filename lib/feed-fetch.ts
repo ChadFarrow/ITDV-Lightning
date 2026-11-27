@@ -28,6 +28,7 @@
  */
 import { safeFetch } from './safe-fetch';
 import { readCappedText } from './capped-body';
+import { USER_AGENT } from './user-agent';
 
 /** Per request, redirects and body included. Real ITDV feeds answer in well under 2 s. */
 export const FEED_TIMEOUT_MS = 10_000;
@@ -35,8 +36,6 @@ export const FEED_TIMEOUT_MS = 10_000;
 export const FEED_MAX_BYTES = 8 * 1024 * 1024;
 /** A chapters JSON file is a few KB. */
 export const CHAPTERS_MAX_BYTES = 1024 * 1024;
-
-const USER_AGENT = 'ITDV-Lightning/1.0 (+https://itdv.podtards.com)';
 
 export type FeedFetchReason = 'refused' | 'timeout' | 'too-large' | 'http' | 'network';
 

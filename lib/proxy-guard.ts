@@ -26,6 +26,7 @@
  * Server only: `safe-fetch.ts` imports `node:dns/promises`.
  */
 import { assertSafeFetchUrl, safeFetch } from './safe-fetch';
+import { USER_AGENT } from './user-agent';
 
 /**
  * IPv6 multicast (ff00::/8). The shared list in `safe-fetch.ts` has no rule for
@@ -165,6 +166,8 @@ export function capStream(
  * - `Accept-Encoding: identity`: media is already compressed, and a
  *   compressed upstream would make the forwarded `Content-Length` wrong and let
  *   a small download expand past the cap's intent.
+ * - `User-Agent` is the app's own (`lib/user-agent.js`) on every request,
+ *   the HEAD probes too; a caller's `User-Agent` header replaces it.
  *
  * Failures come back as one fixed message per kind, never the underlying
  * error: those name the host and tell "does not resolve" from "resolves to a
@@ -179,7 +182,7 @@ export async function fetchProxyTarget(
   try {
     response = await safeFetch(String(url), {
       method: init.method,
-      headers: { ...init.headers, 'Accept-Encoding': 'identity' },
+      headers: { 'User-Agent': USER_AGENT, ...init.headers, 'Accept-Encoding': 'identity' },
       signal: AbortSignal.timeout(limits.timeoutMs),
     });
   } catch (error) {

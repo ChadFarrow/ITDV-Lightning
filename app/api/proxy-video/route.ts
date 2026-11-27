@@ -100,12 +100,9 @@ export async function GET(request: NextRequest) {
     // SplitKit returns HTML with a video element that loads the stream dynamically
     if (videoUrl.includes('thesplitkit.com') && !videoUrl.includes('.m3u8')) {
       try {
-        // Fetch the HTML page (15 s, 2 MB, through the shared guard)
-        const page = await fetchProxyTarget(videoUrl, MEDIA_LIMITS.page, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (compatible; VideoProxy/1.0)',
-          }
-        });
+        // Fetch the HTML page (15 s, 2 MB, through the shared guard, which
+        // also sets the User-Agent)
+        const page = await fetchProxyTarget(videoUrl, MEDIA_LIMITS.page);
         
         if (page.ok && !page.response.ok) {
           await page.body?.cancel().catch(() => {});
@@ -175,8 +172,8 @@ export async function GET(request: NextRequest) {
     // Fetch the video/manifest file
     // Forward Range header if present (for partial content requests)
     const rangeHeader = request.headers.get('range');
+    // fetchProxyTarget adds the User-Agent.
     const fetchHeaders: Record<string, string> = {
-      'User-Agent': 'DoerfelVerse/1.0 (Video Proxy)',
       'Accept': 'application/vnd.apple.mpegurl, video/*, */*',
       'Origin': 'https://re.podtards.com',
       'Referer': 'https://re.podtards.com/',
