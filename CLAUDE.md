@@ -228,6 +228,31 @@ loopback, a private chapters URL, and the channel scoping. It uses a temporary `
 `data/rss-cache/` keeps parsed feeds for 30 minutes, so a test that writes there reads its own old
 results on the next run.
 
+### One User-Agent for every server request (`lib/user-agent.js`)
+Every request that server code or a script sends to another host says
+`ITDV-Lightning/<package.json version> (+https://itdv.podtards.com)` (Chad, 2026-11-27): the app's own
+name, the version from `package.json` (today the odd `1.2a587df`, unchanged since the first commit) and the
+live site. No e-mail, no browser imitation. Until then the proxies sent names copied from other apps
+(`Mozilla/5.0 (compatible; PodtardsImageProxy/1.0)`, `DoerfelVerse/1.0 (Video Proxy)`, `OGImageProxy`,
+`RSS-Parser`, `HPM-StaticBuilder`, and `re.podtards.com` to Podcast Index), and `lib/github.ts`,
+`admin/extract-colors`, `health`, the `/publisher/[name]` page and the relay WebSocket sent Node's bare `node`. Every host they reach
+answered the same status and type to the old and the new name (probed 2026-11-27, PR body).
+
+- `fetchProxyTarget` sets it on every proxy request, redirect hops and the SplitKit HEAD probes included.
+  The routes do not set their own.
+- `lib/relay-publish.ts` passes it as undici's WebSocket `headers` option (Node only; a browser would throw).
+- The file is CommonJS so the Next build, the `tsx` checks and the plain-`node` scripts all load it. It reads
+  `package.json`, so keep it out of client code. Node's native TS mode (`check-relay-publish.mjs`) needs
+  the explicit `./user-agent.js` import.
+- Browser fetches keep the browser's own header; code cannot set it there.
+- `/api/proxy-video` keeps `Origin`/`Referer: https://re.podtards.com` on the Cloudflare Stream fetch. Those are not
+  User-Agent strings and were left as they were.
+
+`npx tsx scripts/check-user-agent.ts` asserts the form, the version and the link, and fails on any other
+`'User-Agent': '…'` literal in `app/`, `lib/`, `scripts/`, `hooks/`, `utils/` and `middleware.ts`.
+`check-media-proxy.ts`, `check-feed-fetch.ts` and `check-relay-publish.mjs` assert the header that the
+local upstream receives.
+
 ### Next is pinned to 15.5.28 on purpose (`package.json`)
 Next 15.5.29 (its fix for GHSA-pc58-hwjq-p385) strips `content-length`, `content-encoding` and
 `transfer-encoding` from **every** route-handler response. `/api/proxy-audio` then answered a Range
@@ -479,6 +504,8 @@ npx tsx scripts/check-streams.ts              # Streams tab: record kind, ITDV f
 npx tsx scripts/check-feed-fetch.ts           # feed fetch: private-address guard, time/size limits, channel scoping
 npx tsx scripts/check-media-proxy.ts          # media proxies: address guard, redirects, time/size limits, media type, HLS chain
 npx tsx scripts/check-hls-rewrite.ts          # HLS playlist rewrite: every link form, keys, CRLF, exact query round trip
+npx tsx scripts/check-user-agent.ts           # the one User-Agent: form, version, link; no other UA literal
+node --experimental-strip-types scripts/check-relay-publish.mjs   # relay publish: OKs, timeouts, the upgrade's User-Agent
 node scripts/e2e-media-proxy.mjs <base-url>   # browser: proxied art, the big GIF, two tracks, 3 Cloudflare videos play (needs internet)
 STREAMS_TEST_DB=1 npx tsx scripts/check-streams-store.ts   # Helipad store, on a LOCAL database
 STREAMS_TEST_DB=1 npx tsx scripts/check-webhook.ts         # webhook tokens, filter, 503s, log lines (local DB)

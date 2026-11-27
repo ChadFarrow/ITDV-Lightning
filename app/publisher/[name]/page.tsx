@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import PublisherDetailClient from './PublisherDetailClient';
+import { USER_AGENT } from '@/lib/user-agent';
 
 export async function generateMetadata({ params }: { params: Promise<{ name: string }> }): Promise<Metadata> {
   const { name } = await params;
@@ -20,6 +21,7 @@ async function getPublisherData(publisherName: string) {
     
     // Use albums endpoint
     const response = await fetch(`${baseUrl}/api/albums`, {
+      headers: { 'User-Agent': USER_AGENT },
       next: { revalidate: 300 }, // Cache for 5 minutes
     });
 

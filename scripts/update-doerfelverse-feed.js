@@ -4,10 +4,11 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 const { XMLParser } = require('fast-xml-parser');
+const { USER_AGENT } = require('../lib/user-agent');
 
 async function fetchFeed(url) {
   return new Promise((resolve, reject) => {
-    https.get(url, (res) => {
+    https.get(url, { headers: { 'User-Agent': USER_AGENT } }, (res) => {
       let data = '';
       res.on('data', (chunk) => {
         data += chunk;

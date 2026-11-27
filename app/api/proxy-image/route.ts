@@ -32,9 +32,8 @@ export async function GET(request: NextRequest) {
     const ifNoneMatch = request.headers.get('if-none-match');
     const ifModifiedSince = request.headers.get('if-modified-since');
     
-    // Build headers for upstream request
+    // Build headers for upstream request (fetchProxyTarget adds the User-Agent)
     const upstreamHeaders: HeadersInit = {
-      'User-Agent': 'Mozilla/5.0 (compatible; PodtardsImageProxy/1.0)',
       'Accept': 'image/*',
     };
     

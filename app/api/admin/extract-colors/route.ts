@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isAuthenticatedRequest } from '@/lib/admin-auth';
 import sharp from 'sharp';
+import { USER_AGENT } from '@/lib/user-agent';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -20,7 +21,7 @@ async function extractDominantColor(imageUrl: string): Promise<{
 }> {
   try {
     // Fetch the image
-    const response = await fetch(imageUrl);
+    const response = await fetch(imageUrl, { headers: { 'User-Agent': USER_AGENT } });
     if (!response.ok) {
       throw new Error(`Failed to fetch image: ${response.statusText}`);
     }

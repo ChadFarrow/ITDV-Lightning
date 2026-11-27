@@ -7,6 +7,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { USER_AGENT } = require('../lib/user-agent');
 
 // Handle different working directories in different environments
 function findProjectRoot() {
@@ -56,7 +57,7 @@ async function buildStaticData() {
     // Fetch from the slow but complete RSS parsing endpoint
     const response = await fetch(`${baseUrl}/api/albums`, {
       headers: {
-        'User-Agent': 'HPM-StaticBuilder/1.0'
+        'User-Agent': USER_AGENT
       }
     });
     

@@ -26,6 +26,7 @@ import { GET as imageGET } from '../app/api/proxy-image/route';
 import { GET as audioGET } from '../app/api/proxy-audio/route';
 import { GET as videoGET } from '../app/api/proxy-video/route';
 import { MEDIA_LIMITS, validateProxyTarget } from '../lib/proxy-guard';
+import { USER_AGENT } from '../lib/user-agent';
 
 let bad = 0;
 let passed = 0;
@@ -103,6 +104,7 @@ const server = http.createServer((req, res) => {
   hits.push(u.pathname + u.search);
   const type = u.searchParams.get('type') || 'image/png';
   lastHeaders = req.headers;
+  agents.push([`${req.method} ${u.pathname}`, String(req.headers['user-agent'])]);
   switch (u.pathname) {
     case '/img.png':
       res.writeHead(200, { 'Content-Type': 'image/png', 'Content-Length': PNG.length, ETag: '"v1"' });
@@ -210,6 +212,8 @@ const server = http.createServer((req, res) => {
   }
 });
 let lastHeaders: http.IncomingHttpHeaders = {};
+/** Method, path and User-Agent of every upstream request the routes made. */
+const agents: [string, string][] = [];
 let pageRequests = 0;
 
 // --- the fetch stub -----------------------------------------------------------
@@ -584,6 +588,17 @@ async function main() {
   }
 
   check(stubbed.length === 0, `no request reached a host the guard should have refused (${stubbed.join(', ') || 'none'})`);
+
+  // Every upstream request of the three routes carries the app's User-Agent:
+  // redirect hops, playlist links, the SplitKit page and its HEAD probes too.
+  {
+    const wrong = agents.filter(([, ua]) => ua !== USER_AGENT);
+    const seen = (re: RegExp) => agents.some(([req]) => re.test(req));
+    check(agents.length > 0 && wrong.length === 0,
+      `every upstream request sends User-Agent ${USER_AGENT} (${agents.length} requests, wrong: ${wrong.slice(0, 3).map(([r, ua]) => `${r} ${ua}`).join('; ') || 'none'})`);
+    check(seen(/^GET \/redirect$/) && seen(/^GET \/img\.png$/) && seen(/^GET \/live\/splitkit$/) && seen(/^HEAD \/live\/probe-page\//),
+      'the User-Agent check covers a redirect hop, an image, a SplitKit page and a HEAD probe');
+  }
 
   server.closeAllConnections();
   server.close();

@@ -25,6 +25,7 @@ import { readCappedText, readBytesUpTo } from '../lib/capped-body';
 import { fetchUntrustedText, fetchUntrustedJson, FeedFetchError } from '../lib/feed-fetch';
 import { RSSParser } from '../lib/rss-parser';
 import { RSSCache } from '../lib/rss-cache';
+import { USER_AGENT } from '../lib/user-agent';
 
 let bad = 0;
 let passed = 0;
@@ -244,10 +245,15 @@ const hits: Record<string, number> = {};
 let hugeBytesSent = 0;
 const openTimers: ReturnType<typeof setInterval>[] = [];
 const FEEDS: Record<string, string> = {};
+/** The User-Agent of the last request to each path. */
+const agentOf: Record<string, string> = {};
 
 const server = http.createServer((req, res) => {
   const path = (req.url || '/').split('?')[0];
   hits[path] = (hits[path] || 0) + 1;
+  agentOf[path] = String(req.headers['user-agent']);
+  if (path === '/redirect-public') { res.writeHead(302, { location: `${PUBLIC}/ok` }); res.end(); return; }
+  if (path === '/chapters.json') { res.writeHead(200, { 'content-type': 'application/json' }); res.end('{"chapters":[]}'); return; }
   if (path === '/ok') { res.writeHead(200, { 'content-type': 'application/rss+xml' }); res.end('<rss>ok</rss>'); return; }
   if (path === '/hang') return; // headers never come
   if (path === '/drip') {
@@ -342,6 +348,18 @@ async function section4() {
     const text = await fetchUntrustedText(`${PUBLIC}/ok`);
     text === '<rss>ok</rss>' ? ok('a normal feed is read') : fail(`normal feed read as ${text}`);
   } catch (e) { fail(`normal feed failed: ${(e as Error).message}`); }
+
+  // The app's own User-Agent (lib/user-agent.js), on a feed, on each redirect hop and on a chapters file.
+  agentOf['/ok'] = agentOf['/redirect-public'] = agentOf['/chapters.json'] = '';
+  try {
+    await fetchUntrustedText(`${PUBLIC}/redirect-public`);
+    await fetchUntrustedJson(`${PUBLIC}/chapters.json`);
+  } catch (e) { fail(`User-Agent case failed: ${(e as Error).message}`); }
+  for (const p of ['/redirect-public', '/ok', '/chapters.json']) {
+    agentOf[p] === USER_AGENT
+      ? ok(`${p} got User-Agent ${USER_AGENT}`)
+      : fail(`${p} got User-Agent ${agentOf[p] || '(none)'}, expected ${USER_AGENT}`);
+  }
 
   await expectFailure('slow server, headers never come', () => fetchUntrustedText(`${PUBLIC}/hang`, { timeoutMs: 500 }), 'timeout', 2000);
   await expectFailure('slow server, body drips one byte per 100 ms', () => fetchUntrustedText(`${PUBLIC}/drip`, { timeoutMs: 500 }), 'timeout', 2000);
