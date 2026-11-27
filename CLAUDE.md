@@ -235,7 +235,7 @@ name, the version from `package.json` (today the odd `1.2a587df`, unchanged sinc
 live site. No e-mail, no browser imitation. Until then the proxies sent names copied from other apps
 (`Mozilla/5.0 (compatible; PodtardsImageProxy/1.0)`, `DoerfelVerse/1.0 (Video Proxy)`, `OGImageProxy`,
 `RSS-Parser`, `HPM-StaticBuilder`, and `re.podtards.com` to Podcast Index), and `lib/github.ts`,
-`admin/extract-colors`, `health` and the relay WebSocket sent Node's bare `node`. Every host they reach
+`admin/extract-colors`, `health`, the `/publisher/[name]` page and the relay WebSocket sent Node's bare `node`. Every host they reach
 answered the same status and type to the old and the new name (probed 2026-11-27, PR body).
 
 - `fetchProxyTarget` sets it on every proxy request, redirect hops and the SplitKit HEAD probes included.
